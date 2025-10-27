@@ -97,8 +97,6 @@ void delay(void)
 
 int main(void)
 {
-	char user_data1[] = "Data\n";
-	char user_data2[] = "Data send by PC\n";
 	char receive_data[1000];
 
 	USART2_GPIOInits();
@@ -115,21 +113,7 @@ int main(void)
 	memset(receive_data, 0, sizeof(receive_data));
 	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
 
-	while(1)
-	{
-		USART_SendData(&USART2Handle,(uint8_t *)user_data1, (uint32_t)strlen(user_data1));
-		memset(receive_data, 0, sizeof(receive_data));
-		//USART_ReceiveDataUntil(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n');
-		while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
-		while(rxCmplt == RESET);
-		if(receive_data[0] != 0){
-			USART_SendData(&USART2Handle,(uint8_t *)receive_data, (uint32_t)strlen(user_data2));
-			break;
-		}else
-		{
-			break;
-		}
-	}
+	while(1);
 	return 0;
 }
 
@@ -140,7 +124,7 @@ void USART2_IRQHandler(void)
 
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
-	uint32_t value;
+	uint64_t value = 0;
 	char variable;
 	pUSARTHandle->pRxBuffer += pUSARTHandle->RxCount;
 	uint8_t w_r;
@@ -156,14 +140,16 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 	if(w_r)
 	{
 		value = *(pUSARTHandle->pRxBuffer++);
-		value += (*(pUSARTHandle->pRxBuffer++))*256;
-		value += (*(pUSARTHandle->pRxBuffer++))*65536;
-		value += (*(pUSARTHandle->pRxBuffer++))*16777216;
+		value += *(pUSARTHandle->pRxBuffer++)<<8;
+		value += *(pUSARTHandle->pRxBuffer++)<<16;
+		value += *(pUSARTHandle->pRxBuffer++)<<24;
 		addValue_Variable(variable, value);
 	}else
 	{
-		value = getValue_Variable(variable);
-		USART_SendData(&USART2Handle,(uint8_t *)value, 4);
+		value = (uint64_t)'$';
+		value += getValue_Variable(variable)<<8;
+		value += (uint64_t)'\n' << 40;
+		USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&value), 6);
 	}
 }
 
