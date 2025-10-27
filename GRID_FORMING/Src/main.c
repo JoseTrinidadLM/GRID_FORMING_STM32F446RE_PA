@@ -16,14 +16,119 @@
  ******************************************************************************
  */
 
-#include <stdint.h>
+/*
+ * USART 2->STLINK
+ *
+ * TX->PA2
+ * RX->PA3
+ *
+ */
 
-#if !defined(__SOFT_FP__) && defined(__ARM_FP)
-  #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
-#endif
+#include <string.h>
+#include "stm32f446xx.h"
+
+USART_Handle_t USART2Handle;
+
+uint8_t rxCmplt = RESET;
+
+void USART2_GPIOInits(void)
+{
+	GPIO_Handle_t USART2pin;
+	USART2pin.pGPIOx = GPIOA;
+	USART2pin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+	USART2pin.GPIO_PinConfig.GPIO_PinAltFunMode = 7;
+	USART2pin.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	USART2pin.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	USART2pin.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	//TX
+	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_2;
+	GPIO_Init(&USART2pin);
+	//RX
+	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_3;
+	GPIO_Init(&USART2pin);
+}
+
+void USART2_Inits(USART_Handle_t *pUSART2Handle)
+{
+	pUSART2Handle->pUSARTx = USART2;
+	pUSART2Handle->USARTConfig.USART_Baud = USART_STD_BAUD_115200;
+	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
+	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
+	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
+	pUSART2Handle->USARTConfig.USART_ParityControl = USART_PARITY_DISABLE;
+	pUSART2Handle->USARTConfig.USART_WordLength = USART_WLEN_8BITS;
+
+	USART_Init(pUSART2Handle);
+}
+
+void GPIO_Inits(void)
+{
+	GPIO_Handle_t BTN;
+	BTN.pGPIOx = GPIOC;
+	BTN.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_13;
+	BTN.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IN;
+	BTN.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	BTN.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	GPIO_PClkC(GPIOC,ENABLE);
+	GPIO_Init(&BTN);
+}
+
+void delay(void)
+{
+	for(int x=0; x<5000;x++);
+}
 
 int main(void)
 {
-    /* Loop forever */
-	for(;;);
+	char user_data1[] = "Data\n";
+	char user_data2[] = "Data send by PC\n";
+	char user_data3[] = "Data Receive\n";
+	char user_data4[] = "Interrupt active\n";
+	char receive_data[1000];
+
+	USART2_GPIOInits();
+	USART2_Inits(&USART2Handle);
+	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
+	//User Button
+	GPIO_Inits();
+
+	USART_IRQITConfig(IRQ_NO_USART2,ENABLE);
+	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
+
+	//USART2Handle.TxState = USART_READY;
+	//USART2Handle.RxState = USART_READY;
+
+	while(1)
+	{
+		USART_SendData(&USART2Handle,(uint8_t *)user_data1, (uint32_t)strlen(user_data1));
+		memset(receive_data, 0, sizeof(receive_data));
+		//USART_ReceiveDataUntil(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n');
+		while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
+		while(rxCmplt == RESET);
+		if(receive_data[0] != 0){
+			USART_SendData(&USART2Handle,(uint8_t *)receive_data, (uint32_t)strlen(user_data2));
+			break;
+		}else
+		{
+			break;
+		}
+	}
+	return 0;
+}
+
+void USART2_IRQHandler(void)
+{
+	USART_IRQHandling(&USART2Handle);
+}
+
+void USART_ApplicationEventCallback( USART_Handle_t *pUSARTHandle,uint8_t ApEv)
+{
+   if(ApEv == USART_EVENT_RX_CMPLT)
+   {
+			rxCmplt = SET;
+
+   }else if (ApEv == USART_EVENT_TX_CMPLT)
+   {
+	   ;
+   }
 }
