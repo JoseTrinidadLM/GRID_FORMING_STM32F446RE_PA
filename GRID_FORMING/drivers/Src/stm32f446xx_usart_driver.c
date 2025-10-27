@@ -508,6 +508,7 @@ uint8_t USART_ReceiveDataUntilWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pRxB
 
 	if(rxstate != USART_BUSY_IN_RX)
 	{
+		pUSARTHandle->RxLen = 0;
 		pUSARTHandle->RxCount = 0;
 		pUSARTHandle->RxStopChar = Char;
 		pUSARTHandle->RxStopUntil = ENABLE;
@@ -756,6 +757,7 @@ void USART_IRQHandling(USART_Handle_t *pUSARTHandle)
 			{
 				//disable the rxne
 				receivedByte = 0;
+				pUSARTHandle->RxLen += -pUSARTHandle->RxCount;
 				pUSARTHandle->pUSARTx->CR1 &= ~( 1 << USART_CR1_RXNEIE );
 				pUSARTHandle->RxState = USART_READY;
 				USART_ApplicationEventCallback(pUSARTHandle,USART_EVENT_RX_CMPLT);

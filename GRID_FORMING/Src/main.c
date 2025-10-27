@@ -126,7 +126,7 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
 	uint64_t value = 0;
 	char variable;
-	pUSARTHandle->pRxBuffer += pUSARTHandle->RxCount;
+	pUSARTHandle->pRxBuffer += pUSARTHandle->RxLen;
 	uint8_t w_r;
 	if(*pUSARTHandle->pRxBuffer == '$')
 	{
