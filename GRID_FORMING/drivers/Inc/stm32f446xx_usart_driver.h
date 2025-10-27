@@ -37,6 +37,7 @@ typedef struct
 	uint8_t TxState;
 	uint8_t *pRxBuffer;
 	uint32_t RxCount;
+	uint32_t RxLen;
 	uint8_t RxState;
 	uint8_t RxStopChar;
 	uint8_t RxStopUntil;

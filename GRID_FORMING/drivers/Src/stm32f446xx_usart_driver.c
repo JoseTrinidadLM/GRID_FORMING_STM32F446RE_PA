@@ -488,6 +488,7 @@ uint8_t USART_ReceiveDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pRxBuffer
 
 	if(rxstate != USART_BUSY_IN_RX)
 	{
+		pUSARTHandle->RxLen = Len;
 		pUSARTHandle->RxCount = Len;
 		pUSARTHandle->RxStopUntil = DISABLE;
 		pUSARTHandle->pRxBuffer = pRxBuffer;
@@ -507,6 +508,7 @@ uint8_t USART_ReceiveDataUntilWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pRxB
 
 	if(rxstate != USART_BUSY_IN_RX)
 	{
+		pUSARTHandle->RxCount = 0;
 		pUSARTHandle->RxStopChar = Char;
 		pUSARTHandle->RxStopUntil = ENABLE;
 		pUSARTHandle->pRxBuffer = pRxBuffer;

@@ -29,6 +29,23 @@
 
 USART_Handle_t USART2Handle;
 
+char variables_key[] = {'V','F','H'};
+uint32_t variables_value[3];
+
+uint32_t getValue_Variable(char s)
+{
+	int x;
+	for(x = 0; variables_key[x] == s; x++);
+	return variables_value[x];
+}
+
+void addValue_Variable(char s, uint32_t value)
+{
+	int x;
+	for(x = 0; variables_key[x] == s; x++);
+	variables_value[x] = value;
+}
+
 uint8_t rxCmplt = RESET;
 
 void USART2_GPIOInits(void)
@@ -82,8 +99,6 @@ int main(void)
 {
 	char user_data1[] = "Data\n";
 	char user_data2[] = "Data send by PC\n";
-	char user_data3[] = "Data Receive\n";
-	char user_data4[] = "Interrupt active\n";
 	char receive_data[1000];
 
 	USART2_GPIOInits();
@@ -97,6 +112,8 @@ int main(void)
 
 	//USART2Handle.TxState = USART_READY;
 	//USART2Handle.RxState = USART_READY;
+	memset(receive_data, 0, sizeof(receive_data));
+	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
 
 	while(1)
 	{
@@ -121,12 +138,40 @@ void USART2_IRQHandler(void)
 	USART_IRQHandling(&USART2Handle);
 }
 
-void USART_ApplicationEventCallback( USART_Handle_t *pUSARTHandle,uint8_t ApEv)
+void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
+{
+	uint32_t value;
+	char variable;
+	pUSARTHandle->pRxBuffer += pUSARTHandle->RxCount;
+	uint8_t w_r;
+	if(*pUSARTHandle->pRxBuffer == '$')
+	{
+		w_r = ENABLE;
+	}else if(*pUSARTHandle->pRxBuffer == '%')
+	{
+		w_r = DISABLE;
+	}
+	pUSARTHandle->pRxBuffer++;
+	variable = *pUSARTHandle->pRxBuffer;
+	if(w_r)
+	{
+		value = *(pUSARTHandle->pRxBuffer++);
+		value += (*(pUSARTHandle->pRxBuffer++))*256;
+		value += (*(pUSARTHandle->pRxBuffer++))*65536;
+		value += (*(pUSARTHandle->pRxBuffer++))*16777216;
+		addValue_Variable(variable, value);
+	}else
+	{
+		value = getValue_Variable(variable);
+		USART_SendData(&USART2Handle,(uint8_t *)value, 4);
+	}
+}
+
+void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
 {
    if(ApEv == USART_EVENT_RX_CMPLT)
    {
-			rxCmplt = SET;
-
+	   USART_DecodeRX(pUSARTHandle);
    }else if (ApEv == USART_EVENT_TX_CMPLT)
    {
 	   ;
