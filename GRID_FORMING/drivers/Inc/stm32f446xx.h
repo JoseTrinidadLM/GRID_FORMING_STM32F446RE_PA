@@ -108,6 +108,11 @@
 
 /*******************Peripheral Register Definition Structures*********************/
 
+/*
+ * Peripheral register definition structure for GPIO
+ */
+
+
 typedef struct
 {
 	__vo uint32_t MODER;
@@ -120,6 +125,10 @@ typedef struct
 	__vo uint32_t LCKR;
 	__vo uint32_t AFR[2];
 }GPIO_RegDef_t;
+
+/*
+ * Peripheral register definition structure for RCC
+ */
 
 typedef struct
 {
@@ -278,7 +287,7 @@ typedef struct
 #define SYSCFG	((SYSCFG_RegDef_t*)SYSCFG_BASE_ADDR)
 
 /*
- * Peripheral definition for SPI
+ * Peripheral definition for SPIx
  */
 
 #define SPI1	((SPI_RegDef_t*)SPI1_BASE_ADDR)
@@ -287,7 +296,7 @@ typedef struct
 #define SPI4	((SPI_RegDef_t*)SPI4_BASE_ADDR)
 
 /*
- * Peripheral definition for SPI
+ * Peripheral definition for I2Cx
  */
 
 #define I2C1	((I2C_RegDef_t*)I2C1_BASE_ADDR)
@@ -295,7 +304,7 @@ typedef struct
 #define I2C3	((I2C_RegDef_t*)I2C3_BASE_ADDR)
 
 /*
- * Peripheral definition for USART
+ * Peripheral definition for USARTx
  */
 
 #define USART1	((USART_RegDef_t*)USART1_BASE_ADDR)
@@ -304,6 +313,10 @@ typedef struct
 #define UART4	((USART_RegDef_t*)UART4_BASE_ADDR)
 #define UART5	((USART_RegDef_t*)UART5_BASE_ADDR)
 #define USART6	((USART_RegDef_t*)USART6_BASE_ADDR)
+
+/*****************************************************
+ ********Clock Control Macros for Peripherals*********
+ *****************************************************/
 
 /*
  * Clock Enable Macros for GPIOx
@@ -347,7 +360,7 @@ typedef struct
 #define USART6_PCLK_EN() (RCC->APB2ENR |= (1<<5))
 
 /*
- * Clock Enable Macros for SYSCFGx
+ * Clock Enable Macros for SYSCFG
  */
 
 #define SYSCFG_PCLK_EN() (RCC->APB2ENR |= (1<<14))
@@ -394,10 +407,14 @@ typedef struct
 #define USART6_PCLK_DI() (RCC->APB2ENR &= ~(1<<5))
 
 /*
- * Clock Disable Macros for SYSCFGx
+ * Clock Disable Macros for SYSCFG
  */
 
 #define SYSCFG_PCLK_DI() (RCC->APB2ENR &= ~(1<<14))
+
+/*********************************************
+ ********Reset Macros for Peripherals*********
+ *********************************************/
 
 /*
  * Macros to reset GPIOx peripherals
@@ -449,9 +466,14 @@ typedef struct
 #define UART5_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<20)); (RCC->APB1RSTR &= ~(1<<20));}while(0)
 #define USART6_REG_RESET()	do{ (RCC->APB2RSTR |= (1<<5)); (RCC->APB2RSTR &= ~(1<<5));}while(0)
 
+/*****************************************
+ ********Interrupt ReQuest Macros*********
+ *****************************************/
+
+/***IRQ Numbers of STM32F446RE MCU***/
 
 /*
- * IRQ Numbers of STM32F446RE MCU
+ * Interrupt Request Macros for EXTI
  */
 
 #define IRQ_NO_EXTI0		6
@@ -462,9 +484,17 @@ typedef struct
 #define IRQ_NO_EXTI9_5		23
 #define IRQ_NO_EXTI5_10		40
 
+/*
+ * Interrupt Request Macros for SPIx
+ */
+
 #define IRQ_NO_SPI1			35
 #define IRQ_NO_SPI2			36
 #define IRQ_NO_SPI3			51
+
+/*
+ * Interrupt Request Macros for I2Cx
+ */
 
 #define IRQ_NO_I2C1_EV		31
 #define IRQ_NO_I2C1_ER		32
@@ -473,12 +503,20 @@ typedef struct
 #define IRQ_NO_I2C3_EV		72
 #define IRQ_NO_I2C3_ER		73
 
+/*
+ * Interrupt Request Macros for USARTx
+ */
+
 #define IRQ_NO_USART1		37
 #define IRQ_NO_USART2		38
 #define IRQ_NO_USART3		39
 #define IRQ_NO_UART4		52
 #define IRQ_NO_UART5		53
 #define IRQ_NO_USART6		71
+
+/*
+ * Interrupt Request Possibles Priorities
+ */
 
 #define NVIC_IRQ_PRI0	0
 #define NVIC_IRQ_PRI1	1
@@ -497,16 +535,9 @@ typedef struct
 #define NVIC_IRQ_PRI14	14
 #define NVIC_IRQ_PRI15	15
 
-///
-
-#define ENABLE 1
-#define DISABLE 0
-#define SET ENABLE
-#define RESET DISABLE
-#define GPIO_PIN_SET SET
-#define GPIO_PIN_RESET RESET
-#define FLAG_RESET	RESET
-#define FLAG_SET	SET
+/************************************************
+ ********Bits definition for Peripherals*********
+ ************************************************/
 
 /*
  * Bits definition of SPI peripheral
@@ -660,9 +691,22 @@ typedef struct
 #define USART_GTPR_PSC		0
 #define USART_GTPR_GT		8
 
-/*
- * Bits definition of UART peripheral
- */
+/***********************
+ ********Others*********
+ ***********************/
+
+/**Boolean Macros**/
+
+#define ENABLE 1
+#define DISABLE 0
+#define SET ENABLE
+#define RESET DISABLE
+#define GPIO_PIN_SET SET
+#define GPIO_PIN_RESET RESET
+#define FLAG_RESET	RESET
+#define FLAG_SET	SET
+
+/**Include drivers headers**/
 
 #include "stm32f446xx_gpio_driver.h"
 //#include "stm32f446xx_spi_driver.h"
