@@ -161,6 +161,8 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 
 		USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 7);
 	}
+
+	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
 }
 
 void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
