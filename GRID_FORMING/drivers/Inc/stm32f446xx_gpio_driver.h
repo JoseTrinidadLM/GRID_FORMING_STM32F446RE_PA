@@ -10,6 +10,10 @@
 
 #include "stm32f446xx.h"
 
+/*
+ * Configuration Structure for GPIOx
+ */
+
 typedef struct
 {
 	uint8_t GPIO_PinNumber;
@@ -19,6 +23,10 @@ typedef struct
 	uint8_t GPIO_PinOPType;
 	uint8_t GPIO_PinAltFunMode;
 }GPIO_PinConfig_t;
+
+/*
+ * Handling Structure for GPIO
+ */
 
 typedef struct
 {
@@ -46,6 +54,7 @@ typedef struct
 #define GPIO_PIN_NO_13	13
 #define GPIO_PIN_NO_14	14
 #define GPIO_PIN_NO_15	15
+
 /*
  * GPIO pin possible modes
  */
@@ -83,7 +92,7 @@ typedef struct
 #define GPIO_PD			2
 
 /*
- *		API
+ * Predefinitions of APIs
  *
  */
 
@@ -104,19 +113,19 @@ void GPIO_DeInit(GPIO_RegDef_t *pGPIOx);
  * Data read and write
  */
 
-uint8_t GPIO_ReadFromInputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber);
-uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx);
-void GPIO_WritetoOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber, uint8_t Value);
-void GPIO_WritetoOutputPort(GPIO_RegDef_t *pGPIOx, uint16_t Value);
-void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber);
+uint8_t GPIO_ReadFromInputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber); 				//Read from single Pin
+uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx);									//Read entire Port
+void GPIO_WritetoOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber, uint8_t Value);	//Write to single Pin
+void GPIO_WritetoOutputPort(GPIO_RegDef_t *pGPIOx, uint16_t Value);						//Write to entire Port
+void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber);					//Toggle single Pin
 
 /*
- * IRQ Configuration and ISR handling
+ * IRQ Configuration and ISR handling for GPIO
  */
 
-void GPIO_IRQITConfig(uint8_t IRQNumber, uint8_t EnorDi);
-void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);
-void GPIO_IRQHandling(uint8_t PinNumber);
+void GPIO_IRQITConfig(uint8_t IRQNumber, uint8_t EnorDi);				//Interrupt Request Configuration
+void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);	//Interrupt Request Priority
+void GPIO_IRQHandling(uint8_t PinNumber);								//Interrupt Request Handling
 
 
 #endif /* INC_STM32F446XX_GPIO_DRIVER_H_ */
