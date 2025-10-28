@@ -32,17 +32,20 @@ USART_Handle_t USART2Handle;
 char variables_key[] = {'V','F','H'};
 uint32_t variables_value[3];
 
+char data1[] = "Test data\n";
+char receive_data[1000];
+
 uint32_t getValue_Variable(char s)
 {
 	int x;
-	for(x = 0; variables_key[x] == s; x++);
+	for(x = 0; variables_key[x] != s; x++);
 	return variables_value[x];
 }
 
 void addValue_Variable(char s, uint32_t value)
 {
 	int x;
-	for(x = 0; variables_key[x] == s; x++);
+	for(x = 0; variables_key[x] != s; x++);
 	variables_value[x] = value;
 }
 
@@ -97,8 +100,6 @@ void delay(void)
 
 int main(void)
 {
-	char receive_data[1000];
-
 	USART2_GPIOInits();
 	USART2_Inits(&USART2Handle);
 	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
@@ -124,9 +125,10 @@ void USART2_IRQHandler(void)
 
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
-	uint64_t value = 0;
+	uint8_t message[7];
+	uint32_t value;
 	char variable;
-	pUSARTHandle->pRxBuffer += pUSARTHandle->RxLen;
+	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
 	uint8_t w_r;
 	if(*pUSARTHandle->pRxBuffer == '$')
 	{
@@ -137,6 +139,8 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 	}
 	pUSARTHandle->pRxBuffer++;
 	variable = *pUSARTHandle->pRxBuffer;
+	value = getValue_Variable(variable);
+	pUSARTHandle->pRxBuffer++;
 	if(w_r)
 	{
 		value = *(pUSARTHandle->pRxBuffer++);
@@ -146,10 +150,16 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 		addValue_Variable(variable, value);
 	}else
 	{
-		value = (uint64_t)'$';
-		value += getValue_Variable(variable)<<8;
-		value += (uint64_t)'\n' << 40;
-		USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&value), 6);
+		value = getValue_Variable(variable);
+		message[0] = (uint64_t)'$';
+		message[1] = variable;
+		message[2] = (value & 0xFF);
+		message[3] = ((value >> 8)& 0xFF);
+		message[4] = ((value >> 16)& 0xFF);
+		message[5] = ((value >> 24)& 0xFF);
+		message[6] = (uint64_t)'\n';
+
+		USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 7);
 	}
 }
 
