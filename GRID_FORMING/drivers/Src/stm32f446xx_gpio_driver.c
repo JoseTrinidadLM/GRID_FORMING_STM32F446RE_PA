@@ -99,7 +99,7 @@ void GPIO_PClkC(GPIO_RegDef_t *pGPIOx, uint8_t EnorDi)
  *
  * @brief			-Initialize variables for the given GPIO port
  *
- * @param[in]		-Structure of the GPIO port
+ * @param[in]		-Handling Structure of the GPIO port
  *
  * @return			-none
  *
@@ -321,53 +321,41 @@ void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber)
  */
 
 /*
- * @fn				-
+ * @fn				-GPIO_IRQITConfig
  *
- * @brief			-
+ * @brief			-Enable or Disable NVIC for given Interrupt Request Number
  *
- * @param[in]		-
- * @param[in]		-
- * @param[in]		-
+ * @param[in]		-Interrupt Request Number
+ * @param[in]		-Enable or Disable
  *
- * @return			-
+ * @return			-none
  *
- * @Note			-
+ * @Note			-none
  */
 
 void GPIO_IRQITConfig(uint8_t IRQNumber, uint8_t EnorDi)
 {
 	if(EnorDi == ENABLE)
 	{
-		/*
-		if(IRQNumber <= 31)
-		{
-			*NVIC_ISER0 |= (1<<IRQNumber);
-		}else if(IRQNumber > 31 && IRQNumber<64)
-		{
-			*NVIC_ISER1 |= (1<<IRQNumber%32);
-		}else if(IRQNumber >= 64 && IRQNumber <96)
-		{
-			*NVIC_ISER2 |= (1<<IRQNumber%64);
-		}
-		*/
 		*NVIC_ISER[IRQNumber/32] |= (1<<IRQNumber%32);
 	}else
 	{
-		/*
-		if(IRQNumber <= 31)
-		{
-			*NVIC_ICER0 |= (1<<IRQNumber);
-		}else if(IRQNumber > 31 && IRQNumber<64)
-		{
-			*NVIC_ICER1 |= (1<<IRQNumber%32);
-		}else if(IRQNumber >= 64 && IRQNumber <96)
-		{
-			*NVIC_ICER2 |= (1<<IRQNumber%64);
-		}
-		*/
 		*NVIC_ICER[IRQNumber/32] |= (1<<IRQNumber%32);
 	}
 }
+
+/*
+ * @fn				-GPIO_IRQPriorityConfig
+ *
+ * @brief			-Set priority for given Interrupt Request Number
+ *
+ * @param[in]		-Interrupt Request Number
+ * @param[in]		-Priority
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
 
 void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority)
 {
@@ -378,17 +366,15 @@ void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority)
 }
 
 /*
- * @fn				-
+ * @fn				-GPIO_IRQHandling
  *
- * @brief			-
+ * @brief			-Enable External Interrupt for given GPIO pin Number
  *
- * @param[in]		-
- * @param[in]		-
- * @param[in]		-
+ * @param[in]		-Pin Number
  *
- * @return			-
+ * @return			-none
  *
- * @Note			-
+ * @Note			-none
  */
 
 void GPIO_IRQHandling(uint8_t PinNumber)
