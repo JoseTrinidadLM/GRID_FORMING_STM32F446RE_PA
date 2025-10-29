@@ -2,18 +2,19 @@
  * stm32f446xx.h
  *
  *  Created on: Oct 6, 2025
- *      Author: Isaac Pérez (ShiLiba)
+ *      Author: Isaac Pérez (ShiLiba) & jtlopez
  */
 
 
-#ifndef INC_STM32F446_H_
-#define INC_STM32F446_H_
+#ifndef INC_STM32F446XX_H_
+#define INC_STM32F446XX_H_
 
 #include <stddef.h>
 #include <stdint.h>
 
 #define __vo volatile
 #define __weak __attribute__((weak))
+
 /**********************************************************START: Processor Specific Details***********************************************************/
 /*
  * ARM Cortex Mx Processor NVIC ISERx regirter Address
@@ -60,9 +61,8 @@
 #define NO_PR_BITS_IMPLEMENTED				4
 
 /*
- * base addresses of Flash and SRAM memories
+ * Base ADDR of flash and SRAM memories
  */
-
 
 #define FLASH_BASEADDR					0x08000000U
 #define SRAM1_BASEADDR					0x20000000U
@@ -70,6 +70,7 @@
 #define ROM_BASEADDR					0x1FFF0000U
 #define	SRAM							SRAM1_BASEADDR
 #define FLASH_INTERFACE_BASEADDR		0x40023C00U
+
 /*
  * AHBx and APBx Bus Peripheral base addresses
  */
@@ -81,8 +82,7 @@
 #define AHB2PERIPH_BASEADDR				0x50000000U
 
 /*
- * Base addresses of peripheral which are hanging on AHB1 bus
- * TODO : Complete for all other peripherals
+ * Base ADDR of peripherals on AHB1 bus
  */
 
 #define GPIOA_BASEADDR					(AHB1PERIPH_BASEADDR + 0x0000)
@@ -96,8 +96,7 @@
 #define RCC_BASEADDR					(AHB1PERIPH_BASEADDR + 0x3800)
 
 /*
- * Base addresses of peripheral which are hanging on APB1 bus
- * TODO : Complete for all other peripherals
+ * Base ADDR of peripherals on APB1 bus
  */
 
 #define SPI2_BASEADDR					(APB1PERIPH_BASEADDR + 0x3800)
@@ -111,8 +110,7 @@
 #define I2C3_BASEADDR					(APB1PERIPH_BASEADDR + 0x5C00)
 
 /*
- * Base addresses of peripheral which are hanging on APB2 bus
- * TODO : Complete for all other peripherals
+ * Base ADDR of peripherals on APB2 bus
  */
 
 #define USART1_BASEADDR					(APB2PERIPH_BASEADDR + 0x1000)
@@ -125,6 +123,7 @@
 /*
  * Base addresses of timers
  */
+
 #define TIM1_BASEADDR			(APB2PERIPH_BASEADDR + 0x0000)
 #define TIM2_BASEADDR			(APB1PERIPH_BASEADDR + 0x0000)
 #define TIM3_BASEADDR			(APB1PERIPH_BASEADDR + 0x0400)
@@ -143,21 +142,23 @@
 /*
  *  Base addresses of DMA
  */
+
 #define DMA1_BASEADDR			(AHB1PERIPH_BASEADDR + 0x6000)
 #define DMA2_BASEADDR			(AHB1PERIPH_BASEADDR + 0x6400)
 
 /*
  *  Base addresses of ADC
  */
+
 #define ADC1_BASEADDR			(APB2PERIPH_BASEADDR + 0x2000)
 #define ADC2_BASEADDR			(APB2PERIPH_BASEADDR + 0x2100)
 #define ADC3_BASEADDR			(APB2PERIPH_BASEADDR + 0x2200)
 
-/**************************************peripheral register definition structures*******************************************/
+/*******************Peripheral Register Definition Structures*********************/
 
 
 /*
- *  peripheral register definition structure for GPIO
+ * Peripheral register definition structure for GPIO
  */
 
 typedef struct
@@ -174,7 +175,7 @@ typedef struct
 } GPIO_RegDef_t;
 
 /*
- *  peripheral register definition structure for RCC
+ * Peripheral register definition structure for RCC
  */
 
 typedef struct{
@@ -216,7 +217,7 @@ typedef struct{
 } RCC_RegDef_t;
 
 /*
- *  peripheral register definition structure for EXTI
+ * Peripheral register definition structure for EXTI
  */
 
 typedef struct
@@ -230,7 +231,7 @@ typedef struct
 } EXTI_RegDef_t;
 
 /*
- *  peripheral register definition structure for SYSCFG
+ * Peripheral register definition structure for SYSCFG
  */
 
 typedef struct
@@ -245,7 +246,7 @@ typedef struct
 } SYSCFG_RegDef_t;
 
 /*
- *  peripheral register definition structure for TIMx
+ * Peripheral register definition structure for TIMx
  */
 
 typedef struct
@@ -274,8 +275,9 @@ typedef struct
 } TIM_RegDef_t;
 
 /*
- *  peripheral register definition structure for FLASH
+ * Peripheral register definition structure for FLASH
  */
+
 typedef struct
 {
 	__vo uint32_t ACR;					//Flash access control register
@@ -287,7 +289,7 @@ typedef struct
 } FLASH_RegDef_t;
 
 /*
- *  register definition structure for Streams
+ * Peripheral register definition structure for Streams
  */
 
 typedef struct
@@ -301,8 +303,9 @@ typedef struct
 } DMA_Stream_RegDef_t;
 
 /*
- *  peripheral register definition structure for DMA
+ * Peripheral register definition structure for DMA
  */
+
 typedef struct
 {
 	__vo uint32_t LISR;					//DMA low interrupt status register
@@ -314,8 +317,9 @@ typedef struct
 
 
 /*
- *  register definition structure for ADC
+ * Peripheral register definition structure for ADC
  */
+
 typedef struct
 {
 	__vo uint32_t SR;					//ADC status register
@@ -344,7 +348,42 @@ typedef struct
 } ADC_RegDef_t;
 
 /*
- * Peripheral register definition structure for UART
+ * Peripheral register definition structure for SPI
+ */
+
+typedef struct
+{
+	__vo uint32_t CR1;
+	__vo uint32_t CR2;
+	__vo uint32_t SR;
+	__vo uint32_t DR;
+	__vo uint32_t CRCPR;
+	__vo uint32_t RXCRCR;
+	__vo uint32_t TXCRCR;
+	__vo uint32_t I2SCFGR;
+	__vo uint32_t I2SPR;
+}SPI_RegDef_t;
+
+/*
+ * Peripheral register definition structure for I2C
+ */
+
+typedef struct
+{
+	__vo uint32_t CR1;
+	__vo uint32_t CR2;
+	__vo uint32_t OAR1;
+	__vo uint32_t OAR2;
+	__vo uint32_t DR;
+	__vo uint32_t SR1;
+	__vo uint32_t SR2;
+	__vo uint32_t CCR;
+	__vo uint32_t TRISE;
+	__vo uint32_t FLTR;
+}I2C_RegDef_t;
+
+/*
+ * Peripheral register definition structure for USART
  */
 
 typedef struct
@@ -358,8 +397,12 @@ typedef struct
 	__vo uint32_t GTPR;
 }USART_RegDef_t;
 
+/***************************************
+ ********Peripheral definitions*********
+ ***************************************/
+
 /*
- *  peripheral definitions (Peripheral base addresses typecasted to xxx_RegDef_t)
+ * Peripheral definition for GPIOx
  */
 
 #define GPIOA 	( (GPIO_RegDef_t*) GPIOA_BASEADDR )
@@ -371,22 +414,58 @@ typedef struct
 #define GPIOG 	( (GPIO_RegDef_t*) GPIOG_BASEADDR )
 #define GPIOH 	( (GPIO_RegDef_t*) GPIOH_BASEADDR )
 
+/*
+ * Peripheral definition for RCC
+ */
+
 #define RCC		( (RCC_RegDef_t*) RCC_BASEADDR )
+
+/*
+ * Peripheral definition for EXTI
+ */
 
 #define EXTI	( (EXTI_RegDef_t*) EXTI_BASEADDR )
 
+/*
+ * Peripheral definition for SYSCFG
+ */
+
 #define SYSCFG	( (SYSCFG_RegDef_t*) SYSCFG_BASEADDR )
+
+/*
+ * Peripheral definition for DMAx
+ */
 
 #define DMA1	( (DMA_RegDef_t*) DMA1_BASEADDR )
 #define DMA2	( (DMA_RegDef_t*) DMA2_BASEADDR )
+
+/*
+ * Peripheral definition for ADCx
+ */
 
 #define ADC1	( (ADC_RegDef_t*) ADC1_BASEADDR )
 #define ADC2	( (ADC_RegDef_t*) ADC2_BASEADDR )
 #define ADC3	( (ADC_RegDef_t*) ADC3_BASEADDR )
 
+/*
+ * Peripheral definition for SPIx
+ */
+
+#define SPI1	((SPI_RegDef_t*)SPI1_BASEADDR)
+#define SPI2	((SPI_RegDef_t*)SPI2_BASEADDR)
+#define SPI3	((SPI_RegDef_t*)SPI3_BASEADDR)
+#define SPI4	((SPI_RegDef_t*)SPI4_BASEADDR)
 
 /*
- * Peripheral definition for USART
+ * Peripheral definition for I2Cx
+ */
+
+#define I2C1	((I2C_RegDef_t*)I2C1_BASEADDR)
+#define I2C2	((I2C_RegDef_t*)I2C2_BASEADDR)
+#define I2C3	((I2C_RegDef_t*)I2C3_BASEADDR)
+
+/*
+ * Peripheral definition for USARTx
  */
 
 #define USART1	((USART_RegDef_t*)USART1_BASEADDR)
@@ -398,8 +477,9 @@ typedef struct
 
 
 /*
- * peripheral definitions for timers
+ * Peripheral definitions for TIMx
  */
+
 #define TIM1			((TIM_RegDef_t*) TIM1_BASEADDR)
 #define TIM2			((TIM_RegDef_t*) TIM2_BASEADDR)
 #define TIM3			((TIM_RegDef_t*) TIM3_BASEADDR)
@@ -418,11 +498,17 @@ typedef struct
 /*
  * Definition for Flash
  */
+
 #define FLASH			((FLASH_RegDef_t*) FLASH_INTERFACE_BASEADDR)
+
+/*****************************************************
+ ********Clock Control Macros for Peripherals*********
+ *****************************************************/
 
 /*
  * Clock Enable Macros for TIMx peripherals
  */
+
 #define TIM1_PCLK_EN()			( RCC->APB2ENR |= (1 << 0))
 
 #define TIM2_PCLK_EN()			( RCC->APB1ENR |= (1 << 0))
@@ -445,6 +531,7 @@ typedef struct
 /*
  * Clock Enable Macros for GPIOx peripherals
  */
+
 #define GPIOA_PCLK_EN() 		( RCC->AHB1ENR |= ( 1 << 0) )
 #define GPIOB_PCLK_EN() 		( RCC->AHB1ENR |= ( 1 << 1) )
 #define GPIOC_PCLK_EN() 		( RCC->AHB1ENR |= ( 1 << 2) )
@@ -457,6 +544,7 @@ typedef struct
 /*
  * Clock Enable Macros for I2Cx peripherals
  */
+
 #define I2C1_PCLK_EN() 			( RCC->APB1ENR |= ( 1 << 21) )
 #define I2C2_PCLK_EN() 			( RCC->APB1ENR |= ( 1 << 22) )
 #define I2C3_PCLK_EN() 			( RCC->APB1ENR |= ( 1 << 23) )
@@ -464,6 +552,7 @@ typedef struct
 /*
  * Clock Enable Macros for SPIx peripherals
  */
+
 #define SPI1_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 12) )
 #define SPI2_PCLK_EN() 			( RCC->APB1ENR |= ( 1 << 14) )
 #define SPI3_PCLK_EN() 			( RCC->APB1ENR |= ( 1 << 15) )
@@ -472,104 +561,39 @@ typedef struct
 /*
  * Clock Enable Macros for USARTx peripherals
  */
+
 #define USART1_PCLK_EN() 		( RCC->APB2ENR |= ( 1 << 4) )
 #define USART2_PCLK_EN() 		( RCC->APB1ENR |= ( 1 << 17) )
 #define USART3_PCLK_EN() 		( RCC->APB1ENR |= ( 1 << 18) )
-#define USART6_PCLK_EN() 		( RCC->APB2ENR |= ( 1 << 5) )
-
-/*
- * Clock Enable Macros for UARTx peripherals
- */
 #define UART4_PCLK_EN() 		( RCC->APB1ENR |= ( 1 << 19) )
 #define UART5_PCLK_EN() 		( RCC->APB1ENR |= ( 1 << 20) )
+#define USART6_PCLK_EN() 		( RCC->APB2ENR |= ( 1 << 5) )
 
 /*
  * Clock Enable Macros for SYSFG peripherals
  */
+
 #define SYSCFGEN_PCLK_EN() 		( RCC->APB2ENR |= ( 1 << 14) )
 
 /*
  * Clock Enable Macros for DMA peripherals
  */
+
 #define DMA1_PCLK_EN() 			( RCC->AHB1ENR |= ( 1 << 21) )
 #define DMA2_PCLK_EN() 			( RCC->AHB1ENR |= ( 1 << 22) )
 
 /*
  * Clock Enable Macros for ADC peripherals
  */
+
 #define ADC1_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 8) )
 #define ADC2_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 9) )
 #define ADC3_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 10) )
 
 /*
- * Macros to reset GPIOx peripherals
- */
-#define	GPIOA_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<0)); (RCC->AHB1RSTR &=~(1<<0)); } while(0)
-#define	GPIOB_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<1)); (RCC->AHB1RSTR &=~(1<<1)); } while(0)
-#define	GPIOC_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<2)); (RCC->AHB1RSTR &=~(1<<2)); } while(0)
-#define	GPIOD_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<3)); (RCC->AHB1RSTR &=~(1<<3)); } while(0)
-#define	GPIOE_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<4)); (RCC->AHB1RSTR &=~(1<<4)); } while(0)
-#define	GPIOF_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<5)); (RCC->AHB1RSTR &=~(1<<5)); } while(0)
-#define	GPIOG_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<6)); (RCC->AHB1RSTR &=~(1<<6)); } while(0)
-#define	GPIOH_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<7)); (RCC->AHB1RSTR &=~(1<<7)); } while(0)
-
-/*
- *TIMER Reset Macros
- */
-// APB2 Timers
-#define TIM1_REG_RESET()		do { (RCC->APB2RSTR |=(1<<0));  (RCC->APB2RSTR &=~(1<<0)); } while(0)
-#define TIM8_REG_RESET()		do { (RCC->APB2RSTR |=(1<<1));  (RCC->APB2RSTR &=~(1<<1)); } while(0)
-#define TIM9_REG_RESET()		do { (RCC->APB2RSTR |=(1<<16)); (RCC->APB2RSTR &=~(1<<16)); } while(0)
-#define TIM10_REG_RESET()		do { (RCC->APB2RSTR |=(1<<17)); (RCC->APB2RSTR &=~(1<<17)); } while(0)
-#define TIM11_REG_RESET()		do { (RCC->APB2RSTR |=(1<<18)); (RCC->APB2RSTR &=~(1<<18)); } while(0)
-
-// APB1 Timers
-#define TIM2_REG_RESET()		do { (RCC->APB1RSTR |=(1<<0)); (RCC->APB1RSTR &=~(1<<0)); } while(0)
-#define TIM3_REG_RESET()		do { (RCC->APB1RSTR |=(1<<1)); (RCC->APB1RSTR &=~(1<<1)); } while(0)
-#define TIM4_REG_RESET()		do { (RCC->APB1RSTR |=(1<<2)); (RCC->APB1RSTR &=~(1<<2)); } while(0)
-#define TIM5_REG_RESET()		do { (RCC->APB1RSTR |=(1<<3)); (RCC->APB1RSTR &=~(1<<3)); } while(0)
-#define TIM6_REG_RESET()		do { (RCC->APB1RSTR |=(1<<4)); (RCC->APB1RSTR &=~(1<<4)); } while(0)
-#define TIM7_REG_RESET()		do { (RCC->APB1RSTR |=(1<<5)); (RCC->APB1RSTR &=~(1<<5)); } while(0)
-#define TIM12_REG_RESET()		do { (RCC->APB1RSTR |=(1<<6)); (RCC->APB1RSTR &=~(1<<6)); } while(0)
-#define TIM13_REG_RESET()		do { (RCC->APB1RSTR |=(1<<7)); (RCC->APB1RSTR &=~(1<<7)); } while(0)
-#define TIM14_REG_RESET()		do { (RCC->APB1RSTR |=(1<<8)); (RCC->APB1RSTR &=~(1<<8)); } while(0)
-
-/*
- * DMAx reset macros
- */
-#define	DMA1_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<21)); (RCC->AHB1RSTR &=~(1<<21)); } while(0)
-#define	DMA2_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<22)); (RCC->AHB1RSTR &=~(1<<22)); } while(0)
-
-/*
- * ADC reset macros
- */
-#define ADC_REG_RESET()			do { (RCC->APB2RSTR |=(1<<8)); (RCC->APB2RSTR &=~(1<<8)); } while(0)
-
-/*
- * Macros to reset USARTx peripherals
- */
-#define USART1_REG_RESET()	do{ (RCC->APB2RSTR |= (1<<4)); (RCC->APB2RSTR &= ~(1<<4));}while(0)
-#define USART2_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<17)); (RCC->APB1RSTR &= ~(1<<17));}while(0)
-#define USART3_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<18)); (RCC->APB1RSTR &= ~(1<<18));}while(0)
-#define UART4_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<19)); (RCC->APB1RSTR &= ~(1<<19));}while(0)
-#define UART5_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<20)); (RCC->APB1RSTR &= ~(1<<20));}while(0)
-#define USART6_REG_RESET()	do{ (RCC->APB2RSTR |= (1<<5)); (RCC->APB2RSTR &= ~(1<<5));}while(0)
-
-/*
- * returns port code for given GPIOx base address
- */
-
-#define GPIO_BASEADDR_TO_CODE(x)  (	(x==GPIOA) ? 0 :\
-									(x==GPIOB) ? 1 :\
-									(x==GPIOC) ? 2 :\
-									(x==GPIOD) ? 3 :\
-									(x==GPIOE) ? 4 :\
-									(x==GPIOF) ? 5 :\
-									(x==GPIOG) ? 6 :\
-									(x==GPIOH) ? 7 :0 )
-/*
  * Clock Disable Macros for GPIOx peripherals
  */
+
 #define GPIOA_PCLK_DI() 		( RCC->AHB1ENR &= ~( 1 << 0) )
 #define GPIOB_PCLK_DI() 		( RCC->AHB1ENR &= ~( 1 << 1) )
 #define GPIOC_PCLK_DI() 		( RCC->AHB1ENR &= ~( 1 << 2) )
@@ -582,6 +606,7 @@ typedef struct
 /*
  * Clock Disable Macros for I2Cx peripherals
  */
+
 #define I2C1_PCLK_DI() 			( RCC->APB1ENR &= ~( 1 << 21) )
 #define I2C2_PCLK_DI() 			( RCC->APB1ENR &= ~( 1 << 22) )
 #define I2C3_PCLK_DI() 			( RCC->APB1ENR &= ~( 1 << 23) )
@@ -589,6 +614,7 @@ typedef struct
 /*
  * Clock Disable Macros for SPIx peripherals
  */
+
 #define SPI1_PCLK_DI() 			( RCC->APB2ENR &= ~( 1 << 12) )
 #define SPI2_PCLK_DI() 			( RCC->APB1ENR &= ~( 1 << 14) )
 #define SPI3_PCLK_DI() 			( RCC->APB1ENR &= ~( 1 << 15) )
@@ -597,16 +623,13 @@ typedef struct
 /*
  * Clock Disable Macros for USARTx peripherals
  */
+
 #define USART1_PCLK_DI() 		( RCC->APB2ENR &= ~( 1 << 4) )
 #define USART2_PCLK_DI() 		( RCC->APB1ENR &= ~( 1 << 17) )
 #define USART3_PCLK_DI() 		( RCC->APB1ENR &= ~( 1 << 18) )
-#define USART6_PCLK_DI() 		( RCC->APB2ENR &= ~( 1 << 5) )
-
-/*
- * Clock Disable Macros for UARTx peripherals
- */
 #define UART4_PCLK_DI() 		( RCC->APB1ENR &= ~( 1 << 19) )
 #define UART5_PCLK_DI() 		( RCC->APB1ENR &= ~( 1 << 20) )
+#define USART6_PCLK_DI() 		( RCC->APB2ENR &= ~( 1 << 5) )
 
 /*
  * Clock Disable Macros for SYSFG peripherals
@@ -648,17 +671,108 @@ typedef struct
 #define ADC2_PCLK_DI() 			( RCC->APB2ENR &= ~( 1 << 9) )
 #define ADC3_PCLK_DI() 			( RCC->APB2ENR &= ~( 1 << 10) )
 
+/*********************************************
+ ********Reset Macros for Peripherals*********
+ *********************************************/
+
 /*
- * Some generic macros
+ * Macros to reset GPIOx peripherals
  */
-#define ENABLE 						1
-#define DISABLE						0
-#define SET							ENABLE
-#define	RESET						DISABLE
-#define GPIO_PIN_SET				ENABLE
-#define	GPIO_PIN_RESET				DISABLE
-#define FLAG_RESET	RESET
-#define FLAG_SET	SET
+
+#define	GPIOA_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<0)); (RCC->AHB1RSTR &=~(1<<0)); } while(0)
+#define	GPIOB_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<1)); (RCC->AHB1RSTR &=~(1<<1)); } while(0)
+#define	GPIOC_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<2)); (RCC->AHB1RSTR &=~(1<<2)); } while(0)
+#define	GPIOD_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<3)); (RCC->AHB1RSTR &=~(1<<3)); } while(0)
+#define	GPIOE_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<4)); (RCC->AHB1RSTR &=~(1<<4)); } while(0)
+#define	GPIOF_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<5)); (RCC->AHB1RSTR &=~(1<<5)); } while(0)
+#define	GPIOG_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<6)); (RCC->AHB1RSTR &=~(1<<6)); } while(0)
+#define	GPIOH_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<7)); (RCC->AHB1RSTR &=~(1<<7)); } while(0)
+
+/*
+ * Returns port code for given GPIOx base address
+ */
+
+#define GPIO_BASEADDR_TO_CODE(x)  (	(x==GPIOA) ? 0 :\
+									(x==GPIOB) ? 1 :\
+									(x==GPIOC) ? 2 :\
+									(x==GPIOD) ? 3 :\
+									(x==GPIOE) ? 4 :\
+									(x==GPIOF) ? 5 :\
+									(x==GPIOG) ? 6 :\
+									(x==GPIOH) ? 7 :0 )
+
+/*
+ * TIMER Reset Macros
+ */
+
+// APB2 Timers
+#define TIM1_REG_RESET()		do { (RCC->APB2RSTR |=(1<<0));  (RCC->APB2RSTR &=~(1<<0)); } while(0)
+#define TIM8_REG_RESET()		do { (RCC->APB2RSTR |=(1<<1));  (RCC->APB2RSTR &=~(1<<1)); } while(0)
+#define TIM9_REG_RESET()		do { (RCC->APB2RSTR |=(1<<16)); (RCC->APB2RSTR &=~(1<<16)); } while(0)
+#define TIM10_REG_RESET()		do { (RCC->APB2RSTR |=(1<<17)); (RCC->APB2RSTR &=~(1<<17)); } while(0)
+#define TIM11_REG_RESET()		do { (RCC->APB2RSTR |=(1<<18)); (RCC->APB2RSTR &=~(1<<18)); } while(0)
+
+// APB1 Timers
+#define TIM2_REG_RESET()		do { (RCC->APB1RSTR |=(1<<0)); (RCC->APB1RSTR &=~(1<<0)); } while(0)
+#define TIM3_REG_RESET()		do { (RCC->APB1RSTR |=(1<<1)); (RCC->APB1RSTR &=~(1<<1)); } while(0)
+#define TIM4_REG_RESET()		do { (RCC->APB1RSTR |=(1<<2)); (RCC->APB1RSTR &=~(1<<2)); } while(0)
+#define TIM5_REG_RESET()		do { (RCC->APB1RSTR |=(1<<3)); (RCC->APB1RSTR &=~(1<<3)); } while(0)
+#define TIM6_REG_RESET()		do { (RCC->APB1RSTR |=(1<<4)); (RCC->APB1RSTR &=~(1<<4)); } while(0)
+#define TIM7_REG_RESET()		do { (RCC->APB1RSTR |=(1<<5)); (RCC->APB1RSTR &=~(1<<5)); } while(0)
+#define TIM12_REG_RESET()		do { (RCC->APB1RSTR |=(1<<6)); (RCC->APB1RSTR &=~(1<<6)); } while(0)
+#define TIM13_REG_RESET()		do { (RCC->APB1RSTR |=(1<<7)); (RCC->APB1RSTR &=~(1<<7)); } while(0)
+#define TIM14_REG_RESET()		do { (RCC->APB1RSTR |=(1<<8)); (RCC->APB1RSTR &=~(1<<8)); } while(0)
+
+/*
+ * DMAx reset macros
+ */
+
+#define	DMA1_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<21)); (RCC->AHB1RSTR &=~(1<<21)); } while(0)
+#define	DMA2_REG_RESET()		do { (RCC->AHB1RSTR |=(1<<22)); (RCC->AHB1RSTR &=~(1<<22)); } while(0)
+
+/*
+ * ADC reset macros
+ */
+
+#define ADC_REG_RESET()			do { (RCC->APB2RSTR |=(1<<8)); (RCC->APB2RSTR &=~(1<<8)); } while(0)
+
+/*
+ * Macros to reset SPIx peripherals
+ */
+
+#define SPI1_REG_RESET()	do{ (RCC->APB2RSTR |= (1<<12)); (RCC->APB2RSTR &= ~(1<<12));}while(0)
+#define SPI2_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<14)); (RCC->APB1RSTR &= ~(1<<14));}while(0)
+#define SPI3_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<15)); (RCC->APB1RSTR &= ~(1<<15));}while(0)
+#define SPI4_REG_RESET()	do{ (RCC->APB2RSTR |= (1<<13)); (RCC->APB2RSTR &= ~(1<<13));}while(0)
+
+/*
+ * Macros to reset I2Cx peripherals
+ */
+
+#define I2C1_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<21)); (RCC->APB1RSTR &= ~(1<<21));}while(0)
+#define I2C2_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<22)); (RCC->APB1RSTR &= ~(1<<22));}while(0)
+#define I2C3_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<23)); (RCC->APB1RSTR &= ~(1<<23));}while(0)
+
+/*
+ * Macros to reset USARTx peripherals
+ */
+
+#define USART1_REG_RESET()	do{ (RCC->APB2RSTR |= (1<<4)); (RCC->APB2RSTR &= ~(1<<4));}while(0)
+#define USART2_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<17)); (RCC->APB1RSTR &= ~(1<<17));}while(0)
+#define USART3_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<18)); (RCC->APB1RSTR &= ~(1<<18));}while(0)
+#define UART4_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<19)); (RCC->APB1RSTR &= ~(1<<19));}while(0)
+#define UART5_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<20)); (RCC->APB1RSTR &= ~(1<<20));}while(0)
+#define USART6_REG_RESET()	do{ (RCC->APB2RSTR |= (1<<5)); (RCC->APB2RSTR &= ~(1<<5));}while(0)
+
+/*****************************************
+ ********Interrupt ReQuest Macros*********
+ *****************************************/
+
+/***IRQ Numbers of STM32F446RE MCU***/
+
+/*
+ * Interrupt Request Macros for EXTI
+ */
 
 #define IRQ_NO_EXTI0				6
 #define IRQ_NO_EXTI1				7
@@ -668,6 +782,10 @@ typedef struct
 #define IRQ_NO_EXTI9_5				23
 #define IRQ_NO_EXTI15_10			40
 
+/*
+ * Interrupt Request Macros for TIMx
+ */
+
 #define IRQ_NO_TIM1_BRK_TIM9		24
 #define IRQ_NO_TIM1_UP_TIM10		25
 #define IRQ_NO_TIM1_TRG_COM_TIM11	26
@@ -675,11 +793,17 @@ typedef struct
 #define IRQ_NO_TIM2					28
 #define IRQ_NO_TIM3					29
 #define IRQ_NO_TIM4					30
+#define IRQ_NO_TIM5					50
+#define IRQ_NO_TIM6_DAC				54
+#define IRQ_NO_TIM7					55
 #define IRQ_NO_TIM8_BRK_TIM12		43
 #define IRQ_NO_TIM8_UP_TIM13		44
 #define IRQ_NO_TIM8_TRG_COM_TIM14	45
 #define IRQ_NO_TIM8_CC				46
-#define IRQ_NO_TIM6_DAC				54
+
+/*
+ * Interrupt Request Macros for DMAx
+ */
 
 #define IRQ_NO_DMA1_STREAM0			11
 #define IRQ_NO_DMA1_STREAM1			12
@@ -699,12 +823,151 @@ typedef struct
 #define IRQ_NO_DMA2_STREAM6			69
 #define IRQ_NO_DMA2_STREAM7			70
 
+/*
+ * Interrupt Request Macros for SPIx
+ */
+
+#define IRQ_NO_SPI1					35
+#define IRQ_NO_SPI2					36
+#define IRQ_NO_SPI3					51
+
+/*
+ * Interrupt Request Macros for I2Cx
+ */
+
+#define IRQ_NO_I2C1_EV				31
+#define IRQ_NO_I2C1_ER				32
+#define IRQ_NO_I2C2_EV				33
+#define IRQ_NO_I2C2_ER				34
+#define IRQ_NO_I2C3_EV				72
+#define IRQ_NO_I2C3_ER				73
+
+/*
+ * Interrupt Request Macros for USARTx
+ */
+
 #define IRQ_NO_USART1				37
 #define IRQ_NO_USART2				38
 #define IRQ_NO_USART3				39
 #define IRQ_NO_UART4				52
 #define IRQ_NO_UART5				53
 #define IRQ_NO_USART6				71
+
+/*
+ * Interrupt Request Possibles Priorities
+ */
+
+#define NVIC_IRQ_PRI0	0
+#define NVIC_IRQ_PRI1	1
+#define NVIC_IRQ_PRI2	2
+#define NVIC_IRQ_PRI3	3
+#define NVIC_IRQ_PRI4	4
+#define NVIC_IRQ_PRI5	5
+#define NVIC_IRQ_PRI6	6
+#define NVIC_IRQ_PRI7	7
+#define NVIC_IRQ_PRI8	8
+#define NVIC_IRQ_PRI9	9
+#define NVIC_IRQ_PRI10	10
+#define NVIC_IRQ_PRI11	11
+#define NVIC_IRQ_PRI12	12
+#define NVIC_IRQ_PRI13	13
+#define NVIC_IRQ_PRI14	14
+#define NVIC_IRQ_PRI15	15
+
+/************************************************
+ ********Bits definition for Peripherals*********
+ ************************************************/
+
+/*
+ * Bits definition of SPI peripheral
+ */
+
+#define SPI_CR1_CPHA		0
+#define SPI_CR1_CPOL		1
+#define SPI_CR1_MSTR		2
+#define SPI_CR1_BR			3
+#define SPI_CR1_SPE			6
+#define SPI_CR1_LSBFIRST	7
+#define SPI_CR1_SSI			8
+#define SPI_CR1_SSM			9
+#define SPI_CR1_RXONLY		10
+#define SPI_CR1_DFF			11
+#define SPI_CR1_CRCNEXT		12
+#define SPI_CR1_CRCEN		13
+#define SPI_CR1_BIDIOE		14
+#define SPI_CR1_BIDIMODE	15
+
+#define SPI_CR2_RXDMAEN		0
+#define SPI_CR2_TXDMAEN		1
+#define SPI_CR2_SSOE		2
+#define SPI_CR2_FRF			4
+#define SPI_CR2_ERRIE		5
+#define SPI_CR2_RXNEIE		6
+#define SPI_CR2_TXEIE		7
+
+#define SPI_SR_RXNE			0
+#define SPI_SR_TXE			1
+#define SPI_SR_CHSIDE		2
+#define SPI_SR_UDR			3
+#define SPI_SR_CRCERR		4
+#define SPI_SR_MODF			5
+#define SPI_SR_OVR			6
+#define SPI_SR_BSY			7
+#define SPI_SR_FRE			8
+
+/*
+ * Bits definition of I2C peripheral
+ */
+
+#define I2C_CR1_PE			0
+#define I2C_CR1_SMBUS		1
+#define I2C_CR1_SMBTYPE		3
+#define I2C_CR1_ENARP		4
+#define I2C_CR1_ENPEC		5
+#define I2C_CR1_ENGC		6
+#define I2C_CR1_NOSTRETCH	7
+#define I2C_CR1_START		8
+#define I2C_CR1_STOP		9
+#define I2C_CR1_ACK			10
+#define I2C_CR1_POS			11
+#define I2C_CR1_PEC			12
+#define I2C_CR1_ALERT		13
+#define I2C_CR1_SWRST		15
+
+#define I2C_CR2_FREQ		0
+#define I2C_CR2_ITERREN		8
+#define I2C_CR2_ITEVTEN		9
+#define I2C_CR2_ITBUFEN		10
+#define I2C_CR2_DMAEN		11
+#define I2C_CR2_LAST		12
+
+#define I2C_SR1_SB			0
+#define I2C_SR1_ADDR		1
+#define I2C_SR1_BTF			2
+#define I2C_SR1_ADD10		3
+#define I2C_SR1_STOPF		4
+#define I2C_SR1_RXNE		6
+#define I2C_SR1_TXE			7
+#define I2C_SR1_BERR		8
+#define I2C_SR1_ARLO		9
+#define I2C_SR1_AF			10
+#define I2C_SR1_OVR			11
+#define I2C_SR1_PECERR		12
+#define I2C_SR1_TIMEOUT		14
+#define I2C_SR1_SMBALERT	15
+
+#define I2C_SR2_MSL			0
+#define I2C_SR2_BUSY		1
+#define I2C_SR2_TRA			2
+#define I2C_SR2_GENCALL		4
+#define I2C_SR2_SMBDEFAULT	5
+#define I2C_SR2_SMBHOST		6
+#define I2C_SR2_DUALF		7
+#define I2C_SR2_PEC			8
+
+#define I2C_CCR_CCR			0
+#define I2C_CCR_DUTY		14
+#define I2C_CCR_F_S			15
 
 /*
  * Bits definition of USART peripheral
@@ -767,13 +1030,28 @@ typedef struct
 #define USART_GTPR_PSC		0
 #define USART_GTPR_GT		8
 
+/***********************
+ ********Others*********
+ ***********************/
 
+/**Boolean Macros**/
+
+#define ENABLE 						1
+#define DISABLE						0
+#define SET							ENABLE
+#define	RESET						DISABLE
+#define GPIO_PIN_SET				ENABLE
+#define	GPIO_PIN_RESET				DISABLE
+#define FLAG_RESET					RESET
+#define FLAG_SET					SET
 
 #include "stm32f446xx_gpio_driver.h"
 #include "stm32f446xx_rcc_driver.h"
 #include "stm32f446xx_timer_driver.h"
 #include "stm32f446xx_dma_driver.h"
 #include "stm32f446xx_adc_driver.h"
+//#include "stm32f446xx_spi_driver.h"
+//#include "stm32f446xx_i2c_driver.h"
 #include "stm32f446xx_uart_driver.h"
 
-#endif /* INC_STM32F446_H_ */
+#endif /* INC_STM32F446XX_H_ */

@@ -2,11 +2,11 @@
  * stm32f446_rcc_driver.c
  *
  *  Created on: Oct 15, 2025
- *      Author: jiperez
+ *      Author: jtlopez & jiperez
  */
 #include "stm32f446xx_rcc_driver.h"
 
-/************************************************************************************
+/*
  * @fn				- SystemCLK_Config_84MHz
  *
  * @brief			- Configures internal clk to 84 MHz
@@ -75,7 +75,7 @@ uint32_t RCC_GetPClk1(void)
 		sysclk = 8000000;
 	}else if(temp == 2)
 	{
-		 uint32_t pllm = (RCC->PLLCFGR & 0x3F);
+		uint32_t pllm = (RCC->PLLCFGR & 0x3F);
 		uint32_t plln = (RCC->PLLCFGR >> 6) & 0x1FF;
 		uint32_t pllp = (((RCC->PLLCFGR >> 16) & 0x3) + 1) * 2;
 		uint32_t pllsrc = (RCC->PLLCFGR >> 22) & 0x1;

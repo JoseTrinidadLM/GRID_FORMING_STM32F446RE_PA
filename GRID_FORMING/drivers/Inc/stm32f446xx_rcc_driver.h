@@ -2,7 +2,7 @@
  * stm32f446_rcc_driver.h
  *
  *  Created on: Oct 15, 2025
- *      Author: Isaac Perez (ShiLiba)
+ *      Author: Isaac Perez (ShiLiba) & jtlopez
  */
 
 #ifndef INC_STM32F446_RCC_DRIVER_H_
@@ -15,8 +15,14 @@
 #define SWS_IS_SEL		(2 << 2)
 #define PLL_IS_RDY		(1 << 25)
 
-void SystemCLK_Config_84MHz(void);
-uint32_t RCC_GetPClk1(void);
-uint32_t RCC_GetPClk2(void);
+/*System Clock Configuration*/
+
+void SystemCLK_Config_84MHz(void); //(Possible change to function that receives the frequency?)
+
+/*Global Clock Variables*/
+
+uint32_t RCC_GetPClk1(void); // Peripheral Clock 1 Variable = APB1 Clock
+uint32_t RCC_GetPClk2(void); // Peripheral Clock 2 Variable = APB2 Clock
+
 
 #endif /* INC_STM32F446_RCC_DRIVER_H_ */
