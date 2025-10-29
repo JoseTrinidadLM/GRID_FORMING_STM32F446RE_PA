@@ -8,6 +8,18 @@
 #include "stm32f446xx_usart_driver.h"
 
 
+/*
+ * @fn				-USART_ClearTCFlag
+ *
+ * @brief			-This function clears TC flag of SR for the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
+
 void USART_ClearTCFlag(USART_RegDef_t *pUSARTx)
 {
 	/*
@@ -19,6 +31,18 @@ void USART_ClearTCFlag(USART_RegDef_t *pUSARTx)
 	pUSARTx->SR &= ~(USART_TC_FLAG);
 }
 
+/*
+ * @fn				-USART_ClearIDLEFlag
+ *
+ * @brief			-This function clears IDLE flag of SR for the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
+
 void USART_ClearIDLEFlag(USART_RegDef_t *pUSARTx)
 {
 	uint32_t dummyRead;
@@ -27,10 +51,35 @@ void USART_ClearIDLEFlag(USART_RegDef_t *pUSARTx)
 	(void)dummyRead;
 }
 
+/*
+ * @fn				-USART_ClearOREFlag
+ *
+ * @brief			-This function clears ORE flag of SR for the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
+
 void USART_ClearOREFlag(USART_RegDef_t *pUSARTx)
 {
 	USART_ClearIDLEFlag(pUSARTx);
 }
+
+/*
+ * @fn				-USART_SetBaudRate
+ *
+ * @brief			-This function calculates the needed USARTDIV to get the BaudRate given, and set it in BRR register of the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ * @param[in]		-Baud Rate
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
 
 void USART_SetBaudRate(USART_RegDef_t *pUSARTx, uint32_t BaudRate)
 {
@@ -43,60 +92,73 @@ void USART_SetBaudRate(USART_RegDef_t *pUSARTx, uint32_t BaudRate)
 	//variables to hold Mantissa and Fraction values
 	uint32_t M_part,F_part;
 
-  uint32_t tempreg=0;
+	uint32_t tempreg=0;
 
-  //Get the value of APB bus clock in to the variable PCLKx
-  if(pUSARTx == USART1 || pUSARTx == USART6)
-  {
+	//Get the value of APB bus clock in to the variable PCLKx
+	if(pUSARTx == USART1 || pUSARTx == USART6)
+	{
 	   //USART1 and USART6 are hanging on APB2 bus
 	   PCLKx = RCC_GetPClk2();
-  }else
-  {
+	}else
+	{
 	   PCLKx = RCC_GetPClk1();
-  }
+	}
 
-  //Check for OVER8 configuration bit
-  if(pUSARTx->CR1 & (1 << USART_CR1_OVER8))
-  {
+	//Check for OVER8 configuration bit
+	if(pUSARTx->CR1 & (1 << USART_CR1_OVER8))
+	{
 	   //OVER8 = 1 , over sampling by 8
 	   usartdiv = ((25 * PCLKx) / (2 *BaudRate));
-  }else
-  {
+	}else
+	{
 	   //over sampling by 16
 	  usartdiv = ((25 * PCLKx) / (4 *BaudRate));
-  }
+	}
 
-  //Calculate the Mantissa part
-  M_part = usartdiv/100;
+	//Calculate the Mantissa part
+	M_part = usartdiv/100;
 
-  //Place the Mantissa part in appropriate bit position . refer USART_BRR
-  tempreg |= M_part << USART_BRR_DIV_MANTISSA;
+	//Place the Mantissa part in appropriate bit position . refer USART_BRR
+	tempreg |= M_part << USART_BRR_DIV_MANTISSA;
 
-  //Extract the fraction part
-  F_part = (usartdiv - (M_part * 100));
+	//Extract the fraction part
+	F_part = (usartdiv - (M_part * 100));
 
-  //Calculate the final fractional
-  if(pUSARTx->CR1 & ( 1 << USART_CR1_OVER8))
-   {
+	//Calculate the final fractional
+	if(pUSARTx->CR1 & ( 1 << USART_CR1_OVER8))
+	{
 	  //OVER8 = 1 , over sampling by 8
 	  F_part = ((( F_part * 8)+ 50) / 100)& ((uint8_t)0x07);
 
-   }else
-   {
+	}else
+	{
 	   //over sampling by 16
 	   F_part = ((( F_part * 16)+ 50) / 100) & ((uint8_t)0x0F);
 
-   }
+	}
 
-  //Place the fractional part in appropriate bit position . refer USART_BRR
-  tempreg |= (F_part << USART_BRR_DIV_FRACTION);
+	//Place the fractional part in appropriate bit position . refer USART_BRR
+	tempreg |= (F_part << USART_BRR_DIV_FRACTION);
 
-  //copy the value of tempreg in to BRR register
-  pUSARTx->BRR = tempreg;
+	//copy the value of tempreg in to BRR register
+	pUSARTx->BRR = tempreg;
 }
 
 /*
  * Peripheral Clock setup
+ */
+
+/*
+ * @fn				-USART_PClkC
+ *
+ * @brief			-This function enables or disables peripheral clock for the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ * @param[in]		-Enable or Disable macros
+ *
+ * @return			-none
+ *
+ * @Note			-none
  */
 
 void USART_PClkC(USART_RegDef_t *pUSARTx, uint8_t EnorDi)
@@ -148,6 +210,19 @@ void USART_PClkC(USART_RegDef_t *pUSARTx, uint8_t EnorDi)
 
 /*
  * Init and De-Init
+ */
+
+
+/*
+ * @fn				-USART_Init
+ *
+ * @brief			-Initialize variables for the given USART
+ *
+ * @param[in]		-Handling Structure of the USART peripheral
+ *
+ * @return			-none
+ *
+ * @Note			-none
  */
 
 void USART_Init(USART_Handle_t *pUSARTHandle)
@@ -245,6 +320,17 @@ void USART_Init(USART_Handle_t *pUSARTHandle)
 	USART_SetBaudRate(pUSARTHandle->pUSARTx, pUSARTHandle->USARTConfig.USART_Baud);
 }
 
+/*
+ * @fn				-USART_DeInit
+ *
+ * @brief			-Resets the configuration registers for the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
 
 void USART_DeInit(USART_RegDef_t *pUSARTx)
 {
@@ -269,6 +355,19 @@ void USART_DeInit(USART_RegDef_t *pUSARTx)
 	}
 }
 
+/*
+ * @fn				-USART_GetFlagStatus
+ *
+ * @brief			-Returns Flag Status for the given Flag Name macro of SR register for the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ * @param[in]		-Flag Name macro
+ *
+ * @return			-FLAG_SET or FLAG_RESET
+ *
+ * @Note			-none
+ */
+
 uint8_t USART_GetFlagStatus(USART_RegDef_t *pUSARTx, uint16_t FlagName)
 {
 	if(pUSARTx->SR & FlagName){
@@ -279,6 +378,19 @@ uint8_t USART_GetFlagStatus(USART_RegDef_t *pUSARTx, uint16_t FlagName)
 	}
 }
 
+/*
+ * @fn				-USART_ClearFlag
+ *
+ * @brief			-Clears Flag for the given Flag Name macro of SR register for the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ * @param[in]		-Flag Name macro
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
+
 void USART_ClearFlag(USART_RegDef_t *pUSARTx, uint16_t FlagName)
 {
 	pUSARTx->SR &= ~FlagName;
@@ -288,17 +400,31 @@ void USART_ClearFlag(USART_RegDef_t *pUSARTx, uint16_t FlagName)
  * Data Send and Receive
  */
 
+/*
+ * @fn				-USART_SendData
+ *
+ * @brief			-Sends data of the given Data Buffer pointer of given length, in the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ * @param[in]		-Pointer of Data Buffer
+ * @param[in]		-Length of Data
+ *
+ * @return			-none
+ *
+ * @Note			-Blocking type send data
+ */
+
 void USART_SendData(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len)
 {
 
 	uint16_t *pdata;
-   //Loop over until "Len" number of bytes are transferred
+	//Loop over until "Len" number of bytes are transferred
 	for(uint32_t i = 0 ; i < Len; i++)
 	{
 		//Implement the code to wait until TXE flag is set in the SR
 		while(USART_GetFlagStatus(pUSARTHandle->pUSARTx,USART_TXE_FLAG) == FLAG_RESET);
 
-         //Check the USART_WordLength item for 9BIT or 8BIT in a frame
+		 //Check the USART_WordLength item for 9BIT or 8BIT in a frame
 		if(pUSARTHandle->USARTConfig.USART_WordLength == USART_WLEN_9BITS)
 		{
 			//if 9BIT, load the DR with 2bytes masking the bits other than first 9 bits
@@ -333,6 +459,20 @@ void USART_SendData(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t L
 	//Implement the code to wait till TC flag is set in the SR
 	while(USART_GetFlagStatus(pUSARTHandle->pUSARTx, USART_TC_FLAG) == FLAG_RESET);
 }
+
+/*
+ * @fn				-USART_ReceiveData
+ *
+ * @brief			-Receives data on the given Data Buffer pointer until given length, in the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ * @param[in]		-Pointer of Data Buffer
+ * @param[in]		-Length of Data
+ *
+ * @return			-none
+ *
+ * @Note			-Blocking type receive data
+ */
 
 void USART_ReceiveData(USART_Handle_t *pUSARTHandle, uint8_t* pRxBuffer, uint32_t Len)
 {
@@ -394,6 +534,20 @@ void USART_ReceiveData(USART_Handle_t *pUSARTHandle, uint8_t* pRxBuffer, uint32_
 		}
 	}
 }
+
+/*
+ * @fn				-USART_ReceiveDataUntil
+ *
+ * @brief			-Receives data on the given Data Buffer pointer until given character is found in Data, in the given USART
+ *
+ * @param[in]		-Base address of the USART peripheral
+ * @param[in]		-Pointer of Data Buffer
+ * @param[in]		-Delimiter Character
+ *
+ * @return			-none
+ *
+ * @Note			-Blocking type receive data
+ */
 
 void USART_ReceiveDataUntil(USART_Handle_t *pUSARTHandle, uint8_t* pRxBuffer, uint8_t Char)
 {
@@ -459,6 +613,20 @@ void USART_ReceiveDataUntil(USART_Handle_t *pUSARTHandle, uint8_t* pRxBuffer, ui
 	}while(receivedByte != Char);
 }
 
+/*
+ * @fn				-USART_SendDataWithIT
+ *
+ * @brief			-Returns USART State macro. If USART State wasn't busy in TX, it Activates Interrupts for Send data and configure Handler to use the given Data Buffer pointer of given length
+ *
+ * @param[in]		-Handling Structure of the USART peripheral
+ * @param[in]		-Pointer of Data Buffer
+ * @param[in]		-Length of Data
+ *
+ * @return			-USART State macro
+ *
+ * @Note			-Non-blocking type send data
+ */
+
 uint8_t USART_SendDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len)
 {
 	uint8_t txstate = pUSARTHandle->TxState;
@@ -482,6 +650,20 @@ uint8_t USART_SendDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, u
 	return txstate;
 }
 
+/*
+ * @fn				-USART_ReceiveDataWithIT
+ *
+ * @brief			-Returns USART State macro. If USART State wasn't busy in RX, it Activates Interrupts for Receive data and configure Handler to use the given Data Buffer pointer of given length
+ *
+ * @param[in]		-Handling Structure of the USART peripheral
+ * @param[in]		-Pointer of Data Buffer
+ * @param[in]		-Length of Data
+ *
+ * @return			-USART State macro
+ *
+ * @Note			-Non-blocking type send data
+ */
+
 uint8_t USART_ReceiveDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pRxBuffer, uint32_t Len)
 {
 	uint8_t rxstate = pUSARTHandle->RxState;
@@ -501,6 +683,20 @@ uint8_t USART_ReceiveDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pRxBuffer
 
 	return rxstate;
 }
+
+/*
+ * @fn				-USART_ReceiveDataUntilWithIT
+ *
+ * @brief			-Returns USART State macro. If USART State wasn't busy in RX, it Activates Interrupts for Receive data and configure Handler to use the given Data Buffer pointer until given character is found in Data
+ *
+ * @param[in]		-Handling Structure of the USART peripheral
+ * @param[in]		-Pointer of Data Buffer
+ * @param[in]		-Delimiter Character
+ *
+ * @return			-USART State macro
+ *
+ * @Note			-Non-blocking type send data
+ */
 
 uint8_t USART_ReceiveDataUntilWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pRxBuffer, uint8_t Char)
 {
@@ -527,6 +723,19 @@ uint8_t USART_ReceiveDataUntilWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pRxB
  * IRQ Configuration and ISR handling
  */
 
+/*
+ * @fn				-USART_IRQITConfig
+ *
+ * @brief			-Enable or Disable NVIC for given Interrupt Request Number
+ *
+ * @param[in]		-Interrupt Request Number
+ * @param[in]		-Enable or Disable
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
+
 void USART_IRQITConfig(uint8_t IRQNumber, uint8_t EnorDi)
 {
 	if(EnorDi == ENABLE)
@@ -538,6 +747,19 @@ void USART_IRQITConfig(uint8_t IRQNumber, uint8_t EnorDi)
 	}
 }
 
+/*
+ * @fn				-USART_IRQPriorityConfig
+ *
+ * @brief			-Set priority for given Interrupt Request Number
+ *
+ * @param[in]		-Interrupt Request Number
+ * @param[in]		-Priority
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
+
 void USART_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority)
 {
 	uint8_t iprx = IRQNumber/4;
@@ -546,20 +768,18 @@ void USART_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority)
 	NVIC_PR_BASE_ADDR[iprx] |= (IRQPriority << shift_amount);
 }
 
-/*********************************************************************
- * @fn      		  - USART_IRQHandler
+/*
+ * @fn      		  -USART_IRQHandling
  *
- * @brief             -
+ * @brief             -Handles Send Data, Receive Data, IDLE State and Errors interrupts
  *
- * @param[in]         -
- * @param[in]         -
- * @param[in]         -
+ * @param[in]         -Handling Structure of the USART peripheral
  *
- * @return            -
+ * @return            -none
  *
- * @Note              - Resolve all the TODOs
-
+ * @Note              -When it finish handling the interrupts it calls Application Event Function
  */
+
 void USART_IRQHandling(USART_Handle_t *pUSARTHandle)
 {
 	uint32_t temp1 , temp2, temp3;
@@ -864,6 +1084,17 @@ void USART_IRQHandling(USART_Handle_t *pUSARTHandle)
 	(void)temp3;
 }
 
+/*
+ * @fn      		  -USART_PeripheralControl
+ *
+ * @brief             -Enables or Disable given USART peripheral
+ *
+ * @param[in]         -Base address of the USART peripheral
+ *
+ * @return            -none
+ *
+ * @Note              -none
+ */
 
 void USART_PeripheralControl(USART_RegDef_t *pUSARTx, uint8_t EnorDi)
 {
@@ -875,6 +1106,19 @@ void USART_PeripheralControl(USART_RegDef_t *pUSARTx, uint8_t EnorDi)
 		pUSARTx->CR1 &= ~(1 << USART_CR1_UE);
 	}
 }
+
+/*
+ * @fn      		  -USART_ApplicationEventCallback
+ *
+ * @brief             -Weak implementation of Application Event Call function
+ *
+ * @param[in]         -Handling Structure of the USART peripheral
+ * @param[in]         -USART Event macros
+ *
+ * @return            -none
+ *
+ * @Note              -Expect user to handle termination of different interrupts events
+ */
 
 __weak void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle, uint8_t USART_EVENT)
 {
