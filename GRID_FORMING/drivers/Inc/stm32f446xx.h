@@ -679,7 +679,9 @@ typedef struct
 #define IRQ_NO_TIM8_UP_TIM13		44
 #define IRQ_NO_TIM8_TRG_COM_TIM14	45
 #define IRQ_NO_TIM8_CC				46
+#define IRQ_NO_TIM5					50
 #define IRQ_NO_TIM6_DAC				54
+#define IRQ_NO_TIM7					55
 
 #define IRQ_NO_DMA1_STREAM0			11
 #define IRQ_NO_DMA1_STREAM1			12
