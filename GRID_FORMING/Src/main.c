@@ -16,7 +16,25 @@
  ******************************************************************************
  */
 
+/*
+ * 014PWM.c
+ *
+ *  Created on: Oct 29, 2025
+ *      Author: jiperez
+ */
+#include "stm32f446xx.h"
+
 int main(void)
 {
+	SystemCLK_Config_84MHz();
 
+	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
+
+	while(1);
+	return 0;
 }
+
+
+
+
+
