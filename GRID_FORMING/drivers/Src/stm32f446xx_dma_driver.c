@@ -161,34 +161,10 @@ void DMA_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi)
 {
 	if(EnorDi == ENABLE)
 	{
-		if(IRQNumber <= 31)
-		{
-			//ISER0
-			*NVIC_ISER0 |= ( 1 << IRQNumber );
-		}else if(IRQNumber > 31 && IRQNumber < 64)
-		{
-			//ISER1
-			*NVIC_ISER1 |= ( 1 << IRQNumber % 32 );
-		}else if(IRQNumber >= 64 && IRQNumber < 96)
-		{
-			//ISER2
-			*NVIC_ISER2 |= ( 1 << IRQNumber % 64 );
-		}
+		*NVIC_ISER[IRQNumber/32] |= (1<<IRQNumber%32);
 	}else
 	{
-		if(IRQNumber <= 31)
-		{
-			//ICER0
-			*NVIC_ICER0 |= ( 1 << IRQNumber );
-		}else if(IRQNumber > 31 && IRQNumber < 64)
-		{
-			//ICER1
-			*NVIC_ICER1 |= ( 1 << IRQNumber % 32 );
-		}else if(IRQNumber >= 64 && IRQNumber < 96)
-		{
-			//ICER2
-			*NVIC_ICER2 |= ( 1 << IRQNumber % 64 );
-		}
+		*NVIC_ISER[IRQNumber/32] |= (1<<IRQNumber%32);
 	}
 
 }
