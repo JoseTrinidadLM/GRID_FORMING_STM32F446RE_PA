@@ -736,7 +736,7 @@ uint8_t USART_ReceiveDataUntilWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pRxB
  * @Note			-none
  */
 
-void USART_IRQInaterruptConfig(uint8_t IRQNumber, uint8_t EnorDi)
+void USART_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi)
 {
 	if(EnorDi == ENABLE)
 	{

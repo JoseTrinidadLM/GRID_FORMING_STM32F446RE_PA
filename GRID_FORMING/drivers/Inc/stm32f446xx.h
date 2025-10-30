@@ -573,7 +573,7 @@ typedef struct
  * Clock Enable Macros for SYSFG peripherals
  */
 
-#define SYSCFGEN_PCLK_EN() 		( RCC->APB2ENR |= ( 1 << 14) )
+#define SYSCFG_PCLK_EN() 		( RCC->APB2ENR |= ( 1 << 14) )
 
 /*
  * Clock Enable Macros for DMA peripherals

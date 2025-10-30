@@ -51,7 +51,7 @@ void ADC_PClkC(ADC_RegDef_t *pADCx, uint8_t EnorDi)
  * */
 void ADC_Init(ADC_Handle_t *pADCHandle)
 {
-	ADC_PeriClockControl(pADCHandle->pADCx, ENABLE);
+	ADC_PClkC(pADCHandle->pADCx, ENABLE);
 
 	for(__vo uint16_t i = 0; i < 1000; i++);
 

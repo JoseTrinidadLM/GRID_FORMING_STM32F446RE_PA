@@ -52,7 +52,7 @@ void DMA_PClkC(DMA_RegDef_t *pDMAx, uint8_t EnorDi)
  * */
 void DMA_Init(DMA_Handle_t *pDMAHandle)
 {
-	DMA_PeriClockControl(pDMAHandle->pDMAx, ENABLE);
+	DMA_PClkC(pDMAHandle->pDMAx, ENABLE);
 	DMA_StopTransfer(pDMAHandle);
 	DMA_ClearFlags(pDMAHandle);
 	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].CR &= ~(0x0FEFFFFF);
