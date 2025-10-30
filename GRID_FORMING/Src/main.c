@@ -53,6 +53,8 @@ USART_Handle_t USART2Handle;
 
 TIM_Handle_t TIM3Handle ;
 
+GPIO_Handle_t LED;
+
 void TIM3_GPIOInits(void)
 {
 	GPIO_Handle_t TIM3pin;
@@ -67,13 +69,26 @@ void TIM3_GPIOInits(void)
 	GPIO_Init(&TIM3pin);
 }
 
+void LED_GPIOInits(void)
+{
+	LED.pGPIOx = GPIOA;
+	LED.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	//LED.GPIO_PinConfig.GPIO_PinAltFunMode = 2;
+	LED.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	LED.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	LED.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	//LED D13
+	LED.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_5;
+	GPIO_Init(&LED);
+}
+
 void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
 {
 	pTIM3Handle->pTIMx = TIM3;
 	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency_mHz = 2000;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 1;
 	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
 
@@ -126,16 +141,24 @@ int main(void)
 	//memset(receive_data, 0, sizeof(receive_data));
 	//while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
 
-	TIM3_GPIOInits();
+	//TIM3_GPIOInits();
 	TIM3_Inits(&TIM3Handle);
 
 	TIM_IRQInterruptConfig(IRQ_NO_TIM3,ENABLE);
-	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI15);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI1);
+
+	LED_GPIOInits();
 
 	TIM_Start(&TIM3Handle);
 
 	while(1);
 	return 0;
+}
+
+void TIM3_IRQHandler(void)
+{
+	GPIO_ToggleOutputPin(LED.pGPIOx,GPIO_PIN_NO_5);
+	TIM_IRQHandling(&TIM3Handle);
 }
 
 void USART2_IRQHandler(void)

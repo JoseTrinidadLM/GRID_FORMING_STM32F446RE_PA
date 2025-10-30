@@ -62,7 +62,7 @@
  */
 typedef struct
 {
-	uint32_t TIM_Frequency_mHz;				//Desired frequency
+	uint32_t TIM_Frequency;				//Desired frequency
 	uint8_t  TIM_CLKDivision;			/* <  possible values from @TIM_CKD > */
 	uint8_t  TIM_CNTMode;				/* <  possible values from @TIM_CNT > */
 	uint8_t  TIM_AutoReloadPreload;		/* <  possible values from @TIM_ARPE > */
