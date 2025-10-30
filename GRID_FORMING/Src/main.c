@@ -51,7 +51,34 @@ uint8_t rxCmplt = RESET;
 
 USART_Handle_t USART2Handle;
 
-USART_Handle_t USART2Handle;
+TIM_Handle_t TIM3Handle ;
+
+void TIM3_GPIOInits(void)
+{
+	GPIO_Handle_t TIM3pin;
+	TIM3pin.pGPIOx = GPIOA;
+	TIM3pin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+	TIM3pin.GPIO_PinConfig.GPIO_PinAltFunMode = 2;
+	TIM3pin.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	TIM3pin.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	TIM3pin.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	//TIM3_CH1
+	TIM3pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_6;
+	GPIO_Init(&TIM3pin);
+}
+
+void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
+{
+	pTIM3Handle->pTIMx = TIM3;
+	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
+	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
+	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
+	pTIM3Handle->TIM_Config.TIM_Frequency_mHz = 2000;
+	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
+	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
+
+	TIM_Init(pTIM3Handle);
+}
 
 void USART2_GPIOInits(void)
 {
@@ -93,11 +120,19 @@ int main(void)
 	USART2_Inits(&USART2Handle);
 	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
 
-	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
-	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
+	//USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
+	//USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
 
-	memset(receive_data, 0, sizeof(receive_data));
-	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
+	//memset(receive_data, 0, sizeof(receive_data));
+	//while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
+
+	TIM3_GPIOInits();
+	TIM3_Inits(&TIM3Handle);
+
+	TIM_IRQInterruptConfig(IRQ_NO_TIM3,ENABLE);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI15);
+
+	TIM_Start(&TIM3Handle);
 
 	while(1);
 	return 0;
