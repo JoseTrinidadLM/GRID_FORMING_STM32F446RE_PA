@@ -21,7 +21,7 @@
  * @Note			- none
  *
  * */
-void TIM_PeriClockControl(TIM_RegDef_t *pTIMx, uint8_t EnorDi)
+void TIM_PClkC(TIM_RegDef_t *pTIMx, uint8_t EnorDi)
 {
 	if(EnorDi == ENABLE)
 	{

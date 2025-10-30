@@ -185,7 +185,7 @@ uint8_t USART_ReceiveDataUntilWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pTxB
  * IRQ Configuration and ISR handling for USART
  */
 
-void USART_IRQITConfig(uint8_t IRQNumber, uint8_t EnorDi);				//Interrupt Request Configuration
+void USART_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi);				//Interrupt Request Configuration
 void USART_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);	//Interrupt Request Priority
 void USART_IRQHandling(USART_Handle_t *pUSARTHandle);					//Interrupt Request Handling
 

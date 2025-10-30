@@ -71,7 +71,7 @@ int main(void)
 	USART2_Inits(&USART2Handle);
 	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
 
-	USART_IRQITConfig(IRQ_NO_USART2,ENABLE);
+	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
 	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
 
 	while(1);

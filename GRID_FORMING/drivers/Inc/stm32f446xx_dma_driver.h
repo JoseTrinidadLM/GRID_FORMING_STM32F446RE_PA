@@ -103,7 +103,7 @@ typedef struct
 /*
  * DMA Clock setup
  */
-void DMA_PeriClockControl(DMA_RegDef_t *pDMAx, uint8_t EnorDi);
+void DMA_PClkC(DMA_RegDef_t *pDMAx, uint8_t EnorDi);
 
 /*
  * Init and de-init

@@ -126,7 +126,7 @@ void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber);					//Toggl
  * IRQ Configuration and ISR handling for GPIO
  */
 
-void GPIO_IRQ_ITConfig(uint8_t IRQNumber, uint8_t EnorDi);				//Interrupt Request Configuration
+void GPIO_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi);				//Interrupt Request Configuration
 void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);	//Interrupt Request Priority
 void GPIO_IRQHandling(uint8_t pinNumber);								//Interrupt Request Handling
 

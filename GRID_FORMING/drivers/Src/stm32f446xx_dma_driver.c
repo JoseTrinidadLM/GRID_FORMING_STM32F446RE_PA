@@ -22,7 +22,7 @@
  * @Note			- none
  *
  * */
-void DMA_PeriClockControl(DMA_RegDef_t *pDMAx, uint8_t EnorDi)
+void DMA_PClkC(DMA_RegDef_t *pDMAx, uint8_t EnorDi)
 {
 	if(EnorDi == ENABLE)
 	{
