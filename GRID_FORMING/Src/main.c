@@ -16,80 +16,163 @@
  ******************************************************************************
  */
 
-/*
- * USART 2->STLINK
- *
- * TX->PA2
- * RX->PA3
- *
- */
-
-#include <string.h>
 #include "stm32f446xx.h"
 
-USART_Handle_t USART2Handle;
+#define INC		164
+#define DC		1000
+TIM_Handle_t *pTIM2;
+TIM_Handle_t *pTIM5;
+GPIO_Handle_t *pGPIO;
 
-USART_Handle_t USART2Handle;
-
-void USART2_GPIOInits(void)
-{
-	GPIO_Handle_t USART2pin;
-	USART2pin.pGPIOx = GPIOA;
-	USART2pin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
-	USART2pin.GPIO_PinConfig.GPIO_PinAltFunMode = 7;
-	USART2pin.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
-	USART2pin.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
-	USART2pin.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
-	//TX
-	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_2;
-	GPIO_Init(&USART2pin);
-	//RX
-	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_3;
-	GPIO_Init(&USART2pin);
-}
-
-void USART2_Inits(USART_Handle_t *pUSART2Handle)
-{
-	pUSART2Handle->pUSARTx = USART2;
-	pUSART2Handle->USARTConfig.USART_Baud = USART_STD_BAUD_115200;
-	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
-	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
-	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
-	pUSART2Handle->USARTConfig.USART_ParityControl = USART_PARITY_DISABLE;
-	pUSART2Handle->USARTConfig.USART_WordLength = USART_WLEN_8BITS;
-
-	USART_Init(pUSART2Handle);
-}
+ADC_Handle_t *pADC;
+DMA_Handle_t *pDMA;
+uint16_t value[4];
+uint16_t new[4];
+float newnew[4];
 
 int main(void)
 {
 	SystemCLK_Config_84MHz();
 
-	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
+	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2));
 
-    USART2_GPIOInits();
-	USART2_Inits(&USART2Handle);
-	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
+	GPIO_PClkC(GPIOA, ENABLE);
 
-	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
-	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
+	GPIO_Handle_t GpioPWM;
+	pGPIO = &GpioPWM;
+	GPIO_PClkC(GPIOC, ENABLE);
+
+	GpioPWM.pGPIOx = GPIOC;
+	GpioPWM.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_7;
+	GpioPWM.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	GpioPWM.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
+	GpioPWM.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	GpioPWM.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU;
+	GPIO_Init(&GpioPWM);
+
+	GPIO_Handle_t ADCIn_0;
+	ADCIn_0.pGPIOx = GPIOA;
+	ADCIn_0.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ANALOG;
+	ADCIn_0.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_0;
+	ADCIn_0.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	GPIO_Init(&ADCIn_0);
+
+	ADC_Handle_t ADC_channel_0;
+	pADC = &ADC_channel_0;
+	ADC_PClkC(ADC1, ENABLE);
+
+	ADC_channel_0.pADCx = ADC1;
+	ADC_channel_0.ADC_Config.ADC_Resolution = ADC_RESOLUTION_12_B;
+	ADC_channel_0.ADC_Config.ADC_DataAlignment = ADC_DATA_ALIGNMENT_RIGHT;
+	ADC_channel_0.ADC_Config.ADC_ScanMode =  ADC_SCAN_MODE_DI;
+	ADC_channel_0.ADC_Config.ADC_ConversionMode =  ADC_CONV_MODE_SINGLE;
+	ADC_channel_0.ADC_Config.ADC_ExternalTriggerDetection =  ADC_EXT_TRIG_DECT_RE;
+	ADC_channel_0.ADC_Config.ADC_ExternalTrigger =  ADC_EXT_TRIG_TIM2_TRGO;
+	ADC_channel_0.ADC_Config.ADC_DMAContinuousRequests =  ADC_DMA_MODE_EN;
+	ADC_channel_0.ADC_Config.ADC_DDSelection =  ADC_DDS_RQ;
+	ADC_channel_0.ADC_Config.ADC_EOCSelection =  ADC_EOC_PER_CONVERSION;
+	ADC_channel_0.ADC_Config.ADC_EOCInterrupt =  ADC_EOC_IT_DI;
+
+	ADC_channel_0.ADC_NumChannels = 1;
+	ADC_ChannelConfig(&ADC_channel_0, 0, 0, ADC_SMP_T_15);
+	ADC_ConfigSequence(&ADC_channel_0);
+	ADC_Init(&ADC_channel_0);
+
+	DMA_Handle_t DMA_0;
+	pDMA = &DMA_0;
+
+	DMA_0.pDMAx = DMA2;
+	DMA_0.DMA_stream = 0;
+	DMA_0.DMA_Config.DMA_Channel = DMA_CHANNEL_0;
+	DMA_0.DMA_Config.DMA_Direction = DMA_DIR_PERIPH_TO_MEM;
+	DMA_0.DMA_Config.DMA_Priority = DMA_PRIORITY_HIGH;
+	DMA_0.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_HALFWORD;
+	DMA_0.DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_HALFWORD;
+	DMA_0.DMA_Config.DMA_MemInc = DISABLE;
+	DMA_0.DMA_Config.DMA_PeriphInc = DISABLE;
+	DMA_0.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
+	DMA_0.DMA_Config.DMA_FIFOThreshold = 0;
+	DMA_0.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
+	DMA_0.BufferSize = 1;
+
+	DMA_Init(&DMA_0);
+	DMA_SetAddresses(&DMA_0,(void*)&ADC_channel_0.pADCx->DR,(void*)value);
+	DMA_StartTransfer(&DMA_0);
+
+	TIM_Handle_t TIM_2;
+	pTIM2 = &TIM_2;
+	TIM_2.pTIMx = TIM2;
+	TIM_2.TIM_Config.TIM_Frequency = 9600;
+	TIM_2.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
+	TIM_2.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
+	TIM_2.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
+	TIM_2.TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
+	TIM_2.TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
+	TIM_Init(&TIM_2);
+
+	TIM_IRQInterruptConfig(IRQ_NO_TIM2, ENABLE);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM2, 1);
+
+
+	TIM_Handle_t TIM_5;
+	pTIM5 = &TIM_5;
+	//TIM_DeInit(TIM5);
+	TIM_5.pTIMx = TIM5;
+	TIM_5.TIM_Config.TIM_Frequency = 480000;
+	TIM_5.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
+	TIM_5.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
+	TIM_5.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
+	TIM_5.TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
+	TIM_5.TIM_Config.TIM_MasterModeSel = TIM_MMS_RESET;
+	TIM_Init(&TIM_5);
+
+
+	TIM_IRQInterruptConfig(IRQ_NO_TIM5, ENABLE);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM5, 0);
+
+	TIM_Start(&TIM_2);
+	TIM_Start(&TIM_5);
 
 	while(1);
 	return 0;
 }
 
-void USART2_IRQHandler(void)
+void TIM5_IRQHandler(void)
 {
-	USART_IRQHandling(&USART2Handle);
+	static __vo uint16_t cont = 0;
+	static __vo uint8_t dir = 0;
+	static __vo uint8_t current_state = 0;
+	static __vo uint8_t last_state = 0;
+	TIM_IRQHandling(pTIM5);
+
+	if((dir==0) && (cont<4100)) cont+=INC;
+	else if((dir==0) && (cont>=4100)) dir = 1;
+
+	if((dir==1) && (cont>0)) cont-=INC;
+	else if((dir==1) && (cont<=0))
+		{
+			dir = 0;
+			cont+=INC;
+		}
+
+	if(new[0] > cont) current_state = 1;
+	else current_state = 0;
+
+	if(current_state != last_state)
+	{
+		if(current_state)
+			pGPIO->pGPIOx->BSRR = ( 1 << 7 );
+		else
+			pGPIO->pGPIOx->BSRR = ( 1 << ( 7 + 16 ) );
+	}
+	last_state = current_state;
 }
 
-void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
+
+void TIM2_IRQHandler(void)
 {
-   if(ApEv == USART_EVENT_RX_CMPLT)
-   {
-	   ;
-   }else if (ApEv == USART_EVENT_TX_CMPLT)
-   {
-	   ;
-   }
+	TIM_IRQHandling(pTIM2);
+	new[0] = value[0];
+	//newnew[0] = (new[0]/4095.0f - 0.5f)*2.0f ;
 }
+

@@ -74,7 +74,7 @@ void TIM_PClkC(TIM_RegDef_t *pTIMx, uint8_t EnorDi)
 
 void TIM_Init(TIM_Handle_t *pTIMHandle)
 {
-	TIM_PeriClockControl(pTIMHandle->pTIMx, ENABLE);
+	TIM_PClkC(pTIMHandle->pTIMx, ENABLE);
 	uint32_t f_CK_PSC = 0;
 	if((pTIMHandle->pTIMx == TIM2)||(pTIMHandle->pTIMx == TIM3)||
 			(pTIMHandle->pTIMx == TIM4)||(pTIMHandle->pTIMx == TIM5)||
