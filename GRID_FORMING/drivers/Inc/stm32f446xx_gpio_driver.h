@@ -1,19 +1,19 @@
 /*
- * stm32f446_gpio_driver.h
+ * stm32f446xx_gpio_driver.h
  *
  *  Created on: Oct 7, 2025
- *      Author: Isaac Pérez (ShiLiba)
+ *      Author: jtlopez & Isaac Pérez (ShiLiba)
  */
 
-#ifndef INC_STM32F446_GPIO_DRIVER_H_
-#define INC_STM32F446_GPIO_DRIVER_H_
+#ifndef INC_STM32F446XX_GPIO_DRIVER_H_
+#define INC_STM32F446XX_GPIO_DRIVER_H_
 
 #include "stm32f446xx.h"
 
-
 /*
- * This is Configuration structure for GPIO pin
+ * Configuration Structure for GPIOx
  */
+
 typedef struct
 {
 	uint8_t GPIO_PinNumber;					/* <  possible values from @GPIO_PIN_NUMBERS > */
@@ -25,8 +25,9 @@ typedef struct
 }GPIO_PinConfig_t;
 
 /*
- * This is Handle structure for GPIO pin
+ * Handling Structure for GPIO
  */
+
 typedef struct
 {
 	GPIO_RegDef_t *pGPIOx;					/* <  This holds the base address of the GPIO port to which the pin belongs > */
@@ -37,6 +38,7 @@ typedef struct
  * @GPIO_PIN_NUMBERS
  * GPIO pin numbers
  */
+
 #define GPIO_PIN_NO_0			0
 #define GPIO_PIN_NO_1			1
 #define GPIO_PIN_NO_2			2
@@ -58,8 +60,9 @@ typedef struct
  * @GPIO_PIN_MODES
  * GPIO pin possible modes
  */
-#define GPIO_MODE_INPUT			0					//Input mode
-#define GPIO_MODE_OUTPUT		1					//General Purpose Output Mode
+
+#define GPIO_MODE_IN			0					//Input mode
+#define GPIO_MODE_OUT			1					//General Purpose Output Mode
 #define GPIO_MODE_ALTFN			2					//Alternate Function Mode
 #define GPIO_MODE_ANALOG		3					//Analog Mode
 #define GPIO_MODE_IT_FT			4
@@ -70,8 +73,9 @@ typedef struct
  * @GPIO_PIN_OPTYPE
  * GPIO pin possible output type
  */
-#define GPIO_OP_TYPE_PP			0
-#define GPIO_OP_TYPE_OD			1
+
+#define GPIO_OP_TYPE_PP			0					//Output Type Push-Pull
+#define GPIO_OP_TYPE_OD			1					//Output Type Open-Drain
 
 /*
  * @GPIO_PIN_SPEED
@@ -85,25 +89,26 @@ typedef struct
 /* @GPIO_PIN_PUPD
  * GPIO pin pull up and pull down configuration macros
  */
+
 #define GPIO_NO_PUPD			0
 #define GPIO_PIN_PU				1
 #define GPIO_PIN_PD				2
 
-
-
 /************************************************************************************
- * 							APIs supported by this driver
- * 				For more information about the APIS check the function definitions
+ ****************************APIs supported by this driver***************************
+ *********For more information about the APIS check the function definitions*********
  ************************************************************************************/
 
-/*
+/* 
  * Peripheral Clock setup
  */
-void GPIO_PeriClockControl(GPIO_RegDef_t *pGPIOx, uint8_t EnorDi);
+
+void GPIO_PClkC(GPIO_RegDef_t *pGPIOx, uint8_t EnorDi);
 
 /*
- * Init and De-init
+ * Init and De-Init
  */
+
 void GPIO_Init(GPIO_Handle_t *pGPIOHandle);
 void GPIO_DeInit(GPIO_RegDef_t *pGPIOx);
 
@@ -111,17 +116,19 @@ void GPIO_DeInit(GPIO_RegDef_t *pGPIOx);
  * Data read and write
  */
 
-uint8_t GPIO_ReadFromInputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber);
-uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx);
-void GPIO_WriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value);
-void GPIO_WriteToOutputPort(GPIO_RegDef_t *pGPIOx, uint16_t Value);
-void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber);
+uint8_t GPIO_ReadFromInputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber); 				//Read from single Pin
+uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx);									//Read entire Port
+void GPIO_WriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value);	//Write to single Pin
+void GPIO_WriteToOutputPort(GPIO_RegDef_t *pGPIOx, uint16_t Value);						//Write to entire Port
+void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber);					//Toggle single Pin
 
 /*
- * IRQ Configuration and ISR handling
+ * IRQ Configuration and ISR handling for GPIO
  */
-void GPIO_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi);
-void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint8_t IRQPriority);
-void GPIO_IRQHandling(uint8_t pinNumber);
 
-#endif /* INC_STM32F446_GPIO_DRIVER_H_ */
+void GPIO_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi);				//Interrupt Request Configuration
+void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);	//Interrupt Request Priority
+void GPIO_IRQHandling(uint8_t pinNumber);								//Interrupt Request Handling
+
+
+#endif /* INC_STM32F446XX_GPIO_DRIVER_H_ */

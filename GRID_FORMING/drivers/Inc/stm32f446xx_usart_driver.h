@@ -1,5 +1,12 @@
-#ifndef STM32F446_UART_DRIVER_H
-#define STM32F446_UART_DRIVER_H
+/*
+ * stm32f446xx_usart_driver.h
+ *
+ *  Created on: Oct 16, 2025
+ *      Author: jtlopez
+ */
+
+#ifndef INC_STM32F446XX_USART_DRIVER_H_
+#define INC_STM32F446XX_USART_DRIVER_H_
 
 #include "stm32f446xx.h"
 
@@ -30,8 +37,10 @@ typedef struct
 	uint8_t TxState;
 	uint8_t *pRxBuffer;
 	uint32_t RxCount;
+	uint32_t RxLen;
 	uint8_t RxState;
 	uint8_t RxStopChar;
+	uint8_t RxStopUntil;
 }USART_Handle_t;
 
 /*
@@ -51,11 +60,11 @@ typedef struct
 #define USART_MODE_TX_RX	3
 
 /*
- * USART Baud
+ * USART Baud Rate hz
  */
 
 #define USART_STD_BAUD_1200					1200
-#define USART_STD_BAUD_2400					400
+#define USART_STD_BAUD_2400					2400
 #define USART_STD_BAUD_9600					9600
 #define USART_STD_BAUD_19200 				19200
 #define USART_STD_BAUD_38400 				38400
@@ -101,7 +110,7 @@ typedef struct
 #define USART_HW_FC_CTS_RTS	3
 
 /*
- * SPI related status flags definitions
+ * USART related status flags definitions
  */
 
 #define USART_PE_FLAG		(1<<USART_SR_PE)
@@ -116,7 +125,7 @@ typedef struct
 #define USART_CTS_FLAG		(1<<USART_SR_CTS)
 
 /*
- * Possible Events
+ * USART Possible Events
  */
 
 #define USART_EVENT_TX_CMPLT 	1
@@ -164,28 +173,33 @@ void USART_ClearFlag(USART_RegDef_t *pUSARTx, uint16_t FlagName);
  * Data Send and Receive
  */
 
-void USART_SendData(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len);
-void USART_ReceiveData(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len);
-void USART_ReceiveDataUntil(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint8_t Char);
+void USART_SendData(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len);			//Blocking type send data
+void USART_ReceiveData(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len);			//Blocking type receive data
+void USART_ReceiveDataUntil(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint8_t Char);	//Blocking type receive data until given char appears
 
-uint8_t USART_SendDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len);
-uint8_t USART_ReceiveDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len);
-
+uint8_t USART_SendDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len);			//Non-blocking type send data
+uint8_t USART_ReceiveDataWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint32_t Len);		//Non-blocking type receive data
+uint8_t USART_ReceiveDataUntilWithIT(USART_Handle_t *pUSARTHandle, uint8_t* pTxBuffer, uint8_t Char);	//Non-blocking type receive data until given char appears
 
 /*
- * IRQ Configuration and ISR handling
+ * IRQ Configuration and ISR handling for USART
  */
 
-void USART_IRQITConfig(uint8_t IRQNumber, uint8_t EnorDi);
-void USART_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);
-void USART_IRQHandling(USART_Handle_t *pUSARTHandle);
+void USART_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi);				//Interrupt Request Configuration
+void USART_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority);	//Interrupt Request Priority
+void USART_IRQHandling(USART_Handle_t *pUSARTHandle);					//Interrupt Request Handling
 
-//
+/*
+ * Peripheral Control
+ */
 
 void USART_PeripheralControl(USART_RegDef_t *pUSARTx, uint8_t EnorDi);
 
-//
+/*
+ * Application Event Handling
+ */
+
 void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle, uint8_t USART_EVENT);
 
 
-#endif
+#endif /* INC_STM32F446XX_USART_DRIVER_H_ */

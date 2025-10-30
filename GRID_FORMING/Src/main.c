@@ -17,12 +17,49 @@
  */
 
 /*
- * 014PWM.c
+ * USART 2->STLINK
  *
- *  Created on: Oct 29, 2025
- *      Author: jiperez
+ * TX->PA2
+ * RX->PA3
+ *
  */
+
+#include <string.h>
 #include "stm32f446xx.h"
+
+USART_Handle_t USART2Handle;
+
+USART_Handle_t USART2Handle;
+
+void USART2_GPIOInits(void)
+{
+	GPIO_Handle_t USART2pin;
+	USART2pin.pGPIOx = GPIOA;
+	USART2pin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+	USART2pin.GPIO_PinConfig.GPIO_PinAltFunMode = 7;
+	USART2pin.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	USART2pin.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	USART2pin.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	//TX
+	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_2;
+	GPIO_Init(&USART2pin);
+	//RX
+	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_3;
+	GPIO_Init(&USART2pin);
+}
+
+void USART2_Inits(USART_Handle_t *pUSART2Handle)
+{
+	pUSART2Handle->pUSARTx = USART2;
+	pUSART2Handle->USARTConfig.USART_Baud = USART_STD_BAUD_115200;
+	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
+	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
+	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
+	pUSART2Handle->USARTConfig.USART_ParityControl = USART_PARITY_DISABLE;
+	pUSART2Handle->USARTConfig.USART_WordLength = USART_WLEN_8BITS;
+
+	USART_Init(pUSART2Handle);
+}
 
 int main(void)
 {
@@ -30,11 +67,29 @@ int main(void)
 
 	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
 
+    USART2_GPIOInits();
+	USART2_Inits(&USART2Handle);
+	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
+
+	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
+	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
+
 	while(1);
 	return 0;
 }
 
+void USART2_IRQHandler(void)
+{
+	USART_IRQHandling(&USART2Handle);
+}
 
-
-
-
+void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
+{
+   if(ApEv == USART_EVENT_RX_CMPLT)
+   {
+	   ;
+   }else if (ApEv == USART_EVENT_TX_CMPLT)
+   {
+	   ;
+   }
+}

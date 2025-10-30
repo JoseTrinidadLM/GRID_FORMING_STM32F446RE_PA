@@ -137,7 +137,7 @@ typedef struct
 /*
  * Peripheral Clock setup
  */
-void ADC_PeriClockControl(ADC_RegDef_t *pADCx, uint8_t EnorDi);
+void ADC_PClkC(ADC_RegDef_t *pADCx, uint8_t EnorDi);
 
 /*
  * Init and De-init
