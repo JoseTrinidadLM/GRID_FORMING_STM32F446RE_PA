@@ -27,28 +27,6 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
-char variables_key[] = {'V','F','H'};
-uint32_t variables_value[3];
-
-char data1[] = "Test data\n";
-char receive_data[1000];
-
-uint32_t getValue_Variable(char s)
-{
-	int x;
-	for(x = 0; variables_key[x] != s; x++);
-	return variables_value[x];
-}
-
-void addValue_Variable(char s, uint32_t value)
-{
-	int x;
-	for(x = 0; variables_key[x] != s; x++);
-	variables_value[x] = value;
-}
-
-uint8_t rxCmplt = RESET;
-
 USART_Handle_t USART2Handle;
 
 USART_Handle_t USART2Handle;
@@ -96,9 +74,6 @@ int main(void)
 	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
 	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
 
-	memset(receive_data, 0, sizeof(receive_data));
-	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
-
 	while(1);
 	return 0;
 }
@@ -108,53 +83,11 @@ void USART2_IRQHandler(void)
 	USART_IRQHandling(&USART2Handle);
 }
 
-void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
-{
-	uint8_t message[7];
-	uint32_t value;
-	char variable;
-	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
-	uint8_t w_r;
-	if(*pUSARTHandle->pRxBuffer == '$')
-	{
-		w_r = ENABLE;
-	}else if(*pUSARTHandle->pRxBuffer == '%')
-	{
-		w_r = DISABLE;
-	}
-	pUSARTHandle->pRxBuffer++;
-	variable = *pUSARTHandle->pRxBuffer;
-	value = getValue_Variable(variable);
-	pUSARTHandle->pRxBuffer++;
-	if(w_r)
-	{
-		value = *(pUSARTHandle->pRxBuffer++);
-		value += *(pUSARTHandle->pRxBuffer++)<<8;
-		value += *(pUSARTHandle->pRxBuffer++)<<16;
-		value += *(pUSARTHandle->pRxBuffer++)<<24;
-		addValue_Variable(variable, value);
-	}else
-	{
-		value = getValue_Variable(variable);
-		message[0] = (uint64_t)'$';
-		message[1] = variable;
-		message[2] = (value & 0xFF);
-		message[3] = ((value >> 8)& 0xFF);
-		message[4] = ((value >> 16)& 0xFF);
-		message[5] = ((value >> 24)& 0xFF);
-		message[6] = (uint64_t)'\n';
-
-		USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 7);
-	}
-
-	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
-}
-
 void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
 {
    if(ApEv == USART_EVENT_RX_CMPLT)
    {
-	   USART_DecodeRX(pUSARTHandle);
+	   ;
    }else if (ApEv == USART_EVENT_TX_CMPLT)
    {
 	   ;
