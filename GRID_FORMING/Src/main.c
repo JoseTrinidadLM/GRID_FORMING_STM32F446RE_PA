@@ -30,6 +30,15 @@ uint16_t value[4];
 uint16_t new[4];
 float newnew[4];
 
+/*
+ *  PA0 -> ADC1 -> DMA -> value[0] -> new[0]
+ *			^
+ *			|
+ * 			TIM2
+ *
+ *
+ */
+
 int main(void)
 {
 	SystemCLK_Config_84MHz();
@@ -47,8 +56,18 @@ int main(void)
 	GpioPWM.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
 	GpioPWM.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
 	GpioPWM.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
-	GpioPWM.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU;
+	GpioPWM.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
 	GPIO_Init(&GpioPWM);
+
+	GPIO_Handle_t GpioPWMC;
+
+	GpioPWMC.pGPIOx = GPIOC;
+	GpioPWMC.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_9;
+	GpioPWMC.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	GpioPWMC.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
+	GpioPWMC.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	GpioPWMC.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	GPIO_Init(&GpioPWMC);
 
 	GPIO_Handle_t ADCIn_0;
 	ADCIn_0.pGPIOx = GPIOA;
@@ -161,9 +180,9 @@ void TIM5_IRQHandler(void)
 	if(current_state != last_state)
 	{
 		if(current_state)
-			pGPIO->pGPIOx->BSRR = ( 1 << 7 );
+			GPIOC->BSRR = ( 1 << 7 )|( 1 << ( 9 + 16 ) );
 		else
-			pGPIO->pGPIOx->BSRR = ( 1 << ( 7 + 16 ) );
+			GPIOC->BSRR = ( 1 << ( 7 + 16 ) )|( 1 << 9 );
 	}
 	last_state = current_state;
 }
@@ -173,6 +192,4 @@ void TIM2_IRQHandler(void)
 {
 	TIM_IRQHandling(pTIM2);
 	new[0] = value[0];
-	//newnew[0] = (new[0]/4095.0f - 0.5f)*2.0f ;
 }
-

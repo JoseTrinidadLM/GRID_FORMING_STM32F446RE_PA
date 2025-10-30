@@ -75,7 +75,7 @@ void TIM_PClkC(TIM_RegDef_t *pTIMx, uint8_t EnorDi)
 void TIM_Init(TIM_Handle_t *pTIMHandle)
 {
 	TIM_PClkC(pTIMHandle->pTIMx, ENABLE);
-	uint32_t f_CK_PSC = 0;
+	float f_CK_PSC = 0;
 	if((pTIMHandle->pTIMx == TIM2)||(pTIMHandle->pTIMx == TIM3)||
 			(pTIMHandle->pTIMx == TIM4)||(pTIMHandle->pTIMx == TIM5)||
 			(pTIMHandle->pTIMx == TIM6)||(pTIMHandle->pTIMx == TIM7)||
@@ -91,7 +91,7 @@ void TIM_Init(TIM_Handle_t *pTIMHandle)
 	}
 
 
-	uint32_t InputFrequency = pTIMHandle->TIM_Config.TIM_Frequency;
+	float InputFrequency = pTIMHandle->TIM_Config.TIM_Frequency;
 	//The counter clock frequency CK_CNT is equal to fCK_PSC / (PSC[15:0] + 1). (RM PG[604])
 	//In upcounting mode, the counter counts from 0 to the auto-reload value
 	//fCK_PSC = APB1_Timer_Clock = 84 MHz
