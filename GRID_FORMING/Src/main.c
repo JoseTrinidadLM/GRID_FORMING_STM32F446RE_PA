@@ -27,7 +27,6 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
-uint8_t command;
 
 char packets_keys[] = {'V','C','F','D','X','N'};
 uint32_t packets_value[4];
@@ -36,6 +35,19 @@ uint8_t status = 0b00000011;
 
 char data1[] = "Test data\n";
 char receive_data[1000];
+
+void executeComand(uint8_t command)
+{
+	if((command >> 1) & 0x1)
+	{
+		status &= ~(0x2);
+		status |= (~command & 0x1) << 1;
+	}else
+	{
+		status &= ~(0x1);
+		status |= (command & 0x1);
+	}
+}
 
 uint8_t validatePacket(char s)
 {
@@ -191,7 +203,7 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 		{
 			if((message[1] == 'X') && (pUSARTHandle->RxLen == 4))
 			{
-				command = message[2];
+				executeComand(message[2]);
 			}else if((message[1] != 'X') && (pUSARTHandle->RxLen == 7))
 			{
 				addValue_Variable(message[1], message);
