@@ -102,7 +102,7 @@ void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
 	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency = 500;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 1000;
 	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
 
@@ -225,28 +225,32 @@ void USART_TelemetryTX(uint8_t typePacket)
 	message[3] = (getValue_Variable(message[1]) >> 16) & 0xFF;
 	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
 	message[5] = (getValue_Variable(message[1])) & 0xFF;
-	message[6] = '\r';
+	message[6] = '\n';
 
 	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 7);
 }
 
-void Send_Status(void)
+void Send_Status(uint8_t EnorDi)
 {
 	static uint8_t count = 0;
-	if(count > 4)
+	if((count > 3))
+	{
+		count = 0;
+	}
+	if(EnorDi)
 	{
 		USART_HeartBeatTX();
 		count = 0;
+	}else
+	{
+		USART_TelemetryTX(count);
+		count++;
 	}
-	USART_TelemetryTX(count);
-	count++;
 }
 
 void TIM3_IRQHandler(void)
 {
-	GPIO_ToggleOutputPin(LED.pGPIOx, GPIO_PIN_NO_6);
-	//USART_SendDataWithIT(&USART2Handle,(uint8_t *)data1, strlen(data1));
-	//Send_Status();
+	Send_Status(DISABLE);
 	TIM_IRQHandling(&TIM3Handle);
 }
 
@@ -263,6 +267,6 @@ void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
 	   ;
    }else if (ApEv == USART_EVENT_TX_CMPLT)
    {
-	   ;
+	   //Send_Status(ENABLE);
    }
 }
