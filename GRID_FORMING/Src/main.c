@@ -16,20 +16,6 @@
  ******************************************************************************
  */
 
-#include "stm32f446xx.h"
-
-#define INC		164
-#define DC		1000
-TIM_Handle_t *pTIM2;
-TIM_Handle_t *pTIM5;
-GPIO_Handle_t *pGPIO;
-
-ADC_Handle_t *pADC;
-DMA_Handle_t *pDMA;
-uint16_t value[4];
-uint16_t new[4];
-float newnew[4];
-
 /*
  *  PA0 -> ADC1 -> DMA -> value[0] -> new[0]
  *			^
@@ -38,6 +24,22 @@ float newnew[4];
  *
  *
  */
+
+#include "stm32f446xx.h"
+
+TIM_Handle_t *pTIM2;
+TIM_Handle_t *pTIM5;
+GPIO_Handle_t *pGPIO;
+
+ADC_Handle_t *pADC;
+DMA_Handle_t *pDMA;
+uint16_t value[4];
+float new[4];
+float INC = 0.1;
+void SPWM_GPIOInits(void)
+{
+
+}
 
 int main(void)
 {
@@ -61,7 +63,7 @@ int main(void)
 
 	GPIO_Handle_t GpioPWMC;
 
-	GpioPWMC.pGPIOx = GPIOC;
+	GpioPWMC.pGPIOx = GPIOA;
 	GpioPWMC.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_9;
 	GpioPWMC.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
 	GpioPWMC.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
@@ -137,7 +139,7 @@ int main(void)
 	pTIM5 = &TIM_5;
 	//TIM_DeInit(TIM5);
 	TIM_5.pTIMx = TIM5;
-	TIM_5.TIM_Config.TIM_Frequency = 480000;
+	TIM_5.TIM_Config.TIM_Frequency = 9600*40;
 	TIM_5.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_5.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	TIM_5.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
@@ -158,38 +160,53 @@ int main(void)
 
 void TIM5_IRQHandler(void)
 {
-	static __vo uint16_t cont = 0;
+	static __vo float cont = -1.1;
 	static __vo uint8_t dir = 0;
-	static __vo uint8_t current_state = 0;
-	static __vo uint8_t last_state = 0;
+	static __vo uint8_t current_state[2] = {0};
+	static __vo uint8_t last_state[2] = {0};
+
 	TIM_IRQHandling(pTIM5);
 
-	if((dir==0) && (cont<4100)) cont+=INC;
-	else if((dir==0) && (cont>=4100)) dir = 1;
+	if((dir==0) && (cont<1.0)) cont+=INC;
+	else if((dir==0) && (cont>=1.0)) dir = 1;
 
-	if((dir==1) && (cont>0)) cont-=INC;
+	if((dir==1) && (cont>-1.0)) cont-=INC;
 	else if((dir==1) && (cont<=0))
 		{
 			dir = 0;
 			cont+=INC;
 		}
 
-	if(new[0] > cont) current_state = 1;
-	else current_state = 0;
+	if(new[0] > cont) current_state[0] = 1;
+	else current_state[0] = 0;
 
-	if(current_state != last_state)
+	if(new[1] > cont) current_state[1] = 1;
+	else current_state[1] = 0;
+
+	if(current_state[0] != last_state[0])
 	{
-		if(current_state)
-			GPIOC->BSRR = ( 1 << 7 )|( 1 << ( 9 + 16 ) );
+		if(current_state[0])
+			GPIOC->BSRR = ( 1 << 7 );
 		else
-			GPIOC->BSRR = ( 1 << ( 7 + 16 ) )|( 1 << 9 );
+			GPIOC->BSRR = ( 1 << ( 7 + 16 ) );
+		last_state[0] = current_state[0];
 	}
-	last_state = current_state;
+
+	if(current_state[1] != last_state[1])
+	{
+		if(current_state[1])
+			GPIOA->BSRR = ( 1 << 9 );
+		else
+			GPIOA->BSRR = ( 1 << ( 9 + 16 ) );
+		last_state[1] = current_state[1];
+	}
+
 }
 
 
 void TIM2_IRQHandler(void)
 {
 	TIM_IRQHandling(pTIM2);
-	new[0] = value[0];
+	new[0] = (value[0]/4095.0f - 0.5f)*2.0f;
+	new[1] = (value[0]/4095.0f - 0.5f)*(-2.0f);
 }
