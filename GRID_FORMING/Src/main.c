@@ -32,7 +32,7 @@ uint8_t command;
 char packets_keys[] = {'V','C','F','D','X','N'};
 uint32_t packets_value[4];
 
-uint8_t status = 0b0000011;
+uint8_t status = 0b00000011;
 
 char data1[] = "Test data\n";
 char receive_data[1000];
@@ -205,7 +205,7 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 
 void USART_HeartBeatTX(void)
 {
-	uint8_t message[4];
+	static uint8_t message[4];
 
 	message[0] = '$';
 	message[1] = 'S';
@@ -218,14 +218,14 @@ void USART_HeartBeatTX(void)
 void USART_TelemetryTX(uint8_t typePacket)
 {
 
-	uint8_t message[7];
+	static uint8_t message[7];
 	message[0] = '$';
 	message[1] = packets_keys[typePacket];
 	message[2] = getValue_Variable(message[1]) >> 24;
 	message[3] = (getValue_Variable(message[1]) >> 16) & 0xFF;
 	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
 	message[5] = (getValue_Variable(message[1])) & 0xFF;
-	message[6] = '\n';
+	message[6] = '\r';
 
 	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 7);
 }
