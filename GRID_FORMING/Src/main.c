@@ -27,24 +27,38 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
-char variables_key[] = {'V','F','H'};
-uint32_t variables_value[3];
+uint8_t command;
+
+char packets_keys[] = {'V','C','F','D','X','N'};
+uint32_t packets_value[4];
+
+uint8_t status = 0b0000011;
 
 char data1[] = "Test data\n";
 char receive_data[1000];
 
-uint32_t getValue_Variable(char s)
+uint8_t validatePacket(char s)
 {
-	int x;
-	for(x = 0; variables_key[x] != s; x++);
-	return variables_value[x];
+	uint8_t x;
+	for(x = 0; packets_keys[x] != s; x++);
+	return packets_keys[x];
 }
 
-void addValue_Variable(char s, uint32_t value)
+uint32_t getValue_Variable(char s)
+{
+	uint8_t x;
+	for(x = 0; packets_keys[x] != s; x++);
+	return packets_value[x];
+}
+
+void addValue_Variable(char s, uint8_t message[7])
 {
 	int x;
-	for(x = 0; variables_key[x] != s; x++);
-	variables_value[x] = value;
+	for(x = 0; packets_keys[x] != s; x++);
+	for(int y = 2; y < 6; y++)
+	{
+		packets_value[x] |= (message[x] << (y-2)*8) & 0xFF;
+	}
 }
 
 uint8_t rxCmplt = RESET;
@@ -88,7 +102,7 @@ void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
 	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency = 1;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 500;
 	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
 
@@ -127,6 +141,11 @@ void USART2_Inits(USART_Handle_t *pUSART2Handle)
 
 int main(void)
 {
+	packets_value[0] = 120;
+	packets_value[1] = 110;
+	packets_value[2] = 200;
+	packets_value[3] = 220;
+
 	SystemCLK_Config_84MHz();
 
 	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
@@ -135,8 +154,8 @@ int main(void)
 	USART2_Inits(&USART2Handle);
 	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
 
-	//USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
-	//USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
+	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
+	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
 
 	//memset(receive_data, 0, sizeof(receive_data));
 	//while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
@@ -155,9 +174,79 @@ int main(void)
 	return 0;
 }
 
+void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
+{
+	uint8_t message[7];
+	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
+
+	for(int x = 0; x < pUSARTHandle->RxLen; x++)
+	{
+		message[x] = *pUSARTHandle->pRxBuffer;
+		pUSARTHandle->pRxBuffer++;
+	}
+
+	if(message[0] == '$')
+	{
+		if(validatePacket(message[1]) != 'N')
+		{
+			if((message[1] == 'X') && (pUSARTHandle->RxLen == 4))
+			{
+				command = message[2];
+			}else if((message[1] != 'X') && (pUSARTHandle->RxLen == 7))
+			{
+				addValue_Variable(message[1], message);
+			}
+		}
+	}
+
+	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
+}
+
+
+void USART_HeartBeatTX(void)
+{
+	uint8_t message[4];
+
+	message[0] = '$';
+	message[1] = 'S';
+	message[2] = status;
+	message[3] = '\r';
+
+	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 4);
+}
+
+void USART_TelemetryTX(uint8_t typePacket)
+{
+
+	uint8_t message[7];
+	message[0] = '$';
+	message[1] = packets_keys[typePacket];
+	message[2] = getValue_Variable(message[1]) >> 24;
+	message[3] = (getValue_Variable(message[1]) >> 16) & 0xFF;
+	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
+	message[5] = (getValue_Variable(message[1])) & 0xFF;
+	message[6] = '\r';
+
+	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 7);
+}
+
+void Send_Status(void)
+{
+	static uint8_t count = 0;
+	if(count > 4)
+	{
+		USART_HeartBeatTX();
+		count = 0;
+	}
+	USART_TelemetryTX(count);
+	count++;
+}
+
 void TIM3_IRQHandler(void)
 {
-	GPIO_ToggleOutputPin(LED.pGPIOx,GPIO_PIN_NO_5);
+	GPIO_ToggleOutputPin(LED.pGPIOx, GPIO_PIN_NO_6);
+	//USART_SendDataWithIT(&USART2Handle,(uint8_t *)data1, strlen(data1));
+	//Send_Status();
 	TIM_IRQHandling(&TIM3Handle);
 }
 
@@ -166,53 +255,12 @@ void USART2_IRQHandler(void)
 	USART_IRQHandling(&USART2Handle);
 }
 
-void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
-{
-	uint8_t message[7];
-	uint32_t value;
-	char variable;
-	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
-	uint8_t w_r;
-	if(*pUSARTHandle->pRxBuffer == '$')
-	{
-		w_r = ENABLE;
-	}else if(*pUSARTHandle->pRxBuffer == '%')
-	{
-		w_r = DISABLE;
-	}
-	pUSARTHandle->pRxBuffer++;
-	variable = *pUSARTHandle->pRxBuffer;
-	value = getValue_Variable(variable);
-	pUSARTHandle->pRxBuffer++;
-	if(w_r)
-	{
-		value = *(pUSARTHandle->pRxBuffer++);
-		value += *(pUSARTHandle->pRxBuffer++)<<8;
-		value += *(pUSARTHandle->pRxBuffer++)<<16;
-		value += *(pUSARTHandle->pRxBuffer++)<<24;
-		addValue_Variable(variable, value);
-	}else
-	{
-		value = getValue_Variable(variable);
-		message[0] = (uint64_t)'$';
-		message[1] = variable;
-		message[2] = (value & 0xFF);
-		message[3] = ((value >> 8)& 0xFF);
-		message[4] = ((value >> 16)& 0xFF);
-		message[5] = ((value >> 24)& 0xFF);
-		message[6] = (uint64_t)'\n';
-
-		USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 7);
-	}
-
-	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
-}
-
 void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
 {
    if(ApEv == USART_EVENT_RX_CMPLT)
    {
-	   USART_DecodeRX(pUSARTHandle);
+	   //USART_DecodeRX(pUSARTHandle);
+	   ;
    }else if (ApEv == USART_EVENT_TX_CMPLT)
    {
 	   ;
