@@ -150,7 +150,7 @@ int main(void)
 	packets_value[2] = 200;
 	packets_value[3] = 220;
 
-	SystemCLK_Config_84MHz();
+	SystemCLK_ConfigkHz(84000);
 
 	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
 
@@ -181,7 +181,7 @@ int main(void)
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
 	uint8_t message[2];
-	static valid = DISABLE;
+	static uint8_t valid = DISABLE;
 	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
 
 	for(int x = 0; x < pUSARTHandle->RxLen; x++)
@@ -257,6 +257,7 @@ void Send_Status(void)
 
 void TIM3_IRQHandler(void)
 {
+	GPIO_ToggleOutputPin(LED.pGPIOx,GPIO_PIN_NO_5);
 	Send_Status();
 	TIM_IRQHandling(&TIM3Handle);
 }

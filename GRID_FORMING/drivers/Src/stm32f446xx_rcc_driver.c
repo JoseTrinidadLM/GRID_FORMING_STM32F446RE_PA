@@ -9,16 +9,16 @@
 /*
  * @fn				- SystemCLK_Config_84MHz
  *
- * @brief			- Configures internal clk to 84 MHz
+ * @brief			- Configures internal clk to given frequency
  *
- * @param[in]		- none
+ * @param[in]		- Clk
  *
  * @return			- none
  *
  * @Note			- none
  */
 
-void SystemCLK_Config_84MHz(void){
+void SystemCLK_ConfigkHz(uint32_t Clk){
 
     RCC->CR |= (1 << 0);
     while((RCC->CR & (1 << 1)) == 0); // Wait for HSIRDY
@@ -27,17 +27,37 @@ void SystemCLK_Config_84MHz(void){
     * PLL_N= 168;	PLL_N*HSI/PLL_M
    	* PLL_P = 4;	(PLL_N*HSI/PLL_M)/PLL_P = Final_Frequency
    	*/
-    RCC->PLLCFGR &=~((0x7F << 24) | (1 << 22) | (0x3 << 16) | ( 0x7FFF << 0 ));
-    RCC->PLLCFGR |= (8 << 0);    // PLLM = 8
-    RCC->PLLCFGR |= (168 << 6);  // PLLN = 168
-    RCC->PLLCFGR |= (1 << 16);   // PLLP = 4 (01 = divide by 4)
+    RCC->PLLCFGR &=~((0x7F << 24) | (1 << 22) | (0x3 << 16) | ( 0x7FFF << 0 )); // Clear PLL Configuration
+
+	if(Clk < 180000)
+	{
+		//HSI Clock 16Mhz
+		uint32_t pllm, plln, pllp;
+		//PLLM Minimum mClk = HSI/PLLM >= Clk/25 Note: PLLM minimum 2
+		pllm = 2; // PLLM Minimum
+		while(16000/pllm < Clk/25) pllm++;
+		if(pllm>63) pllm = 63;
+		RCC->PLLCFGR |= (pllm & 0x3F);
+		//PLLN Miminum nClk = mClk*PLLN >= Clk*2 Note: PLLN minimum 50 -> mClk >= Clk/25
+		plln = 50;
+		while((16000/pllm)*plln < Clk*2) plln++;
+		if(plln>432) plln = 432;
+		RCC->PLLCFGR |= (plln & 0x1FF) << 6;
+		//PLLP Clk = nClk/PLLP Note: PLLP minimum 2 -> nClk >= Clk*2
+		pllp = 2;
+		while(((16000/pllm)*plln)/pllp < Clk) pllp++;
+		if(plln>8) plln = 8;
+		RCC->PLLCFGR |= (pllp & 0x3) << 16;
+	}
+	else
+	{
+
+	}
     RCC->PLLCFGR &= ~(1 << 22);  // HSI as PLL source (bit 22 = 0)
 
-
-    RCC->CR |= (1 << 24);
+    RCC->CR |= (1 << 24); //PLL ON
     while((RCC->CR & (1 << 25)) == 0); // Wait for PLLRDY
     for(__vo uint16_t i = 0; i<1000; i++);
-
 
     FLASH->ACR |= (2 << 0);
 
@@ -46,7 +66,6 @@ void SystemCLK_Config_84MHz(void){
     RCC->CFGR |= (0 << 4);
     RCC->CFGR |= (4 << 10);   // APB1 = /2 (42MHz)
     RCC->CFGR |= (5 << 13);   // APB2 = /4 (21MHz)
-
 
     RCC->CFGR |= (2 << 0);
     while((RCC->CFGR & (3 << 2)) != (2 << 2)); // Wait for SWS = PLL

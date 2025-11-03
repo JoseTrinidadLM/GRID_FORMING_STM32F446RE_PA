@@ -17,7 +17,7 @@
 
 /*System Clock Configuration*/
 
-void SystemCLK_Config_84MHz(void); //(Possible change to function that receives the frequency?)
+void SystemCLK_ConfigkHz(uint32_t Clk); //(Possible change to function that receives the frequency?)
 
 /*Global Clock Variables*/
 
