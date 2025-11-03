@@ -30,6 +30,7 @@
 
 char packets_keys[] = {'V','C','F','D','X','N'};
 uint32_t packets_value[4];
+uint64_t packets_time[4];
 
 uint8_t status = 0b00000011;
 uint32_t frequency = 960;
@@ -234,7 +235,7 @@ void USART_TelemetryTX(uint8_t typePacket)
 	message[3] = (getValue_Variable(message[1]) >> 16) & 0xFF;
 	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
 	message[5] = (getValue_Variable(message[1])) & 0xFF;
-	message[6] = packet_time[message[1]];
+	message[6] = packets_time[message[1]];
 
 	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 6);
 }
