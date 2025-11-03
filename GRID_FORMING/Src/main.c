@@ -36,17 +36,9 @@ uint8_t status = 0b00000011;
 char data1[] = "Test data\n";
 char receive_data[1000];
 
-void executeComand(uint8_t command)
+void executeCommand(uint8_t command)
 {
-	if((command >> 1) & 0x1)
-	{
-		status &= ~(0x2);
-		status |= (~command & 0x1) << 1;
-	}else
-	{
-		status &= ~(0x1);
-		status |= (command & 0x1);
-	}
+	status = command;
 }
 
 uint8_t validatePacket(char s)
@@ -169,8 +161,8 @@ int main(void)
 	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
 	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
 
-	//memset(receive_data, 0, sizeof(receive_data));
-	//while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
+	memset(receive_data, 0, sizeof(receive_data));
+	while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
 
 	//TIM3_GPIOInits();
 	TIM3_Inits(&TIM3Handle);
@@ -188,7 +180,8 @@ int main(void)
 
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
-	uint8_t message[7];
+	uint8_t message[2];
+	static valid = DISABLE;
 	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
 
 	for(int x = 0; x < pUSARTHandle->RxLen; x++)
@@ -199,47 +192,48 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 
 	if(message[0] == '$')
 	{
-		if(validatePacket(message[1]) != 'N')
+		valid = ENABLE;
+		while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 2) != USART_READY);
+	}else
+	{
+		while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
+	}
+
+	if(valid)
+	{
+		if(message[0] == 'X')
 		{
-			if((message[1] == 'X') && (pUSARTHandle->RxLen == 4))
-			{
-				executeComand(message[2]);
-			}else if((message[1] != 'X') && (pUSARTHandle->RxLen == 7))
-			{
-				addValue_Variable(message[1], message);
-			}
+			executeCommand(message[1]);
+			valid = DISABLE;
 		}
 	}
 
-	while(USART_ReceiveDataUntilWithIT(&USART2Handle,(uint8_t *)receive_data, (uint8_t)'\n') != USART_READY);
 }
 
 
 void USART_HeartBeatTX(void)
 {
-	static uint8_t message[4];
+	static uint8_t message[3];
 
 	message[0] = '$';
 	message[1] = 'S';
 	message[2] = status;
-	message[3] = '\r';
 
-	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 4);
+	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 3);
 }
 
 void USART_TelemetryTX(uint8_t typePacket)
 {
 
-	static uint8_t message[7];
+	static uint8_t message[6];
 	message[0] = '$';
 	message[1] = packets_keys[typePacket];
 	message[2] = getValue_Variable(message[1]) >> 24;
 	message[3] = (getValue_Variable(message[1]) >> 16) & 0xFF;
 	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
 	message[5] = (getValue_Variable(message[1])) & 0xFF;
-	message[6] = '\r';
 
-	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 7);
+	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 6);
 }
 
 void Send_Status(void)
@@ -276,8 +270,7 @@ void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
 {
    if(ApEv == USART_EVENT_RX_CMPLT)
    {
-	   //USART_DecodeRX(pUSARTHandle);
-	   ;
+	   USART_DecodeRX(pUSARTHandle);
    }else if (ApEv == USART_EVENT_TX_CMPLT)
    {
 	   ;
