@@ -108,7 +108,7 @@ void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
 	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency = 20000;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 1000000;
 	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
 
@@ -183,7 +183,7 @@ int main(void)
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
 	uint8_t message[2];
-	static valid = DISABLE;
+	static uint8_t valid = DISABLE;
 	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
 
 	for(int x = 0; x < pUSARTHandle->RxLen; x++)
@@ -222,13 +222,13 @@ void USART_HeartBeatTX(void)
 	message[2] = status;
 	message[3] = frequency;
 
-	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 3);
+	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 4);
 }
 
 void USART_TelemetryTX(uint8_t typePacket)
 {
 
-	static uint8_t message[7];
+	static uint8_t message[10];
 	message[0] = '$';
 	message[1] = packets_keys[typePacket];
 	message[2] = getValue_Variable(message[1]) >> 24;
@@ -236,8 +236,11 @@ void USART_TelemetryTX(uint8_t typePacket)
 	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
 	message[5] = (getValue_Variable(message[1])) & 0xFF;
 	message[6] = packets_time[message[1]];
+	message[7] = packets_time[message[1]];
+	message[8] = packets_time[message[1]];
+	message[9] = packets_time[message[1]];
 
-	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 6);
+	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 10);
 }
 
 void Send_Status(void)
