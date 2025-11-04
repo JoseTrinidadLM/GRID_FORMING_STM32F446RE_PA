@@ -73,20 +73,6 @@ TIM_Handle_t TIM3Handle ;
 
 GPIO_Handle_t LED;
 
-void TIM3_GPIOInits(void)
-{
-	GPIO_Handle_t TIM3pin;
-	TIM3pin.pGPIOx = GPIOA;
-	TIM3pin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
-	TIM3pin.GPIO_PinConfig.GPIO_PinAltFunMode = 2;
-	TIM3pin.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
-	TIM3pin.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
-	TIM3pin.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
-	//TIM3_CH1
-	TIM3pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_6;
-	GPIO_Init(&TIM3pin);
-}
-
 void LED_GPIOInits(void)
 {
 	LED.pGPIOx = GPIOA;
@@ -150,7 +136,9 @@ int main(void)
 	packets_value[2] = 200;
 	packets_value[3] = 220;
 
-	SystemCLK_ConfigkHz(84000);
+	RCC_SystemCLK_ConfigkHz(84000);
+	//RCC_APB1Clk_ConfigkHz(42000);
+	//RCC_APB1Clk_ConfigkHz(21000);
 
 	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
 

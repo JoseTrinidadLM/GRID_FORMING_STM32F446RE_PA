@@ -17,7 +17,10 @@
 
 /*System Clock Configuration*/
 
-void SystemCLK_ConfigkHz(uint32_t Clk); //(Possible change to function that receives the frequency?)
+uint32_t RCC_GetSystemClk();
+void RCC_SystemCLK_ConfigkHz(uint32_t Clk);
+void RCC_APB1Clk_ConfigkHz(uint32_t Clk);
+void RCC_APB2Clk_ConfigkHz(uint32_t Clk);
 
 /*Global Clock Variables*/
 

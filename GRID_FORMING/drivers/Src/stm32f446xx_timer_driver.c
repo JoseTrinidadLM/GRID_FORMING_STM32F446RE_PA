@@ -80,13 +80,14 @@ void TIM_Init(TIM_Handle_t *pTIMHandle)
 			(pTIMHandle->pTIMx == TIM4)||(pTIMHandle->pTIMx == TIM5)||
 			(pTIMHandle->pTIMx == TIM6)||(pTIMHandle->pTIMx == TIM7)||
 			(pTIMHandle->pTIMx == TIM12)||(pTIMHandle->pTIMx == TIM13)||
-			(pTIMHandle->pTIMx == TIM14)){
+			(pTIMHandle->pTIMx == TIM14))
+	{
 
-		f_CK_PSC = 84000000;
+		f_CK_PSC = RCC_GetSystemClk();
 
 	} else{
 
-		f_CK_PSC = 84000000;
+		f_CK_PSC = RCC_GetSystemClk();
 
 	}
 
