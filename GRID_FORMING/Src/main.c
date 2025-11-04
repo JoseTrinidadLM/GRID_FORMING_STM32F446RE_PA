@@ -87,17 +87,16 @@ void PWM_GPIOInits(void)
 	GPIO_Init(&GpioPWMB);
 
 	/*They are set to low as initial state*/
-
-	GPIOC->BSRR = ( 1 << ( 7 + 16 ) );
-	GPIOA->BSRR = ( 1 << ( 9 + 16 ) );
+	GPIO_WriteToOutputPin(GPIOC, GPIO_PIN_NO_7, RESET);
+	GPIO_WriteToOutputPin(GPIOA, GPIO_PIN_NO_9, RESET);
 }
 
 
 GPIO_Handle_t GPIO_Sensor[4];
 ADC_Handle_t ADC_1;
 DMA_Handle_t DMA_2;
-uint32_t raw_sensor_value[4];
-float	sensor[4];
+uint32_t raw_sensor_value[4];														//ADC1 destination buffer
+float	sensor[4];																	//processed data buffer (?)
 
 /*Add as much sensors you want to read (look up pinout for compatibility) */
 
@@ -150,10 +149,10 @@ void Sensors_Init(void) /*For this application only 4 sensors will be initialize
 
 	/*User may config reading sequence*/
 	ADC_1.ADC_NumChannels = 4;
-	ADC_ChannelConfig(&ADC_1, 0, 0, ADC_SMP_T_15);									//Starts sequence on GPIO A0
-	ADC_ChannelConfig(&ADC_1, 1, 1, ADC_SMP_T_15);
-	ADC_ChannelConfig(&ADC_1, 4, 2, ADC_SMP_T_15);
-	ADC_ChannelConfig(&ADC_1, 6, 3, ADC_SMP_T_15);									//Ends sequence on GPIO A6
+	ADC_ChannelConfig(&ADC_1, GPIO_PIN_NO_0, 0, ADC_SMP_T_15);						//Starts sequence on GPIO A0
+	ADC_ChannelConfig(&ADC_1, GPIO_PIN_NO_1, 1, ADC_SMP_T_15);
+	ADC_ChannelConfig(&ADC_1, GPIO_PIN_NO_4, 2, ADC_SMP_T_15);
+	ADC_ChannelConfig(&ADC_1, GPIO_PIN_NO_6, 3, ADC_SMP_T_15);						//Ends sequence on GPIO A6
 	ADC_ConfigSequence(&ADC_1);
 	ADC_Init(&ADC_1);
 
@@ -184,7 +183,7 @@ void Sensors_Init(void) /*For this application only 4 sensors will be initialize
 
 TIM_Handle_t TIM_2;
 
-void SampligRateConfig(float sampling_rate) /*Name may change*/
+void SamplingRateTIMInit(float sampling_rate)
 {
 
 	TIM_2.pTIMx = TIM2;
@@ -202,7 +201,7 @@ void SampligRateConfig(float sampling_rate) /*Name may change*/
 
 TIM_Handle_t TIM_5;
 
-void PWMInit(float carrier_frequency) /*Name may change*/
+void PWM_TIMInit(float carrier_frequency)
 {
 	TIM_5.pTIMx = TIM5;
 	TIM_5.TIM_Config.TIM_Frequency = carrier_frequency*40; 							//Triangular carrier wave changes in even steps of Peak-to-Peak/20
@@ -273,19 +272,13 @@ void TIM5_IRQHandler(void)
 
 	if(current_state[0] != last_state[0])
 	{
-		if(current_state[0])
-			GPIOC->BSRR = ( 1 << 7 );
-		else
-			GPIOC->BSRR = ( 1 << ( 7 + 16 ) );
+		GPIO_AtomicWriteToOutputPin(GPIOC, GPIO_PIN_NO_7, current_state[0]);
 		last_state[0] = current_state[0];
 	}
 
 	if(current_state[1] != last_state[1])
 	{
-		if(current_state[1])
-			GPIOA->BSRR = ( 1 << 9 );
-		else
-			GPIOA->BSRR = ( 1 << ( 9 + 16 ) );
+		GPIO_AtomicWriteToOutputPin(GPIOA, GPIO_PIN_NO_9, current_state[1]);
 		last_state[1] = current_state[1];
 	}
 
@@ -296,7 +289,7 @@ void TIM5_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
 	TIM_IRQHandling(&TIM_2);
-	/*TO DO: Read and  sensor */
+	/*TO DO: Read and sensor */
 	if(OPERATION_MODE == 0)
 	{
 		u_control = (raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
@@ -304,8 +297,7 @@ void TIM2_IRQHandler(void)
 	} else
 	{
 		/*TO DO: Implement Closed Loop Operation*/
-		u_control = 0;
-
+		u_control = -1.1;
 	}
 }
 
@@ -322,8 +314,8 @@ void EXTI15_10_IRQHandler(void)
 	if( PWM_ENABLE == 0 )
 	{
 		TIM_Stop(&TIM_5);
-		GPIOC->BSRR = ( 1 << ( 7 + 16 ) );
-		GPIOA->BSRR = ( 1 << ( 9 + 16 ) );
+		GPIO_AtomicWriteToOutputPin(GPIOC, GPIO_PIN_NO_7, RESET);
+		GPIO_AtomicWriteToOutputPin(GPIOA, GPIO_PIN_NO_9, RESET);
 
 	} else if( PWM_ENABLE==1 )
 	{

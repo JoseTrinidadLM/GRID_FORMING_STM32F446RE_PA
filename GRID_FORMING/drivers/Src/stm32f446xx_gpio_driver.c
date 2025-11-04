@@ -258,6 +258,31 @@ void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber)
 	pGPIOx->ODR ^= (1 << pinNumber);
 }
 
+
+/*
+ * @fn				-GPIO_AtomicWriteToOutputPin
+ *
+ * @brief			-Write a value to the position for the given pin number in register for the given port using BSRR register
+ *
+ * @param[in]		-Base address of the GPIO port
+ * @param[in]		-Pin number
+ * @param[in]		-Value to write (set/reset)
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
+void GPIO_AtomicWriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value)
+{
+	if(Value == GPIO_PIN_SET)
+	{
+		pGPIOx->BSRR = (1 << pinNumber);
+	}else
+	{
+		pGPIOx->BSRR = (1 << (pinNumber + 16));
+	}
+}
+
 /*
  * IRQ Configuration and ISR handling
  */
