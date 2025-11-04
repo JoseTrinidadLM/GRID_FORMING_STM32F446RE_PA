@@ -26,13 +26,13 @@
 
 #include "stm32f446xx.h"
 
-float v_cd;
-float v_g;
-float i_L;
-float i_L90;
-float i_inv;
+__vo float v_cd;
+__vo float v_g;
+__vo float i_L;
+__vo float i_L90;
+__vo float i_inv;
 
-float u_control;
+__vo float u_control;
 
 
 uint8_t OPERATION_MODE = 0;
@@ -236,17 +236,30 @@ float inc = 0.1;
 
 void TIM5_IRQHandler(void)
 {
-	static __vo float cont = -1.0;
+	static __vo float cont = -1.1;
 	static __vo uint8_t dir = 0;
 	static __vo uint8_t current_state[2] = {0};
 	static __vo uint8_t last_state[2] = {0};
 
-	static __vo float u_neg = 0.0;
 	static __vo float u_pos = 0.0;
+	static __vo float u_neg = 0.0;
 
 	TIM_IRQHandling(&TIM_5);
 
+	/*****************Updating triangular wave*****************/
+	if((dir==0) && (cont<1.0)) cont+=inc;
+	else if((dir==0) && (cont>=1.0)) dir = 1;
 
+	if((dir==1) && (cont>-1.0)) cont-=inc;
+	else if((dir==1) && (cont<=0))
+		{
+			dir = 0;
+			cont+=inc;
+		}
+
+	/*****************Compare modulator signal to triangular wave*****************/
+	u_pos = u_control;
+	u_neg = -u_control;
 
 	if(u_pos > cont) current_state[0] = 1;
 	else current_state[0] = 0;
@@ -272,17 +285,6 @@ void TIM5_IRQHandler(void)
 		last_state[1] = current_state[1];
 	}
 
-	/*******************************************/
-	if((dir==0) && (cont<1.0)) cont+=inc;
-	else if((dir==0) && (cont>=1.0)) dir = 1;
-
-	if((dir==1) && (cont>-1.0)) cont-=inc;
-	else if((dir==1) && (cont<=0))
-		{
-			dir = 0;
-			cont+=inc;
-		}
-
 }
 
 
@@ -290,6 +292,7 @@ void TIM5_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
 	TIM_IRQHandling(&TIM_2);
+	/*TO DO: Read and  sensor */
 	if(OPERATION_MODE == 0)
 	{
 		u_control = (raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
