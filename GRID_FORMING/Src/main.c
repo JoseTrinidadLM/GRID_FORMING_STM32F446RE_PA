@@ -32,6 +32,9 @@ __vo float i_L;
 __vo float i_L90;
 __vo float i_inv;
 
+__vo float cosine;
+__vo float sine;
+
 __vo float u_control;
 
 
@@ -216,6 +219,31 @@ void PWM_TIMInit(float carrier_frequency)
 	TIM_IRQPriorityConfig(IRQ_NO_TIM5, 1);
 }
 
+/*ALL PARAMETERS AND DESIGN OF THIS FUNCTION ARE GIVEN FOR A 60 HZ SIGNAL***/
+float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *pBuffer_Counter, __vo uint8_t *pBuffer_Ready_Flag)
+{
+	float temp_sin = 0;
+
+	//temp_sin stores a 90-degree phase shift signal
+	//This buffer stores a quarter a of period of a 60 Hz sine wave
+	if(*pBuffer_Ready_Flag == 1) temp_sin =  pCos_Buffer[*pBuffer_Counter];
+
+	//Updates current buffer after saving the temp_sine wave
+
+	pCos_Buffer[*pBuffer_Counter] = cos_wave;
+
+	//Counter updates
+	(*pBuffer_Counter)++;
+
+	//Once the buffer is completely filled counter is reset
+	if(*pBuffer_Counter > 40)
+	{
+		*pBuffer_Ready_Flag = 1;
+		*pBuffer_Counter = 0;
+	}
+	return temp_sin;
+}
+
 int main(void)
 {
 	SystemCLK_Config_84MHz();
@@ -225,8 +253,8 @@ int main(void)
 	Utility_GPIOInits();
 	PWM_GPIOInits();
 	Sensors_Init();
-	SampligRateConfig(9600);
-	PWMInit(9600);
+	SamplingRateTIMInit(9600);
+	PWM_TIMInit(9600);
 
 	TIM_Start(&TIM_2);
 	TIM_Start(&TIM_5);
@@ -284,12 +312,26 @@ void TIM5_IRQHandler(void)
 
 }
 
-
+/*Buffers to store quarter of a period of cos and i_L*/
+float cos_buffer[41] = {0};
+float i_L_buffer[41] = {0};
 
 void TIM2_IRQHandler(void)
 {
+	/*Flags and counters used for 90-degree shiftimg*/
+	__vo static uint8_t Buffer_Counter_Cos = 0;
+	__vo static uint8_t Buffer_Ready_Flag_Cos = 0;
+
+	__vo static uint8_t Buffer_Counter_iL = 0;
+	__vo static uint8_t Buffer_Ready_Flag_iL = 0;
+
 	TIM_IRQHandling(&TIM_2);
 	/*TO DO: Read and sensor */
+
+	/*NINETYDegreePhaseShift still on BETA*/
+	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
+	i_L90 = NINETYDegreePhaseShift(i_L_buffer, i_L, &Buffer_Counter_iL, &Buffer_Ready_Flag_iL);
+
 	if(OPERATION_MODE == 0)
 	{
 		u_control = (raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;

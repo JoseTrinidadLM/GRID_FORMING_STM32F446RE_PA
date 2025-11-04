@@ -212,14 +212,14 @@ uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx)
  * @Note			-none
  */
 
-void GPIO_WritetoOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value)
+void GPIO_WriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value)
 {
 	if(Value == GPIO_PIN_SET)
 	{
-		pGPIOx->ODR |= (Value << pinNumber);
+		pGPIOx->ODR |= (1 << pinNumber);
 	}else
 	{
-		pGPIOx->ODR &= ~(0x1 << pinNumber);
+		pGPIOx->ODR |= ~(0x1 << pinNumber);
 	}
 }
 
