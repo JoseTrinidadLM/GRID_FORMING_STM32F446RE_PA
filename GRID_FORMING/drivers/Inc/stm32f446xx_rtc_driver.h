@@ -10,4 +10,23 @@
 
 #include "stm32f446xx.h"
 
+/*
+ * Configuration Structure for RTC
+ */
+
+typedef struct
+{
+
+}RTC_Config_t;
+
+/*
+ * Handling Structure for GPIO
+ */
+
+typedef struct
+{
+	RTC_RegDef_t *pRTC;					
+	RTC_Config_t RTC_Config;		    
+}RTC_Handle_t;
+
 #endif /* INC_STM32F446XX_RTC_DRIVER_H_ */
