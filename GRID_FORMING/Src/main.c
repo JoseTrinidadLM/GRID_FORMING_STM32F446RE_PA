@@ -17,7 +17,7 @@
  */
 
 /*
- *  PA0 -> ADC1 -> DMA -> value[0] -> raw_sensor_value[0]
+ *  PA0 -> ADC1 -> DMA -> raw_sensor_value[0] -> raw_sensor_value[0]
  *			^
  *			|
  * 			TIM2
@@ -32,8 +32,8 @@ float i_L;
 float i_L90;
 float i_inv;
 
-float u_ol_pos;
-float u_ol_neg;
+float u_control;
+
 
 uint8_t OPERATION_MODE = 0;
 
@@ -236,27 +236,22 @@ float inc = 0.1;
 
 void TIM5_IRQHandler(void)
 {
-	static __vo float cont = -1.1;
+	static __vo float cont = -1.0;
 	static __vo uint8_t dir = 0;
 	static __vo uint8_t current_state[2] = {0};
 	static __vo uint8_t last_state[2] = {0};
 
+	static __vo float u_neg = 0.0;
+	static __vo float u_pos = 0.0;
+
 	TIM_IRQHandling(&TIM_5);
 
-	if((dir==0) && (cont<1.0)) cont+=inc;
-	else if((dir==0) && (cont>=1.0)) dir = 1;
 
-	if((dir==1) && (cont>-1.0)) cont-=inc;
-	else if((dir==1) && (cont<=0))
-		{
-			dir = 0;
-			cont+=inc;
-		}
 
-	if(u_ol_pos > cont) current_state[0] = 1;
+	if(u_pos > cont) current_state[0] = 1;
 	else current_state[0] = 0;
 
-	if(u_ol_neg > cont) current_state[1] = 1;
+	if(u_neg > cont) current_state[1] = 1;
 	else current_state[1] = 0;
 
 	if(current_state[0] != last_state[0])
@@ -277,6 +272,17 @@ void TIM5_IRQHandler(void)
 		last_state[1] = current_state[1];
 	}
 
+	/*******************************************/
+	if((dir==0) && (cont<1.0)) cont+=inc;
+	else if((dir==0) && (cont>=1.0)) dir = 1;
+
+	if((dir==1) && (cont>-1.0)) cont-=inc;
+	else if((dir==1) && (cont<=0))
+		{
+			dir = 0;
+			cont+=inc;
+		}
+
 }
 
 
@@ -286,13 +292,13 @@ void TIM2_IRQHandler(void)
 	TIM_IRQHandling(&TIM_2);
 	if(OPERATION_MODE == 0)
 	{
-		u_ol_pos = (raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
-		u_ol_neg = (raw_sensor_value[0]/4095.0f - 0.5f)*(-2.0f);
+		u_control = (raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
+
 	} else
 	{
 		/*TO DO: Implement Closed Loop Operation*/
-		u_ol_pos = 0;
-		u_ol_neg = 0;
+		u_control = 0;
+
 	}
 }
 
