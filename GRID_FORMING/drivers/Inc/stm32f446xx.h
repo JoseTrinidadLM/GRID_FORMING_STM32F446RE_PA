@@ -154,6 +154,12 @@
 #define ADC2_BASEADDR			(APB2PERIPH_BASEADDR + 0x2100)
 #define ADC3_BASEADDR			(APB2PERIPH_BASEADDR + 0x2200)
 
+/* 
+ * 	Base address of RTC
+ */
+
+ #define RTC_BASEADDR			(APB1PERIPH_BASEADDR + 0x2800)
+
 /*******************Peripheral Register Definition Structures*********************/
 
 
@@ -397,6 +403,35 @@ typedef struct
 	__vo uint32_t GTPR;
 }USART_RegDef_t;
 
+/*
+ * Peripheral register definition structure for RTC
+ */
+
+typedef struct
+{
+	__vo uint32_t TR;					//RTC time register
+	__vo uint32_t DR;					//RTC date register
+	__vo uint32_t CR;					//RTC control register
+	__vo uint32_t ISR;					//RTC initialization and status register
+	__vo uint32_t PRER;					//RTC prescaler register
+	__vo uint32_t WUTR;					//RTC wakeup timer register
+	__vo uint32_t CALIBR;				//RTC calibration register
+	__vo uint32_t ALRMAR;				//RTC alarm A register
+	__vo uint32_t ALRMBR;				//RTC alarm B register
+	__vo uint32_t WPR;					//RTC write protection register
+	__vo uint32_t SSR;					//RTC sub second register
+	__vo uint32_t SHIFTR;				//RTC shift control register
+	__vo uint32_t TSTR;					//RTC time stamp time register
+	__vo uint32_t TSDR;					//RTC time stamp sub second register
+	__vo uint32_t TSSSR;				//RTC calibration register
+	__vo uint32_t CALR;					//RTC tamper and alternate function configuration register
+	__vo uint32_t TAFCR;				//RTC alarm A sub second register
+	__vo uint32_t ALRMBSSR;				//RTC alarm B sub second register
+	__vo uint32_t BKP0R;				//RTC backup register
+	__vo uint32_t BKP19R;				//RTC backup register
+} RTC_RegDef_t;
+
+
 /***************************************
  ********Peripheral definitions*********
  ***************************************/
@@ -501,6 +536,12 @@ typedef struct
 
 #define FLASH			((FLASH_RegDef_t*) FLASH_INTERFACE_BASEADDR)
 
+/*
+ * Peripheral definition for RTC
+ */
+
+#define RTC		( (RTC_RegDef_t*) RTC_BASEADDR)
+
 /*****************************************************
  ********Clock Control Macros for Peripherals*********
  *****************************************************/
@@ -589,6 +630,12 @@ typedef struct
 #define ADC1_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 8) )
 #define ADC2_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 9) )
 #define ADC3_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 10) )
+
+/*
+ * Clock Enable Macros for ADC peripherals
+ */
+
+#define RTC_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 8) )
 
 /*
  * Clock Disable Macros for GPIOx peripherals
