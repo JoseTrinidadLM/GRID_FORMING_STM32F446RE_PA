@@ -40,6 +40,7 @@ uint8_t OPERATION_MODE = 0;
 GPIO_Handle_t PWM_EN;
 GPIO_Handle_t LOOP_SEL;
 
+/*GPIO pins 14-15 from port B are declared as input that activate EXTI15_10 to control PWM on/off, as well as change Operation Mode*/
 void Utility_GPIOInits(void)
 {
 	GPIO_PClkC(GPIOB, ENABLE);
@@ -62,6 +63,7 @@ void Utility_GPIOInits(void)
 GPIO_Handle_t GpioPWMA;
 GPIO_Handle_t GpioPWMB;
 
+/*GPIO pin 7 from port C and GPIO pin 9 from port A are declared as High Output Speed for PWM signals*/
 void PWM_GPIOInits(void)
 {
 	GPIO_PClkC(GPIOC, ENABLE);
@@ -83,6 +85,8 @@ void PWM_GPIOInits(void)
 	GpioPWMB.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
 	GpioPWMB.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
 	GPIO_Init(&GpioPWMB);
+
+	/*They are set to low as initial state*/
 
 	GPIOC->BSRR = ( 1 << ( 7 + 16 ) );
 	GPIOA->BSRR = ( 1 << ( 9 + 16 ) );
@@ -133,23 +137,23 @@ void Sensors_Init(void) /*For this application only 4 sensors will be initialize
 	ADC_PClkC(ADC1, ENABLE);
 
    	ADC_1.pADCx = ADC1;
-	ADC_1.ADC_Config.ADC_Resolution = ADC_RESOLUTION_12_B;
-	ADC_1.ADC_Config.ADC_DataAlignment = ADC_DATA_ALIGNMENT_RIGHT;
-	ADC_1.ADC_Config.ADC_ScanMode =  ADC_SCAN_MODE_EN;
-	ADC_1.ADC_Config.ADC_ConversionMode =  ADC_CONV_MODE_SINGLE;
-	ADC_1.ADC_Config.ADC_ExternalTriggerDetection =  ADC_EXT_TRIG_DECT_RE;
-	ADC_1.ADC_Config.ADC_ExternalTrigger =  ADC_EXT_TRIG_TIM2_TRGO;
-	ADC_1.ADC_Config.ADC_DMAContinuousRequests =  ADC_DMA_MODE_EN;
-	ADC_1.ADC_Config.ADC_DDSelection =  ADC_DDS_RQ;
-	ADC_1.ADC_Config.ADC_EOCSelection =  ADC_EOC_PER_CONVERSION;
-	ADC_1.ADC_Config.ADC_EOCInterrupt =  ADC_EOC_IT_DI;
+	ADC_1.ADC_Config.ADC_Resolution = ADC_RESOLUTION_12_B; 							//Max resolution
+	ADC_1.ADC_Config.ADC_DataAlignment = ADC_DATA_ALIGNMENT_RIGHT; 					//Aligned to right to keep format of MSB-LSB
+	ADC_1.ADC_Config.ADC_ScanMode =  ADC_SCAN_MODE_EN; 								//Since we want to read several pins, scan mode is enabled
+	ADC_1.ADC_Config.ADC_ConversionMode =  ADC_CONV_MODE_SINGLE; 					//It converts just once
+	ADC_1.ADC_Config.ADC_ExternalTriggerDetection =  ADC_EXT_TRIG_DECT_RE; 			//Starts conversion every rising edge of an external trigger
+	ADC_1.ADC_Config.ADC_ExternalTrigger =  ADC_EXT_TRIG_TIM2_TRGO; 				//External trigger is commanded by TIM2
+	ADC_1.ADC_Config.ADC_DMAContinuousRequests =  ADC_DMA_MODE_EN;					//Enables DMA
+	ADC_1.ADC_Config.ADC_DDSelection =  ADC_DDS_RQ;									//DMA requests are issued as long as data are converted and DMA=1
+	ADC_1.ADC_Config.ADC_EOCSelection =  ADC_EOC_PER_CONVERSION; 					//This set EOC flag to 1 at the end of each regular conversion
+	ADC_1.ADC_Config.ADC_EOCInterrupt =  ADC_EOC_IT_DI; 							//Is disabled, ADC conversion and transfer of data is handled on TIM2_IRQHandler
 
 	/*User may config reading sequence*/
 	ADC_1.ADC_NumChannels = 4;
-	ADC_ChannelConfig(&ADC_1, 0, 0, ADC_SMP_T_15);
+	ADC_ChannelConfig(&ADC_1, 0, 0, ADC_SMP_T_15);									//Starts sequence on GPIO A0
 	ADC_ChannelConfig(&ADC_1, 1, 1, ADC_SMP_T_15);
 	ADC_ChannelConfig(&ADC_1, 4, 2, ADC_SMP_T_15);
-	ADC_ChannelConfig(&ADC_1, 6, 3, ADC_SMP_T_15);
+	ADC_ChannelConfig(&ADC_1, 6, 3, ADC_SMP_T_15);									//Ends sequence on GPIO A6
 	ADC_ConfigSequence(&ADC_1);
 	ADC_Init(&ADC_1);
 
@@ -162,16 +166,16 @@ void Sensors_Init(void) /*For this application only 4 sensors will be initialize
 
   	DMA_2.DMA_stream = 0;
 	DMA_2.DMA_Config.DMA_Channel = DMA_CHANNEL_0;
-	DMA_2.DMA_Config.DMA_Direction = DMA_DIR_PERIPH_TO_MEM;
+	DMA_2.DMA_Config.DMA_Direction = DMA_DIR_PERIPH_TO_MEM;							//Transfers from ADC1 to local buffer
 	DMA_2.DMA_Config.DMA_Priority = DMA_PRIORITY_HIGH;
-	DMA_2.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_WORD;
+	DMA_2.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_WORD;							//Resolution is set to 12 bits, so Halfword can work, but since later it'll be be processed to a float it was set to the same size
 	DMA_2.DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_WORD;
-	DMA_2.DMA_Config.DMA_MemInc = ENABLE;
-	DMA_2.DMA_Config.DMA_PeriphInc = DISABLE;
+	DMA_2.DMA_Config.DMA_MemInc = ENABLE;											//Memory address pointer incremented after each data transfer (increment is done according to DMA_MemDataSize)
+	DMA_2.DMA_Config.DMA_PeriphInc = DISABLE;										//It's disabled, since we're reading just one peripheral
 	DMA_2.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
 	DMA_2.DMA_Config.DMA_FIFOThreshold = 0;
-	DMA_2.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
-	DMA_2.BufferSize = 4; //same number of sensors added
+	DMA_2.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;									//We want to transfer continuously through the same peripheral to the same buffer
+	DMA_2.BufferSize = 4; 															//Same number of sensors added
 
 	DMA_Init(&DMA_2);
 	DMA_SetAddresses(&DMA_2,(void*)&ADC_1.pADCx->DR,(void*)raw_sensor_value);
@@ -189,7 +193,7 @@ void SampligRateConfig(float sampling_rate) /*Name may change*/
 	TIM_2.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	TIM_2.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
 	TIM_2.TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
-	TIM_2.TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE; //Master Mode established as update to trigger ADC1 conversion
+	TIM_2.TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE; 							//Master Mode established as update to trigger ADC1 conversion
 	TIM_Init(&TIM_2);
 
 	TIM_IRQInterruptConfig(IRQ_NO_TIM2, ENABLE);
@@ -201,7 +205,7 @@ TIM_Handle_t TIM_5;
 void PWMInit(float carrier_frequency) /*Name may change*/
 {
 	TIM_5.pTIMx = TIM5;
-	TIM_5.TIM_Config.TIM_Frequency = carrier_frequency*40; //Triangular carrier wave changes in even steps of Peak-to-Peak/20
+	TIM_5.TIM_Config.TIM_Frequency = carrier_frequency*40; 							//Triangular carrier wave changes in even steps of Peak-to-Peak/20
 	TIM_5.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_5.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	TIM_5.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
@@ -305,13 +309,16 @@ void TIM2_IRQHandler(void)
 	}
 }
 
-
+/*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
 	static uint8_t PWM_ENABLE = 0;
 	GPIO_IRQHandling(14);
+	/*Both pins are read*/
 	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, 14);
-	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, 15);
+	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, 15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
+
+	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
 	if( PWM_ENABLE == 0 )
 	{
 		TIM_Stop(&TIM_5);
