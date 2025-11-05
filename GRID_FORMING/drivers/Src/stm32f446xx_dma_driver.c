@@ -343,19 +343,14 @@ void DMA_SetAddresses(DMA_Handle_t *pDMAHandle, void *pSrc, void *pDest)
 uint8_t DMA_GetTransferStatus(DMA_Handle_t *pDMAHandle)
 {
 	uint8_t stream = pDMAHandle->DMA_stream;
+	uint8_t h_l = stream/4;
+	uint8_t pos = stream%4;
 	uint32_t status;
-	const uint8_t TCIF_BITS[8] = {5, 11, 21, 27, 5, 11, 21, 27};
-	const uint8_t TEIF_BITS[8] = {3, 9, 19, 25, 3, 9, 19, 25};
-	if(stream <= 3)
-	{
-		status = pDMAHandle->pDMAx->LISR;
-	}else
-	{
-		status = pDMAHandle->pDMAx->HISR;
-	}
 
-	if( status & ( 1 << (TEIF_BITS[stream]) ) ) return 2;
-	else if ( status & ( 1 << (TCIF_BITS[stream]) ) ) return 1;
+	status = pDMAHandle->pDMAx->ISR[h_l];
+
+	if( status & ( 1 << FLAGS_BITS[DMA_TEIF_FLAG][pos] ) ) return 2;
+	else if ( status & ( 1 << FLAGS_BITS[DMA_TCIF_FLAG][pos] ) ) return 1;
 	else return 0;
 }
 
