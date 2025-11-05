@@ -80,6 +80,7 @@
 #define APB2PERIPH_BASEADDR				0x40010000U
 #define AHB1PERIPH_BASEADDR				0x40020000U
 #define AHB2PERIPH_BASEADDR				0x50000000U
+#define AHB3PERIPH_BASEADDR				0xA0000000U
 
 /*
  * Base ADDR of peripherals on AHB1 bus
@@ -153,6 +154,12 @@
 #define ADC1_BASEADDR			(APB2PERIPH_BASEADDR + 0x2000)
 #define ADC2_BASEADDR			(APB2PERIPH_BASEADDR + 0x2100)
 #define ADC3_BASEADDR			(APB2PERIPH_BASEADDR + 0x2200)
+
+/*
+ *  Base addresses of FMC
+ */
+
+#define FMC_BASEADDR			(AHB3PERIPH_BASEADDR + 0x0000)
 
 /*******************Peripheral Register Definition Structures*********************/
 
@@ -397,6 +404,45 @@ typedef struct
 	__vo uint32_t GTPR;
 }USART_RegDef_t;
 
+/*
+ * Peripheral register definition structure for FMC
+ */
+
+typedef struct
+{
+	__vo uint32_t BCR1;						//SRAM/NOR-flash chip select control register for bank 1
+	__vo uint32_t BTR1;						//SRAM/NOR-flash chip select timing register for bank 1
+	__vo uint32_t BCR2;						//SRAM/NOR-flash chip select control register for bank 2
+	__vo uint32_t BTR2;						//SRAM/NOR-flash chip select timing register for bank 2
+	__vo uint32_t BCR3;						//SRAM/NOR-flash chip select control register for bank 3
+	__vo uint32_t BTR3;						//SRAM/NOR-flash chip select timing register for bank 3
+	__vo uint32_t BCR4;						//SRAM/NOR-flash chip select control register for bank 4
+	__vo uint32_t BTR4; 					//SRAM/NOR-flash chip select timing register for bank 4
+	__vo uint32_t Reserved[60];
+	__vo uint32_t PCR;						//NAND-flash control registers
+	__vo uint32_t SR;						//FIFO status and interrupt register
+	__vo uint32_t PMEM;						//Common memory space timing register
+	__vo uint32_t PATT;						//Attribute memory space timing register
+	__vo uint32_t Reserved;					
+	__vo uint32_t ECCR;						//ECC result registers
+	__vo uint32_t Reserved[3];
+	__vo uint32_t BWTR1;					//SRAM/NOR-flash write timing registers 1
+	__vo uint32_t Reserved;
+	__vo uint32_t BWTR2;					//SRAM/NOR-flash write timing registers 2
+	__vo uint32_t Reserved;
+	__vo uint32_t BWTR3;					//SRAM/NOR-flash write timing registers 3
+	__vo uint32_t Reserved;
+	__vo uint32_t BWTR4;					//SRAM/NOR-flash write timing registers 4
+	__vo uint32_t Reserved[20];
+	__vo uint32_t SDCR1;					//SDRAM controller register 1
+	__vo uint32_t SDCR2;					//SDRAM controller register 2
+	__vo uint32_t SDTR1;					//SDRAM timing register 1
+	__vo uint32_t SDTR2;					//SDRAM timing register 2
+	__vo uint32_t SDCMR;					//SDRAM Command Mode register
+	__vo uint32_t SDRTR;					//SDRAM refresh timer register
+	__vo uint32_t SDSR;						//SDRAM status register
+}FMC_RegDef_t;
+
 /***************************************
  ********Peripheral definitions*********
  ***************************************/
@@ -501,6 +547,12 @@ typedef struct
 
 #define FLASH			((FLASH_RegDef_t*) FLASH_INTERFACE_BASEADDR)
 
+/*
+ * Definition for FMC
+ */
+
+#define FMC			((FMC_RegDef_t*) FMC_BASEADDR)
+
 /*****************************************************
  ********Clock Control Macros for Peripherals*********
  *****************************************************/
@@ -591,6 +643,12 @@ typedef struct
 #define ADC3_PCLK_EN() 			( RCC->APB2ENR |= ( 1 << 10) )
 
 /*
+ * Clock Enable Macros for FMC peripheral
+ */
+
+#define FMC_PCLK_EN() 			( RCC->AHB3ENR |= ( 1 << 0) )
+
+/*
  * Clock Disable Macros for GPIOx peripherals
  */
 
@@ -670,6 +728,12 @@ typedef struct
 #define ADC1_PCLK_DI() 			( RCC->APB2ENR &= ~( 1 << 8) )
 #define ADC2_PCLK_DI() 			( RCC->APB2ENR &= ~( 1 << 9) )
 #define ADC3_PCLK_DI() 			( RCC->APB2ENR &= ~( 1 << 10) )
+
+/*
+ * Clock Disable Macros for FMC peripheral
+ */
+
+#define FMC_PCLK_DI() 			( RCC->AHB3ENR &= ~( 1 << 0) )
 
 /*********************************************
  ********Reset Macros for Peripherals*********
@@ -763,6 +827,12 @@ typedef struct
 #define UART4_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<19)); (RCC->APB1RSTR &= ~(1<<19));}while(0)
 #define UART5_REG_RESET()	do{ (RCC->APB1RSTR |= (1<<20)); (RCC->APB1RSTR &= ~(1<<20));}while(0)
 #define USART6_REG_RESET()	do{ (RCC->APB2RSTR |= (1<<5)); (RCC->APB2RSTR &= ~(1<<5));}while(0)
+
+/*
+ * Macros to reset FMC peripheral
+ */
+
+#define FMC_REG_RESET()	do{ (RCC->AHB3RSTR |= (1<<0)); (RCC->AHB3RSTR &= ~(1<<0));}while(0)
 
 /*****************************************
  ********Interrupt ReQuest Macros*********
