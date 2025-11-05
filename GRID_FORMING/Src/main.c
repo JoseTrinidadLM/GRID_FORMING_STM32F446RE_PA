@@ -17,7 +17,7 @@
  */
 
 /*
- *  PA0 -> ADC1 -> DMA -> raw_sensor_value[0] -> raw_sensor_value[0]
+ *  PA0 -> ADC1 -> DMA -> raw_sensor_value[0] -> characterized sensor outputs
  *			^
  *			|
  * 			TIM2
@@ -26,15 +26,22 @@
 
 #include "stm32f446xx.h"
 
+
+/*characterized sensor outputs*/
 __vo float v_cd;
 __vo float v_g;
 __vo float i_L;
 __vo float i_L90;
 __vo float i_inv;
 
+/*sine wave for DQ and power-factor correction*/
 __vo float cosine;
 __vo float sine;
 
+__vo float i_Q;
+
+
+/*modulator signal*/
 __vo float u_control;
 
 
@@ -236,12 +243,24 @@ float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *p
 	(*pBuffer_Counter)++;
 
 	//Once the buffer is completely filled counter is reset
-	if(*pBuffer_Counter > 40)
-	{
+	if(*pBuffer_Counter >= 40)									//This condition is subject to sampling rate being 9.6 kHz and grid-load fundamental frequency are 60 Hz
+	{															//Buffer may be larger but to store and create a ring-buffer we only take account of the first quarter of a period
 		*pBuffer_Ready_Flag = 1;
 		*pBuffer_Counter = 0;
 	}
 	return temp_sin;
+}
+
+/*This function computes partially the Park Transformation of two-phase orthogonal components its output returns the quadrature axis component */
+float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
+{
+	return (alpha*cosine_wt + beta*sine_wt);
+}
+
+/*This function computes partially the Park Transformation of two-phase orthogonal components its output returns the direct axis component */
+float DTransform(float cosine_wt, float sine_wt, float alpha, float beta)
+{
+	return (-alpha*sine_wt + beta*cosine_wt);
 }
 
 int main(void)
@@ -313,8 +332,8 @@ void TIM5_IRQHandler(void)
 }
 
 /*Buffers to store quarter of a period of cos and i_L*/
-float cos_buffer[41] = {0};
-float i_L_buffer[41] = {0};
+float cos_buffer[40] = {0};
+float i_L_buffer[40] = {0};
 
 void TIM2_IRQHandler(void)
 {
@@ -329,12 +348,17 @@ void TIM2_IRQHandler(void)
 	/*TO DO: Read and sensor */
 
 	/*NINETYDegreePhaseShift still on BETA*/
+	/*This are critical operations needed before shifting to Closed Loop Mode */
+
+	cosine = (raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;															//This is just an example to show its functionality
 	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
 	i_L90 = NINETYDegreePhaseShift(i_L_buffer, i_L, &Buffer_Counter_iL, &Buffer_Ready_Flag_iL);
 
+	i_Q = QTransform(cosine, sine, i_L, i_L90);
+
 	if(OPERATION_MODE == 0)
 	{
-		u_control = (raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
+		u_control = 0.8*cosine;
 
 	} else
 	{
