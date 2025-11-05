@@ -106,7 +106,7 @@ void PWM_GPIOInits(void)
 GPIO_Handle_t GPIO_Sensor[4];
 ADC_Handle_t ADC_1;
 DMA_Handle_t DMA_2;
-uint32_t raw_sensor_value[4];														//ADC1 destination buffer
+uint32_t raw_sensor_value[4];												//ADC1 destination buffer
 float	sensor[9][4];														//processed data buffer (?)
 
 /*Add as much sensors you want to read (look up pinout for compatibility) */
@@ -286,6 +286,23 @@ float CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, floa
 	return (*py2_z_0);
 }
 
+
+/*This functions resets CascadeControl() input-output parameters*/
+void ResetPIControllers(float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
+{
+	(*pe1_z_0) = 0;
+	(*pe1_z_1) = 0;
+
+	(*py1_z_0) = 0;
+	(*py1_z_1) = 0;
+
+	(*pe2_z_0) = 0;
+	(*pe2_z_1) = 0;
+
+	(*py2_z_0) = 0;
+	(*py2_z_1) = 0;
+}
+
 int main(void)
 {
 	SystemCLK_Config_84MHz();
@@ -305,7 +322,7 @@ int main(void)
 	return 0;
 }
 
-float inc = 0.1;
+const float inc = 0.1;
 
 void TIM5_IRQHandler(void)
 {
@@ -395,7 +412,6 @@ void TIM2_IRQHandler(void)
 	if(OPERATION_MODE == 0)
 	{
 		u_control = 0.8*cosine;
-
 	} else
 	{
 		u_control = CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
@@ -411,11 +427,14 @@ void EXTI15_10_IRQHandler(void)
 	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, 14);
 	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, 15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
 
+	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), then its safe to use it in Closed Loop Mode*/
+	if( OPERATION_MODE == 0 ) ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
+
 	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
 	if( PWM_ENABLE == 0 )
 	{
 		TIM_Stop(&TIM_5);
-		/*TO DO: Reset control error as well as PI controllers outputs */
+
 		GPIO_AtomicWriteToOutputPin(GPIOC, GPIO_PIN_NO_7, RESET);
 		GPIO_AtomicWriteToOutputPin(GPIOA, GPIO_PIN_NO_9, RESET);
 
