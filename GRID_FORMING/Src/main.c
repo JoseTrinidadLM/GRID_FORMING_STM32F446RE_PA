@@ -106,8 +106,8 @@ void PWM_GPIOInits(void)
 GPIO_Handle_t GPIO_Sensor[4];
 ADC_Handle_t ADC_1;
 DMA_Handle_t DMA_2;
-uint32_t raw_sensor_value[BUFFER_SIZE][4];														//ADC1 destination buffer
-float	sensor[4];																	//processed data buffer (?)
+uint32_t raw_sensor_value[4];														//ADC1 destination buffer
+float	sensor[9999999999999999999][4];														//processed data buffer (?)
 
 /*Add as much sensors you want to read (look up pinout for compatibility) */
 
@@ -188,7 +188,7 @@ void Sensors_Init(void) /*For this application only 4 sensors will be initialize
 	DMA_2.BufferSize = 4; 															//Same number of sensors added
 
 	DMA_Init(&DMA_2);
-	DMA_SetAddresses(&DMA_2,(void*)&ADC_1.pADCx->DR,(void*)raw_sensor_value[0]);
+	DMA_SetAddresses(&DMA_2,(void*)&ADC_1.pADCx->DR,(void*)raw_sensor_value);
 	DMA_StartTransfer(&DMA_2);
 }
 
@@ -390,15 +390,11 @@ void EXTI15_10_IRQHandler(void)
 	}
 }
 
-void ShiftRawSensorsValue(void)
+void ShiftSensorsValue(void)
 {
-	uint32_t temp[4];
 	for(int x = BUFFER_SIZE-1; x>0; x--)
 	{
-		raw_sensor_value[x][0]; = raw_sensor_value[x-1][0];
-		raw_sensor_value[x][1]; = raw_sensor_value[x-1][1];
-		raw_sensor_value[x][2]; = raw_sensor_value[x-1][2];
-		raw_sensor_value[x][3]; = raw_sensor_value[x-1][3];
+		//TO-DO: shift processed values
 	}
 }
 
@@ -406,6 +402,5 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 {
    if(ApEv == DMA_EVENT_TCIF_CMPLT)
    {
-	   ShiftRawSensorsValues();
    }
 }
