@@ -252,13 +252,13 @@ float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *p
 }
 
 /*This function computes partially the Park Transformation of two-phase orthogonal components its output returns the quadrature axis component */
-float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
+float DTransform(float cosine_wt, float sine_wt, float alpha, float beta)
 {
 	return (alpha*cosine_wt + beta*sine_wt);
 }
 
 /*This function computes partially the Park Transformation of two-phase orthogonal components its output returns the direct axis component */
-float DTransform(float cosine_wt, float sine_wt, float alpha, float beta)
+float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
 {
 	return (-alpha*sine_wt + beta*cosine_wt);
 }
