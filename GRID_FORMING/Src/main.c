@@ -264,17 +264,18 @@ float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
 	return (-alpha*sine_wt + beta*cosine_wt);
 }
 
-/**/
-float CascadeControl(float cosine_wt, float sine_wt, float *pv_cd, float *pi_Q, float *pi_inv, float *pe1_z_0, float *pe1_z_1, float *pe2_z_0, float *pe2_z_1, float *py1_z_0, float *py1_z_1, float *py2_z_0, float *py2_z_1)
+/*Parametres highly tied to sampling rate being 9600*/
+/*To differentiate local varaibles from global variables names in local instance for this function have been written in caps*/
+float CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float I_INV, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
 {
-	(*pe1_z_0) = 36 - (*pv_cd);													//Evaluates error among reference and DC sensed value on DC bus of the inverter
+	(*pe1_z_0) = 36 - V_CD;														//Evaluates error among reference and DC sensed value on DC bus of the inverter
 
 	(*py1_z_0) = (*py1_z_1) + 0.167037*(*pe1_z_0) - 0.167028*(*pe1_z_1);		//External discrete PI control loop
 
 	(*pe1_z_1) = (*pe1_z_0);													//Updating last error as the most recent one
 	(*py1_z_1) = (*py1_z_0);													//Updating last output PI control value as the most recent one
 
-	(*pe2_z_0) = (*py1_z_0)*cosine_wt + (*pi_Q)*sine_wt - (*pi_inv); 			//Calculates the new error with a reference given by external control loop output, quadrature current and inverter sense current
+	(*pe2_z_0) = (*py1_z_0)*cosine_wt + I_Q*sine_wt - I_INV; 					//Calculates the new error with a reference given by external control loop output, quadrature current and inverter sense current
 
 	(*py2_z_0) = (*py2_z_1) - 0.03203*(*pe2_z_0) + 0.03087*(*pe2_z_1); 			//Internal discrete PI control loop
 
@@ -358,17 +359,17 @@ float cos_buffer[40] = {0};
 float i_L_buffer[40] = {0};
 
 /*Control global variables*/
-float e1_z_0 = 0;
-float e1_z_1 = 0;
+__vo float e1_z_0 = 0;
+__vo float e1_z_1 = 0;
 
-float e2_z_0 = 0;
-float e2_z_1 = 0;
+__vo float e2_z_0 = 0;
+__vo float e2_z_1 = 0;
 
-float y1_z_0 = 0;
-float y1_z_1 = 0;
+__vo float y1_z_0 = 0;
+__vo float y1_z_1 = 0;
 
-float y2_z_0 = 0;
-float y2_z_1 = 0;
+__vo float y2_z_0 = 0;
+__vo float y2_z_1 = 0;
 
 void TIM2_IRQHandler(void)
 {
@@ -397,7 +398,7 @@ void TIM2_IRQHandler(void)
 
 	} else
 	{
-		u_control = CascadeControl(cosine, sine, &v_cd, &i_Q, &i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
+		u_control = CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
 	}
 }
 
@@ -414,6 +415,7 @@ void EXTI15_10_IRQHandler(void)
 	if( PWM_ENABLE == 0 )
 	{
 		TIM_Stop(&TIM_5);
+		/*TO DO: Reset control error as well as PI controllers outputs */
 		GPIO_AtomicWriteToOutputPin(GPIOC, GPIO_PIN_NO_7, RESET);
 		GPIO_AtomicWriteToOutputPin(GPIOA, GPIO_PIN_NO_9, RESET);
 
