@@ -288,7 +288,7 @@ float CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, floa
 
 
 /*This functions resets CascadeControl() input-output parameters*/
-void ResetPIControllers(float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
+void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
 {
 	(*pe1_z_0) = 0;
 	(*pe1_z_1) = 0;
