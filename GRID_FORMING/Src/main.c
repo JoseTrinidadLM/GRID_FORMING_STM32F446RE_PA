@@ -26,7 +26,7 @@
 
 #include "stm32f446xx.h"
 
-#define BUFFER_SIZE 9999999999999999999;
+uint64_t BUFFER_SIZE = 9;
 
 /*characterized sensor outputs*/
 __vo float v_cd;
@@ -107,7 +107,7 @@ GPIO_Handle_t GPIO_Sensor[4];
 ADC_Handle_t ADC_1;
 DMA_Handle_t DMA_2;
 uint32_t raw_sensor_value[4];														//ADC1 destination buffer
-float	sensor[9999999999999999999][4];														//processed data buffer (?)
+float	sensor[9][4];														//processed data buffer (?)
 
 /*Add as much sensors you want to read (look up pinout for compatibility) */
 
@@ -392,9 +392,10 @@ void EXTI15_10_IRQHandler(void)
 
 void ShiftSensorsValue(void)
 {
-	for(int x = BUFFER_SIZE-1; x>0; x--)
+	for(uint64_t x = BUFFER_SIZE-1; x>0; x--)
 	{
 		//TO-DO: shift processed values
+		;
 	}
 }
 
