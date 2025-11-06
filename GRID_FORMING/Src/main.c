@@ -316,7 +316,6 @@ int main(void)
 	PWM_TIMInit(9600);
 
 	TIM_Start(&TIM_2);
-	TIM_Start(&TIM_5);
 
 	while(1);
 	return 0;
@@ -372,8 +371,10 @@ void TIM5_IRQHandler(void)
 }
 
 /*Buffers to store quarter of a period of cos and i_L*/
+/*For every shifted signal it is needed a buffer*/
 float cos_buffer[40] = {0};
 float i_L_buffer[40] = {0};
+
 
 /*Control global variables*/
 __vo float e1_z_0 = 0;
@@ -398,13 +399,22 @@ void TIM2_IRQHandler(void)
 	__vo static uint8_t Buffer_Ready_Flag_iL = 0;
 
 	TIM_IRQHandling(&TIM_2);
-	/*TO DO: Read and sensor */
 
-	/*NINETYDegreePhaseShift still on BETA*/
 	/*This are critical operations needed before shifting to Closed Loop Mode */
 
-	cosine = (raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;															//This is just an example to show its functionality
+	/*TO DO: Read and characterize sensors */
+
+	v_g = 	(raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
+	i_inv = (raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
+	i_L = 	(raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
+	v_cd = 	(raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
+
+	/*In case there is a high presence of noise, signals will be filtered*/
+
+	cosine = v_g/(18.0f);															//This is just an example to show its functionality
+
 	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
+
 	i_L90 = NINETYDegreePhaseShift(i_L_buffer, i_L, &Buffer_Counter_iL, &Buffer_Ready_Flag_iL);
 
 	i_Q = QTransform(cosine, sine, i_L, i_L90);
@@ -416,6 +426,7 @@ void TIM2_IRQHandler(void)
 	{
 		u_control = CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
 	}
+
 }
 
 /*This interruption can be triggered by GPIOB 14-15*/
@@ -427,7 +438,7 @@ void EXTI15_10_IRQHandler(void)
 	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, 14);
 	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, 15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
 
-	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), then its safe to use it in Closed Loop Mode*/
+	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
 	if( OPERATION_MODE == 0 ) ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
 
 	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
@@ -457,5 +468,6 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 {
    if(ApEv == DMA_EVENT_TCIF_CMPLT)
    {
+
    }
 }
