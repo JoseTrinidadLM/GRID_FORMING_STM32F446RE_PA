@@ -404,10 +404,10 @@ void TIM2_IRQHandler(void)
 
 	/*TO DO: Read and characterize sensors */
 
-	v_g = 	(raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
+	v_g = 	(raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
 	i_inv = (raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
-	i_L = 	(raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
-	v_cd = 	(raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
+	i_L = 	(raw_sensor_value[2]/4095.0f - 0.5f)*2.0f;
+	v_cd = 	(raw_sensor_value[3]/4095.0f - 0.5f)*2.0f;
 
 	/*In case there is a high presence of noise, signals will be filtered*/
 
