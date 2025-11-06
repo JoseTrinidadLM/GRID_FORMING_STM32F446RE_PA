@@ -27,8 +27,7 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
-
-char packets_keys[] = {'V','C','F','D','X','N'};
+char packets_keys[] = {'V','C','F','D','T','S','X','N'};
 uint32_t packets_value[4];
 uint64_t packets_time[4];
 
@@ -66,8 +65,6 @@ void addValue_Variable(char s, uint8_t message[7])
 		packets_value[x] |= (message[x] << (y-2)*8) & 0xFF;
 	}
 }
-
-uint8_t rxCmplt = RESET;
 
 USART_Handle_t USART2Handle;
 
@@ -209,9 +206,7 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 			valid = DISABLE;
 		}
 	}
-
 }
-
 
 void USART_HeartBeatTX(void)
 {
@@ -227,7 +222,6 @@ void USART_HeartBeatTX(void)
 
 void USART_TelemetryTX(uint8_t typePacket)
 {
-
 	static uint8_t message[10];
 	message[0] = '$';
 	message[1] = packets_keys[typePacket];
@@ -243,7 +237,7 @@ void USART_TelemetryTX(uint8_t typePacket)
 	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 10);
 }
 
-void Send_Status(void)
+void Send_Status(USART_Handle_t *pUSARTHandle)
 {
 	static uint8_t count = 0;
 	static uint8_t toggle = 0;
@@ -251,20 +245,21 @@ void Send_Status(void)
 	{
 		count = 0;
 	}
-	if(toggle)
+	if((pUSARTHandle->USARTConfig.USART_Baud/toggle) > 1) //Count until 1Hz   BaudRate/times > 1Hz
 	{
 		USART_HeartBeatTX();
+		toggle = 0;
 	}else
 	{
 		USART_TelemetryTX(count);
 		count++;
+		toggle++;
 	}
-	toggle ^= 1;
 }
 
 void TIM3_IRQHandler(void)
 {
-	Send_Status();
+	Send_Status(&USART2Handle);
 	TIM_IRQHandling(&TIM3Handle);
 }
 

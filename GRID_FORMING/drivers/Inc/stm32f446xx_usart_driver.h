@@ -74,7 +74,7 @@ typedef struct
 #define USART_STD_BAUD_460800 				460800
 #define USART_STD_BAUD_921600 				921600
 #define USART_STD_BAUD_2M 					2000000
-#define SUART_STD_BAUD_3M 					3000000
+#define USART_STD_BAUD_3M 					3000000
 
 /*
  * NoOfStopBits
