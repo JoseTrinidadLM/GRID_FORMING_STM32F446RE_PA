@@ -71,6 +71,9 @@
 #define	SRAM							SRAM1_BASEADDR
 #define FLASH_INTERFACE_BASEADDR		0x40023C00U
 
+#define EXT_SRAM_BASE					(uint32_t)0x60000000
+#define EXT_SRAM_SIZE					(116*1024)// 116kB
+
 /*
  * AHBx and APBx Bus Peripheral base addresses
  */
@@ -420,9 +423,9 @@ typedef struct
 	__vo uint32_t BTR4; 					//SRAM/NOR-flash chip select timing register for bank 4
 	__vo uint32_t Reserved[60];
 	__vo uint32_t PCR;						//NAND-flash control registers
-	__vo uint32_t SR;						//FIFO status and interrupt register
-	__vo uint32_t PMEM;						//Common memory space timing register
-	__vo uint32_t PATT;						//Attribute memory space timing register
+	__vo uint32_t SR;						//FIFO status and interrupt register	(FLAGS)
+	__vo uint32_t PMEM;						//Common memory space timing register (NAND-flash timing register)
+	__vo uint32_t PATT;						//Attribute memory space timing register (NAND-flash timing register)
 	__vo uint32_t Reserved;					
 	__vo uint32_t ECCR;						//ECC result registers
 	__vo uint32_t Reserved[3];
@@ -440,7 +443,7 @@ typedef struct
 	__vo uint32_t SDTR2;					//SDRAM timing register 2
 	__vo uint32_t SDCMR;					//SDRAM Command Mode register
 	__vo uint32_t SDRTR;					//SDRAM refresh timer register
-	__vo uint32_t SDSR;						//SDRAM status register
+	__vo uint32_t SDSR;						//SDRAM status register (FLAGS)
 }FMC_RegDef_t;
 
 /***************************************
@@ -1123,5 +1126,6 @@ typedef struct
 //#include "stm32f446xx_spi_driver.h"
 //#include "stm32f446xx_i2c_driver.h"
 #include "stm32f446xx_usart_driver.h"
+#include "stm32f446xx_fmc_driver.h"
 
 #endif /* INC_STM32F446XX_H_ */
