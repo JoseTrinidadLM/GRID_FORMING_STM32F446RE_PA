@@ -116,8 +116,23 @@ void TIM_Init(TIM_Handle_t *pTIMHandle)
 	cr1_temp |= (pTIMHandle->TIM_Config.TIM_CNTMode << 4);
 	pTIMHandle->pTIMx->CR1 |= cr1_temp; //set register to TIMx configuration
 	for(__vo uint16_t j = 0; j < 5000; j++);
+
+    if(pTIMHandle->TIM_Config.TIM_Mode == TIM_MODE_PWM) {
+        TIM_PWM_Channel_Init(pTIMHandle);
+    }
+
+    pTIMHandle->pTIMx->SMCR &= ~(0x7 << 0);  // Clear SMS
+    pTIMHandle->pTIMx->SMCR &= ~(0x7 << 4);  // Clear TS
+    pTIMHandle->pTIMx->SMCR &= ~(0xF << 8);  // Clear ETF
+
+    pTIMHandle->pTIMx->SMCR |= (pTIMHandle->TIM_Config.TIM_SlaveMode << 0);
+
+    pTIMHandle->pTIMx->SMCR |= (pTIMHandle->TIM_Config.TIM_TriggerSource << 4);
+
 	pTIMHandle->pTIMx->CR2 &= ~( 0x1F << 3 ); //clear
+
 	pTIMHandle->pTIMx->CR2 |= ( pTIMHandle->TIM_Config.TIM_MasterModeSel << 4 );
+
 	for(__vo uint16_t j = 0; j < 50000; j++);
 	if(pTIMHandle->TIM_Config.TIM_IntEnable == TIM_IT_ENABLE) pTIMHandle->pTIMx->DIER |= ( 1 << 0 );
 	else pTIMHandle->pTIMx->DIER &= ~( 1 << 0 );
@@ -236,6 +251,87 @@ void TIM_IRQPriorityConfig(uint8_t IRQNumber, uint8_t IRQPriority)
 void TIM_IRQHandling(TIM_Handle_t *pTIMHandle)
 {
 	if(pTIMHandle->pTIMx->SR & (1 <<0)) pTIMHandle->pTIMx->SR &= ~(1 << 0);
+}
+
+void TIM_PWM_Channel_Init(TIM_Handle_t *pTIMHandle){
+
+	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_1){
+		pTIMHandle->pTIMx->CCR1 = 0;
+		pTIMHandle->pTIMx->CCMR1 &= ~(0xFF << 0);		//Only clear channel 1
+
+        pTIMHandle->pTIMx->CCMR1 |= (pTIMHandle->TIM_Config.TIM_OCMode << 4);
+
+        if(pTIMHandle->TIM_Config.TIM_OCPreload)
+            pTIMHandle->pTIMx->CCMR1 |= (1 << 3);
+
+        pTIMHandle->pTIMx->CCMR1 &= ~(0x3 << 0); //To secure output
+
+        pTIMHandle->pTIMx->CCER &= ~(0xB << 0); //Clean b3,b1,b0
+        pTIMHandle->pTIMx->CCER |= (1 << 0);
+        if(pTIMHandle->TIM_Config.TIM_OCPolarity)
+            pTIMHandle->pTIMx->CCER |= (1 << 1); //Active low
+
+	}else if((pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_2)){
+		pTIMHandle->pTIMx->CCR2 = 0;
+		pTIMHandle->pTIMx->CCMR1 &= ~(0xFF << 8);		//Only clear channel 2
+
+        pTIMHandle->pTIMx->CCMR1 |= (pTIMHandle->TIM_Config.TIM_OCMode << 12);
+
+        if(pTIMHandle->TIM_Config.TIM_OCPreload)
+            pTIMHandle->pTIMx->CCMR1 |= (1 << 11);
+
+        pTIMHandle->pTIMx->CCMR1 &= ~(0x3 << 8); //To secure output
+
+        pTIMHandle->pTIMx->CCER &= ~(0xB << 4); //Clean b7,b5,b4
+        pTIMHandle->pTIMx->CCER |= (1 << 4);
+        if(pTIMHandle->TIM_Config.TIM_OCPolarity)
+            pTIMHandle->pTIMx->CCER |= (1 << 5); //Active low
+
+
+	}else if((pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_3)){
+		pTIMHandle->pTIMx->CCR3 = 0;
+
+		pTIMHandle->pTIMx->CCMR2 &= ~(0xFF << 0);		//Only clear channel 3
+
+        pTIMHandle->pTIMx->CCMR2 |= (pTIMHandle->TIM_Config.TIM_OCMode << 4);
+
+        if(pTIMHandle->TIM_Config.TIM_OCPreload)
+            pTIMHandle->pTIMx->CCMR2 |= (1 << 3);
+
+        pTIMHandle->pTIMx->CCMR2 &= ~(0x3 << 0); //To secure output
+
+        pTIMHandle->pTIMx->CCER &= ~(0xB << 8); //Clean b11,b9,b8
+        pTIMHandle->pTIMx->CCER |= (1 << 8);
+        if(pTIMHandle->TIM_Config.TIM_OCPolarity)
+            pTIMHandle->pTIMx->CCER |= (1 << 9); //Active low
+
+	}else if((pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_4)){
+		pTIMHandle->pTIMx->CCR4 = 0;
+
+		pTIMHandle->pTIMx->CCMR2 &= ~(0xFF << 8);		//Only clear channel 4
+
+        pTIMHandle->pTIMx->CCMR2 |= (pTIMHandle->TIM_Config.TIM_OCMode << 12);
+
+        if(pTIMHandle->TIM_Config.TIM_OCPreload)
+            pTIMHandle->pTIMx->CCMR2 |= (1 << 11);
+
+        pTIMHandle->pTIMx->CCMR2 &= ~(0x3 << 8); //To secure output
+
+        pTIMHandle->pTIMx->CCER &= ~(0xB << 12); //Clean b15,b13,b12
+        pTIMHandle->pTIMx->CCER |= (1 << 12);
+        if(pTIMHandle->TIM_Config.TIM_OCPolarity)
+            pTIMHandle->pTIMx->CCER |= (1 << 13); //Active low
+
+	}
+}
+
+
+void TIM_PWM_DutyCycle(TIM_Handle_t *pTIMHandle, uint16_t dutyCycle){
+
+if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_1) pTIMHandle->pTIMx->CCR1 = dutyCycle;
+if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_2) pTIMHandle->pTIMx->CCR2 = dutyCycle;
+if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_3)  pTIMHandle->pTIMx->CCR3 = dutyCycle;
+if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_4)  pTIMHandle->pTIMx->CCR4 = dutyCycle;
 }
 
 /*

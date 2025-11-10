@@ -7,6 +7,7 @@
 
 #include "stm32f446xx_dma_driver.h"
 
+const uint8_t FLAGS_BITS[5][4] = {{5, 11, 21, 27}, {4, 10, 20, 26} ,{3, 9, 19, 25} ,{2, 8, 18, 24} ,{0, 6, 16, 22}};
 
 /************************************************************************************
  * @fn				- DMA_PeriClockControl
@@ -209,28 +210,49 @@ void DMA_IRQPriorityConfig(uint8_t IRQNumber, uint8_t IRQPriority)
 void DMA_IRQHandling(DMA_Handle_t *pDMAHandle)
 {
 	uint8_t stream = pDMAHandle->DMA_stream;
-	const uint8_t TCIF_BITS[8] = {5, 11, 21, 27, 5, 11, 21, 27};
-	const uint8_t HTIF_BITS[8] = {4, 10, 20, 26, 4, 10, 20, 26};
-	const uint8_t TEIF_BITS[8] = {3, 9, 19, 25, 3, 9, 19, 25};
-	const uint8_t DMEIF_BITS[8] = {2, 8, 18, 24, 2, 8, 18, 24};
-	const uint8_t FEIF_BITS[8] = {0, 6, 16, 22, 0, 6, 16, 22};
+	uint8_t h_l = stream/4;
+	uint8_t pos = stream%4;
 
-	if(stream <= 3)
-	{
-		if( pDMAHandle->pDMAx->LISR & ( 1 << (TCIF_BITS[stream]) )) pDMAHandle->pDMAx->LIFCR |= ( 1 << (TCIF_BITS[stream]) );
-		if( pDMAHandle->pDMAx->LISR & ( 1 << (HTIF_BITS[stream]) )) pDMAHandle->pDMAx->LIFCR |= ( 1 << (HTIF_BITS[stream]) );
-		if( pDMAHandle->pDMAx->LISR & ( 1 << (TEIF_BITS[stream]) )) pDMAHandle->pDMAx->LIFCR |= ( 1 << (TEIF_BITS[stream]) );
-		if( pDMAHandle->pDMAx->LISR & ( 1 << (DMEIF_BITS[stream]) )) pDMAHandle->pDMAx->LIFCR |= ( 1 << (DMEIF_BITS[stream]) );
-		if( pDMAHandle->pDMAx->LISR & ( 1 << (FEIF_BITS[stream]) )) pDMAHandle->pDMAx->LIFCR |= ( 1 << (FEIF_BITS[stream]) );
-	}else
-	{
-		if( pDMAHandle->pDMAx->HISR & ( 1 << (TCIF_BITS[stream]) )) pDMAHandle->pDMAx->HIFCR |= ( 1 << (TCIF_BITS[stream]) );
-		if( pDMAHandle->pDMAx->HISR & ( 1 << (HTIF_BITS[stream]) )) pDMAHandle->pDMAx->HIFCR |= ( 1 << (HTIF_BITS[stream]) );
-		if( pDMAHandle->pDMAx->HISR & ( 1 << (TEIF_BITS[stream]) )) pDMAHandle->pDMAx->HIFCR |= ( 1 << (TEIF_BITS[stream]) );
-		if( pDMAHandle->pDMAx->HISR & ( 1 << (DMEIF_BITS[stream]) )) pDMAHandle->pDMAx->HIFCR |= ( 1 << (DMEIF_BITS[stream]) );
-		if( pDMAHandle->pDMAx->HISR & ( 1 << (FEIF_BITS[stream]) )) pDMAHandle->pDMAx->HIFCR |= ( 1 << (FEIF_BITS[stream]) );
+/*************************Check for Transfer Complete flag **************************/
 
+	if( pDMAHandle->pDMAx->ISR[h_l] & ( 1 << FLAGS_BITS[DMA_TCIF_FLAG][pos] ))
+	{
+		DMA_ClearFlag(pDMAHandle,DMA_TCIF_FLAG);
+		DMA_ApplicationEventCallback(pDMAHandle,DMA_EVENT_TCIF_CMPLT);
 	}
+
+/****************************Check for Half Transfer flag ***************************/
+
+	if( pDMAHandle->pDMAx->ISR[h_l] & ( 1 << FLAGS_BITS[DMA_HTIF_FLAG][pos] ))
+	{
+		DMA_ClearFlag(pDMAHandle,DMA_HTIF_FLAG);
+		DMA_ApplicationEventCallback(pDMAHandle,DMA_EVENT_HTIF);
+	}
+
+/****************************Check for Transfer Error flag **************************/
+
+	if( pDMAHandle->pDMAx->ISR[h_l] & ( 1 << FLAGS_BITS[DMA_TEIF_FLAG][pos] ))
+	{
+		DMA_ClearFlag(pDMAHandle,DMA_TEIF_FLAG);
+		DMA_ApplicationEventCallback(pDMAHandle,DMA_EVENT_TEIF);
+	}
+
+/***************************Check for Direct Mode Error flag ************************/
+
+	if( pDMAHandle->pDMAx->ISR[h_l] & ( 1 << FLAGS_BITS[DMA_DMEIF_FLAG][pos] ))
+	{
+		DMA_ClearFlag(pDMAHandle,DMA_DMEIF_FLAG);
+		DMA_ApplicationEventCallback(pDMAHandle,DMA_EVENT_DMEIF);
+	}
+
+/*******************************Check for FIFO Error flag ***************************/
+
+	if( pDMAHandle->pDMAx->ISR[h_l] & ( 1 << FLAGS_BITS[DMA_FEIF_FLAG][pos] ))
+	{
+		DMA_ClearFlag(pDMAHandle,DMA_FEIF_FLAG);
+		DMA_ApplicationEventCallback(pDMAHandle,DMA_EVENT_FEIF);
+	}
+
 }
 
 /************************************************************************************
@@ -250,13 +272,31 @@ void DMA_IRQHandling(DMA_Handle_t *pDMAHandle)
 void DMA_ClearFlags(DMA_Handle_t *pDMAHandle)
 {
 	uint8_t stream = pDMAHandle->DMA_stream;
-	if(stream <= 3)
-	{
-		pDMAHandle->pDMAx->LIFCR |= ( 0x3D << 6*stream );
-	}else
-	{
-		pDMAHandle->pDMAx->HIFCR |= ( 0x3D << 6*(stream - 4) );
-	}
+	uint8_t h_l = stream/4;
+	uint8_t pos = stream%4;
+	pDMAHandle->pDMAx->IFCR[h_l] |= ( 0x3D << 6*pos );
+}
+
+/************************************************************************************
+ * @fn				- DMA_PeriClockControl
+ *
+ * @brief			- This function enables or disables peripheral clock for the given GPIO port
+ *
+ * @param[in]		- base address of the gpio peripheral
+ * @param[in]		- ENABLE or DISABLE macros
+ * @param[in]		-
+ *
+ * @return			- none
+ *
+ * @Note			- none
+ *
+ * */
+void DMA_ClearFlag(DMA_Handle_t *pDMAHandle, uint8_t FlagName)
+{
+	uint8_t stream = pDMAHandle->DMA_stream;
+	uint8_t h_l = stream/4;
+	uint8_t pos = stream%4;
+	pDMAHandle->pDMAx->IFCR[h_l] |= ( 0x1 << FLAGS_BITS[FlagName][pos]);
 }
 
 /************************************************************************************
@@ -303,18 +343,31 @@ void DMA_SetAddresses(DMA_Handle_t *pDMAHandle, void *pSrc, void *pDest)
 uint8_t DMA_GetTransferStatus(DMA_Handle_t *pDMAHandle)
 {
 	uint8_t stream = pDMAHandle->DMA_stream;
+	uint8_t h_l = stream/4;
+	uint8_t pos = stream%4;
 	uint32_t status;
-	const uint8_t TCIF_BITS[8] = {5, 11, 21, 27, 5, 11, 21, 27};
-	const uint8_t TEIF_BITS[8] = {3, 9, 19, 25, 3, 9, 19, 25};
-	if(stream <= 3)
-	{
-		status = pDMAHandle->pDMAx->LISR;
-	}else
-	{
-		status = pDMAHandle->pDMAx->HISR;
-	}
 
-	if( status & ( 1 << (TEIF_BITS[stream]) ) ) return 2;
-	else if ( status & ( 1 << (TCIF_BITS[stream]) ) ) return 1;
+	status = pDMAHandle->pDMAx->ISR[h_l];
+
+	if( status & ( 1 << FLAGS_BITS[DMA_TEIF_FLAG][pos] ) ) return 2;
+	else if ( status & ( 1 << FLAGS_BITS[DMA_TCIF_FLAG][pos] ) ) return 1;
 	else return 0;
+}
+
+/*
+ * @fn      		  -DMA_ApplicationEventCallback
+ *
+ * @brief             -Weak implementation of Application Event Call function
+ *
+ * @param[in]         -Handling Structure of the DMA peripheral
+ * @param[in]         -DMA Event macros
+ *
+ * @return            -none
+ *
+ * @Note              -Expect user to handle termination of different interrupts events
+ */
+
+__weak void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t DMA_EVENT)
+{
+
 }

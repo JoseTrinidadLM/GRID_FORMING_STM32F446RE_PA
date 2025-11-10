@@ -212,14 +212,14 @@ uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx)
  * @Note			-none
  */
 
-void GPIO_WritetoOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value)
+void GPIO_WriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value)
 {
 	if(Value == GPIO_PIN_SET)
 	{
-		pGPIOx->ODR |= (Value << pinNumber);
+		pGPIOx->ODR |= (1 << pinNumber);
 	}else
 	{
-		pGPIOx->ODR &= ~(0x1 << pinNumber);
+		pGPIOx->ODR |= ~(0x1 << pinNumber);
 	}
 }
 
@@ -256,6 +256,31 @@ void GPIO_WritetoOutputPort(GPIO_RegDef_t *pGPIOx, uint16_t Value)
 void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber)
 {
 	pGPIOx->ODR ^= (1 << pinNumber);
+}
+
+
+/*
+ * @fn				-GPIO_AtomicWriteToOutputPin
+ *
+ * @brief			-Write a value to the position for the given pin number in register for the given port using BSRR register
+ *
+ * @param[in]		-Base address of the GPIO port
+ * @param[in]		-Pin number
+ * @param[in]		-Value to write (set/reset)
+ *
+ * @return			-none
+ *
+ * @Note			-none
+ */
+void GPIO_AtomicWriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value)
+{
+	if(Value == GPIO_PIN_SET)
+	{
+		pGPIOx->BSRR = (1 << pinNumber);
+	}else
+	{
+		pGPIOx->BSRR = (1 << (pinNumber + 16));
+	}
 }
 
 /*

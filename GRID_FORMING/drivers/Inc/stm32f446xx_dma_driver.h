@@ -65,6 +65,27 @@
 #define DMA_FIFO_MODE_DISABLED		1
 
 /*
+ * DMA @FlagNames
+ */
+
+#define DMA_TCIF_FLAG		0
+#define DMA_HTIF_FLAG		1
+#define DMA_TEIF_FLAG		2
+#define DMA_DMEIF_FLAG		3
+#define DMA_FEIF_FLAG		4
+
+/*
+ * @DMA_EVENT
+ */
+
+#define DMA_EVENT_TCIF_CMPLT 	1
+#define DMA_EVENT_HTIF			2
+#define DMA_EVENT_TEIF			3
+#define DMA_EVENT_DMEIF			4
+#define DMA_EVENT_FEIF			5
+
+
+/*
  * This is Configuration structure for DMA
  */
 typedef struct
@@ -128,8 +149,9 @@ void DMA_IRQHandling(DMA_Handle_t *pDMAHandle);
  * Status and utility
  */
 void DMA_ClearFlags(DMA_Handle_t *pDMAHandle);
+void DMA_ClearFlag(DMA_Handle_t *pDMAHandle, uint8_t FlagName);
 void DMA_SetAddresses(DMA_Handle_t *pDMAHandle, void *pSrc, void *pDest);
 uint8_t DMA_GetTransferStatus(DMA_Handle_t *pDMAHandle);
-
+void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t DMA_EVENT);
 
 #endif /* INC_STM32F446_DMA_DRIVER_H_ */

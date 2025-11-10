@@ -121,6 +121,7 @@ uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx);									//Read entire Po
 void GPIO_WriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value);	//Write to single Pin
 void GPIO_WriteToOutputPort(GPIO_RegDef_t *pGPIOx, uint16_t Value);						//Write to entire Port
 void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber);					//Toggle single Pin
+void GPIO_AtomicWriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Value);	//Write to single Pin through BSRR
 
 /*
  * IRQ Configuration and ISR handling for GPIO
