@@ -248,7 +248,7 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM_4.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
 	TIM_4.TIM_Config.TIM_IntEnable = TIM_IT_DISABLE;
 	TIM_4.TIM_Config.TIM_MasterModeSel = TIM_MMS_RESET;
-	TIM_4.TIM_Config.TIM_SlaveMode = TIM_SMS_GATED;						//TIM4 starts and stop CNT at the same time TIM3 does
+	TIM_4.TIM_Config.TIM_SlaveMode = TIM_SMS_TRIGGER;						//TIM4 starts and stop CNT at the same time TIM3 does
 	TIM_4.TIM_Config.TIM_TriggerSource = TIM_TS_ITR2;					//Its trigger source is TIM3
 
 	TIM_4.TIM_Config.TIM_Channel = TIM_CHANNEL_1;						//This allows to link PWM signal to GPIO B6
@@ -281,7 +281,7 @@ float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *p
 	(*pBuffer_Counter)++;
 
 	//Once the buffer is completely filled counter is reset
-	if(*pBuffer_Counter >= 39)									//This condition is subject to sampling rate being 9.6 kHz and grid-load fundamental frequency are 60 Hz
+	if(*pBuffer_Counter >= 40)									//This condition is subject to sampling rate being 9.6 kHz and grid-load fundamental frequency are 60 Hz
 	{															//Buffer may be larger but to store and create a ring-buffer we only take account of the first quarter of a period
 		*pBuffer_Ready_Flag = 1;
 		*pBuffer_Counter = 0;
@@ -305,6 +305,9 @@ float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
 /*To differentiate local varaibles from global variables names in local instance for this function have been written in caps*/
 void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float I_INV, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 {
+	float u_pos_temp = 0;
+	float u_neg_temp = 0;
+
 	(*pe1_z_0) = 36 - V_CD;														//Evaluates error among reference and DC sensed value on DC bus of the inverter
 
 	(*py1_z_0) = (*py1_z_1) + 0.167037*(*pe1_z_0) - 0.167028*(*pe1_z_1);		//External discrete PI control loop
@@ -320,14 +323,24 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
 	(*pe2_z_1) = (*pe2_z_0);													//Updating last error as the most recent one
 	(*py2_z_1) = (*py2_z_0);													//Updating last output PI control value as the most recent one
 
-	(*u_pos) = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM3->ARR);							//Updates positive control signal in relation to PWM resolution
-	(*u_neg) = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM3->ARR);						//Updates negative control signal in relation to PWM resolution
+	u_pos_temp = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM3->ARR);
+	u_neg_temp = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM3->ARR);
+
+	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
+	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
+
 }
 
 void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 {
-	(*u_pos) = (((cosine_wt )*(0.5)) + 0.5)*(TIM3->ARR);						//Updates positive control signal in relation to PWM resolution
-	(*u_neg) = (((cosine_wt )*(-0.5)) + 0.5)*(TIM3->ARR);						//Updates negative control signal in relation to PWM resolution
+	float u_pos_temp = 0;
+	float u_neg_temp = 0;
+
+	u_pos_temp = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM3->ARR);
+	u_neg_temp = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM3->ARR);
+
+	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
+	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
 }
 
 /*This functions resets CascadeControl() input-output parameters*/
@@ -442,12 +455,17 @@ void EXTI15_10_IRQHandler(void)
 	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
 	if( PWM_ENABLE == 0 )
 	{
-		TIM_Stop(&TIM_3);
+		TIM_PWM_Disable(&TIM_3);
+		TIM_PWM_Disable(&TIM_4);
+
 
 	} else if( PWM_ENABLE == 1 )
 	{
-		TIM_Start(&TIM_3);
+		TIM_PWM_Enable(&TIM_3);
+		TIM_PWM_Enable(&TIM_4);
+
 	}
+
 }
 
 void ShiftSensorsValue(void)

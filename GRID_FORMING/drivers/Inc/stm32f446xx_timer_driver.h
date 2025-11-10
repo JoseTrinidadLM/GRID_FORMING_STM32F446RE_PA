@@ -179,6 +179,10 @@ void TIM_PWM_Channel_Init(TIM_Handle_t *pTIMHandle);
 
 void TIM_PWM_DutyCycle(TIM_Handle_t *pTIMHandle, uint16_t dutyCycle);
 
+void TIM_PWM_Enable(TIM_Handle_t *pTIMHandle);
+
+void TIM_PWM_Disable(TIM_Handle_t *pTIMHandle);
+
 /*
  * DMA Configuration for ADC conversion
  */

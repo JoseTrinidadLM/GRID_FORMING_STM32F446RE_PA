@@ -328,10 +328,20 @@ void TIM_PWM_Channel_Init(TIM_Handle_t *pTIMHandle){
 
 void TIM_PWM_DutyCycle(TIM_Handle_t *pTIMHandle, uint16_t dutyCycle){
 
-if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_1) pTIMHandle->pTIMx->CCR1 = dutyCycle;
-if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_2) pTIMHandle->pTIMx->CCR2 = dutyCycle;
-if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_3)  pTIMHandle->pTIMx->CCR3 = dutyCycle;
-if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_4)  pTIMHandle->pTIMx->CCR4 = dutyCycle;
+	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_1) pTIMHandle->pTIMx->CCR1 = dutyCycle;
+	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_2) pTIMHandle->pTIMx->CCR2 = dutyCycle;
+	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_3)  pTIMHandle->pTIMx->CCR3 = dutyCycle;
+	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_4)  pTIMHandle->pTIMx->CCR4 = dutyCycle;
+}
+
+void TIM_PWM_Enable(TIM_Handle_t *pTIMHandle)
+{
+	pTIMHandle->pTIMx->CCER |= (1 << ((pTIMHandle->TIM_Config.TIM_Channel - 1 )*4));
+}
+
+void TIM_PWM_Disable(TIM_Handle_t *pTIMHandle)
+{
+	pTIMHandle->pTIMx->CCER &= ~(1 << ((pTIMHandle->TIM_Config.TIM_Channel - 1 )*4));
 }
 
 /*
