@@ -20,6 +20,16 @@
 #define TIM_CKD_DIV4				2
 
 /*
+ * @TIM_CMS
+ *  Center Aligned mode selection
+ */
+
+#define	TIM_CMS_EDGE				0
+#define TIM_CMS_CA_1				1
+#define TIM_CMS_CA_2				2
+#define TIM_CMS_CA_1				3
+
+/*
  * @TIM_CNT
  * Timer count mode up/down
  */
@@ -127,6 +137,7 @@ typedef struct
 {
 	float	 TIM_Frequency;				//Desired frequency
 	uint8_t  TIM_CLKDivision;			/* <  possible values from @TIM_CKD > */
+	uint8_t  TIM_CAModeSel;				/* <  possible values from @TIM_CMS > */
 	uint8_t  TIM_CNTMode;				/* <  possible values from @TIM_CNT > */
 	uint8_t  TIM_AutoReloadPreload;		/* <  possible values from @TIM_ARPE > */
 	uint8_t  TIM_IntEnable;				/* <  possible values from @TIM_IT > */

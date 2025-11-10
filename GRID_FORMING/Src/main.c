@@ -226,7 +226,7 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM_3.TIM_Config.TIM_Frequency = carrier_frequency;					//Set as carrier frequency
 	TIM_3.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_3.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
-	TIM_3.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
+	TIM_3.TIM_Config.TIM_CAModeSel = TIM_CMS_CA_1;
 	TIM_3.TIM_Config.TIM_IntEnable = TIM_IT_DISABLE;					//Interrupts are not needed
 	TIM_3.TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;				//TIM3 set as master
 	TIM_3.TIM_Config.TIM_Channel = TIM_CHANNEL_2;						//This allows to link PWM signal to GPIO C7
@@ -245,10 +245,10 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM_4.TIM_Config.TIM_Frequency = carrier_frequency;
 	TIM_4.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_4.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
-	TIM_4.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
+	TIM_3.TIM_Config.TIM_CAModeSel = TIM_CMS_CA_1;
 	TIM_4.TIM_Config.TIM_IntEnable = TIM_IT_DISABLE;
 	TIM_4.TIM_Config.TIM_MasterModeSel = TIM_MMS_RESET;
-	TIM_4.TIM_Config.TIM_SlaveMode = TIM_SMS_TRIGGER;						//TIM4 starts and stop CNT at the same time TIM3 does
+	TIM_4.TIM_Config.TIM_SlaveMode = TIM_SMS_GATED;						//TIM4 starts and stop CNT at the same time TIM3 does
 	TIM_4.TIM_Config.TIM_TriggerSource = TIM_TS_ITR2;					//Its trigger source is TIM3
 
 	TIM_4.TIM_Config.TIM_Channel = TIM_CHANNEL_1;						//This allows to link PWM signal to GPIO B6

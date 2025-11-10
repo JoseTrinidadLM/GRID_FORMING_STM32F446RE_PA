@@ -113,6 +113,7 @@ void TIM_Init(TIM_Handle_t *pTIMHandle)
 	uint32_t cr1_temp = 0x0000;
 	cr1_temp |= (pTIMHandle->TIM_Config.TIM_CLKDivision << 8);
 	cr1_temp |= (pTIMHandle->TIM_Config.TIM_AutoReloadPreload << 7);
+	cr1_temp |= (pTIMHandle->TIM_Config.TIM_CAModeSel << 5);
 	cr1_temp |= (pTIMHandle->TIM_Config.TIM_CNTMode << 4);
 	pTIMHandle->pTIMx->CR1 |= cr1_temp; //set register to TIMx configuration
 	for(__vo uint16_t j = 0; j < 5000; j++);
