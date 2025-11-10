@@ -27,7 +27,7 @@
 #define	TIM_CMS_EDGE				0
 #define TIM_CMS_CA_1				1
 #define TIM_CMS_CA_2				2
-#define TIM_CMS_CA_1				3
+#define TIM_CMS_CA_3				3
 
 /*
  * @TIM_CNT
@@ -79,11 +79,12 @@
 /*
  * @TIM_TS
  * Trigger source
+ * For ITR0-ITR3 look for Table 112. TIMx internal trigger connections
  */
-#define TIM_TS_ITR0                 0  // TIM1
-#define TIM_TS_ITR1                 1  // TIM2
-#define TIM_TS_ITR2                 2  // TIM3
-#define TIM_TS_ITR3                 3  // TIM4
+#define TIM_TS_ITR0                 0
+#define TIM_TS_ITR1                 1
+#define TIM_TS_ITR2                 2
+#define TIM_TS_ITR3                 3
 #define TIM_TS_TI1F_ED              4  // TI1 Edge Detector
 #define TIM_TS_TI1FP1               5  // Filtered Timer Input 1
 #define TIM_TS_TI2FP2               6  // Filtered Timer Input 2

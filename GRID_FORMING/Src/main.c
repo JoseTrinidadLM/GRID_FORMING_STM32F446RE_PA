@@ -81,9 +81,9 @@ GPIO_Handle_t GpioPWMB;
 /*GPIO pin 7 from port C and GPIO pin 6 from port B are declared as High Output Speed for PWM signals*/
 void PWM_GPIOInits(void)
 {
-	GPIO_PClkC(GPIOC, ENABLE);
-	GpioPWMA.pGPIOx = GPIOC;
-	GpioPWMA.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_7;
+	GPIO_PClkC(GPIOA, ENABLE);
+	GpioPWMA.pGPIOx = GPIOA;
+	GpioPWMA.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_9;
 	GpioPWMA.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
 	GpioPWMA.GPIO_PinConfig.GPIO_PinAltFunMode = 2;
 	GpioPWMA.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
@@ -212,7 +212,7 @@ void SamplingRateTIMInit(float sampling_rate)
 	TIM_IRQPriorityConfig(IRQ_NO_TIM2, 1);
 }
 
-TIM_Handle_t TIM_3;
+TIM_Handle_t TIM_1;
 TIM_Handle_t TIM_4;
 
 /*To create PWM signals with 180-phase shift it is needed to sync dirrefent timer by srtting a master-slave */
@@ -220,23 +220,23 @@ void PWM_TIMInits(float carrier_frequency)
 {
 
 	/*****************Master Timer initialization*****************/
-	TIM_PClkC(TIM3, ENABLE);
+	TIM_PClkC(TIM1, ENABLE);
 
-	TIM_3.pTIMx = TIM3;
-	TIM_3.TIM_Config.TIM_Frequency = carrier_frequency;					//Set as carrier frequency
-	TIM_3.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
-	TIM_3.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
-	TIM_3.TIM_Config.TIM_CAModeSel = TIM_CMS_CA_1;
-	TIM_3.TIM_Config.TIM_IntEnable = TIM_IT_DISABLE;					//Interrupts are not needed
-	TIM_3.TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;				//TIM3 set as master
-	TIM_3.TIM_Config.TIM_Channel = TIM_CHANNEL_2;						//This allows to link PWM signal to GPIO C7
-	TIM_3.TIM_Config.TIM_Mode = TIM_MODE_PWM;							//Selects TIM as PWM
+	TIM_1.pTIMx = TIM1;
+	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency;					//Set as carrier frequency
+	TIM_1.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
+	TIM_1.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
+	TIM_1.TIM_Config.TIM_CAModeSel = TIM_CMS_EDGE;
+	TIM_1.TIM_Config.TIM_IntEnable = TIM_IT_DISABLE;					//Interrupts are not needed
+	TIM_1.TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;				//TIM3 set as master
+	TIM_1.TIM_Config.TIM_Channel = TIM_CHANNEL_2;						//This allows to link PWM signal to GPIO A9
+	TIM_1.TIM_Config.TIM_Mode = TIM_MODE_PWM;							//Selects TIM as PWM
 
-	TIM_3.TIM_Config.TIM_OCMode = TIM_PWM_MODE2;
-	TIM_3.TIM_Config.TIM_OCPolarity = TIM_OC_POLARITY_LOW;				//Set as active low
-	TIM_3.TIM_Config.TIM_OCPreload = TIM_OC_PRELOAD_DISABLED;			//duty cycle can be modified in run-time
+	TIM_1.TIM_Config.TIM_OCMode = TIM_PWM_MODE2;
+	TIM_1.TIM_Config.TIM_OCPolarity = TIM_OC_POLARITY_LOW;				//Set as active low
+	TIM_1.TIM_Config.TIM_OCPreload = TIM_OC_PRELOAD_DISABLED;			//duty cycle can be modified in run-time
 
-	TIM_Init(&TIM_3);
+	TIM_Init(&TIM_1);
 
 	/*****************Slave Timer initialization*****************/
 	TIM_PClkC(TIM4, ENABLE);
@@ -245,11 +245,11 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM_4.TIM_Config.TIM_Frequency = carrier_frequency;
 	TIM_4.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_4.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
-	TIM_3.TIM_Config.TIM_CAModeSel = TIM_CMS_CA_1;
+	TIM_4.TIM_Config.TIM_CAModeSel = TIM_CMS_EDGE;
 	TIM_4.TIM_Config.TIM_IntEnable = TIM_IT_DISABLE;
 	TIM_4.TIM_Config.TIM_MasterModeSel = TIM_MMS_RESET;
-	TIM_4.TIM_Config.TIM_SlaveMode = TIM_SMS_GATED;						//TIM4 starts and stop CNT at the same time TIM3 does
-	TIM_4.TIM_Config.TIM_TriggerSource = TIM_TS_ITR2;					//Its trigger source is TIM3
+	TIM_4.TIM_Config.TIM_SlaveMode = TIM_SMS_GATED;						//TIM4 starts and at the same time TIM1 does
+	TIM_4.TIM_Config.TIM_TriggerSource = TIM_TS_ITR0;					//Its trigger source is TIM1
 
 	TIM_4.TIM_Config.TIM_Channel = TIM_CHANNEL_1;						//This allows to link PWM signal to GPIO B6
 	TIM_4.TIM_Config.TIM_Mode = TIM_MODE_PWM;							//Selects TIM as PWM
@@ -260,7 +260,7 @@ void PWM_TIMInits(float carrier_frequency)
 
 	TIM_Init(&TIM_4);
 
-	TIM_Start(&TIM_3);  //Starting timer just for minial tests
+	TIM_Start(&TIM_1);  //Starting timer just for minimal tests
 
 }
 
@@ -336,8 +336,8 @@ void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 	float u_pos_temp = 0;
 	float u_neg_temp = 0;
 
-	u_pos_temp = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM3->ARR);
-	u_neg_temp = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM3->ARR);
+	u_pos_temp = ((cosine_wt*0.5) + 0.5)*(TIM3->ARR);
+	u_neg_temp = ((-cosine_wt*0.5) + 0.5)*(TIM3->ARR);
 
 	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
 	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
@@ -419,7 +419,7 @@ void TIM2_IRQHandler(void)
 
 	/*In case there is a high presence of noise, signals will be filtered*/
 
-	cosine = v_g/(18.0f);															//This is just an example to show its functionality
+	cosine = v_g;															//This is just an example to show its functionality
 
 	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
 
@@ -435,7 +435,7 @@ void TIM2_IRQHandler(void)
 		CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
 	}
 
-	TIM_PWM_DutyCycle(&TIM_3, u_control_pos);
+	TIM_PWM_DutyCycle(&TIM_1, u_control_pos);
 	TIM_PWM_DutyCycle(&TIM_4, u_control_neg);
 
 }
@@ -455,14 +455,14 @@ void EXTI15_10_IRQHandler(void)
 	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
 	if( PWM_ENABLE == 0 )
 	{
-		TIM_PWM_Disable(&TIM_3);
+		TIM_PWM_Disable(&TIM_1);
 		TIM_PWM_Disable(&TIM_4);
 		GPIO_WriteToOutputPin(GPIOC, GPIO_PIN_NO_7, RESET);
 		GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 
 	} else if( PWM_ENABLE == 1 )
 	{
-		TIM_PWM_Enable(&TIM_3);
+		TIM_PWM_Enable(&TIM_1);
 		TIM_PWM_Enable(&TIM_4);
 
 	}
