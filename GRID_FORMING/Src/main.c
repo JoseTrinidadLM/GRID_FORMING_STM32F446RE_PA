@@ -28,11 +28,10 @@
 #include "stm32f446xx.h"
 
 char packets_keys[] = {'V','C','F','D','T','S','X','N'};
-uint32_t packets_value[4];
-uint64_t packets_time[4];
+uint32_t packets_value[5];
 
 uint8_t status = 0b00000011;
-uint32_t frequency = 960;
+uint8_t frequency = 96;
 
 char data1[] = "Test data\n";
 char receive_data[1000];
@@ -132,7 +131,7 @@ void USART2_GPIOInits(void)
 void USART2_Inits(USART_Handle_t *pUSART2Handle)
 {
 	pUSART2Handle->pUSARTx = USART2;
-	pUSART2Handle->USARTConfig.USART_Baud = USART_STD_BAUD_115200;
+	pUSART2Handle->USARTConfig.USART_Baud = USART_STD_BAUD_2M;
 	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
 	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
 	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
@@ -237,18 +236,18 @@ void USART_TelemetryTX(uint8_t typePacket)
 	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 10);
 }
 
-void Send_Status(USART_Handle_t *pUSARTHandle)
+void Send_Status(TIM_Handle_t *pTIMHandle)
 {
 	static uint8_t count = 0;
-	static uint8_t toggle = 0;
-	if(count > 3)
+	static uint16_t toggle = 1;
+	if(count > 4)
 	{
 		count = 0;
 	}
-	if((pUSARTHandle->USARTConfig.USART_Baud/toggle) > 1) //Count until 1Hz   BaudRate/times > 1Hz
+	if(((pTIMHandle->TIM_Config.TIM_Frequency+1)/toggle) <= 1000) //Count until 1Hz   BaudRate/times > 1Hz
 	{
 		USART_HeartBeatTX();
-		toggle = 0;
+		toggle = 1000;
 	}else
 	{
 		USART_TelemetryTX(count);
@@ -259,7 +258,7 @@ void Send_Status(USART_Handle_t *pUSARTHandle)
 
 void TIM3_IRQHandler(void)
 {
-	Send_Status(&USART2Handle);
+	Send_Status(&TIM3Handle);
 	TIM_IRQHandling(&TIM3Handle);
 }
 
