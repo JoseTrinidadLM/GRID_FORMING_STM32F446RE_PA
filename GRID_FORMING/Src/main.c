@@ -104,7 +104,7 @@ void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
 	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency = 1000000;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 15000000;
 	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
 
@@ -131,7 +131,7 @@ void USART2_GPIOInits(void)
 void USART2_Inits(USART_Handle_t *pUSART2Handle)
 {
 	pUSART2Handle->pUSARTx = USART2;
-	pUSART2Handle->USARTConfig.USART_Baud = USART_STD_BAUD_2M;
+	pUSART2Handle->USARTConfig.USART_Baud = 2620000;
 	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
 	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
 	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
@@ -221,33 +221,30 @@ void USART_HeartBeatTX(void)
 
 void USART_TelemetryTX(uint8_t typePacket)
 {
-	static uint8_t message[10];
+	static uint8_t message[6];
 	message[0] = '$';
 	message[1] = packets_keys[typePacket];
 	message[2] = getValue_Variable(message[1]) >> 24;
 	message[3] = (getValue_Variable(message[1]) >> 16) & 0xFF;
 	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
 	message[5] = (getValue_Variable(message[1])) & 0xFF;
-	message[6] = packets_time[message[1]];
-	message[7] = packets_time[message[1]];
-	message[8] = packets_time[message[1]];
-	message[9] = packets_time[message[1]];
 
-	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 10);
+	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 6);
 }
 
 void Send_Status(TIM_Handle_t *pTIMHandle)
 {
 	static uint8_t count = 0;
 	static uint16_t toggle = 1;
+
 	if(count > 4)
 	{
 		count = 0;
 	}
-	if(((pTIMHandle->TIM_Config.TIM_Frequency+1)/toggle) <= 1000) //Count until 1Hz   BaudRate/times > 1Hz
+	if(((pTIMHandle->TIM_Config.TIM_Frequency)/(toggle*1000)) <= 1) //Count until 1Hz   BaudRate/times > 1Hz
 	{
 		USART_HeartBeatTX();
-		toggle = 1000;
+		toggle = 1;
 	}else
 	{
 		USART_TelemetryTX(count);
