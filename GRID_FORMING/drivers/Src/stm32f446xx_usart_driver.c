@@ -310,6 +310,22 @@ void USART_Init(USART_Handle_t *pUSARTHandle)
 		tempreg |= ((1 << USART_CR3_RTSE) | (1 << USART_CR3_CTSE));
 	}
 
+	//Configuration of USART DMA
+	if(pUSARTHandle->USARTConfig.USART_DMA == USART_DMA_RX)
+	{
+		//Enable DMA for RX
+		tempreg |= (1 << USART_CR3_DMAR);
+	}else if(pUSARTHandle->USARTConfig.USART_DMA == USART_DMA_TX)
+	{
+		//Enable DMA for TX
+		tempreg |= (1 << USART_CR3_DMAT);
+	}else if(pUSARTHandle->USARTConfig.USART_DMA == USART_DMA_TX_RX)
+	{
+		//Enable DMA for RX
+		tempreg |= (1 << USART_CR3_DMAR);
+		//Enable DMA for TX
+		tempreg |= (1 << USART_CR3_DMAT);
+	}
 
 	pUSARTHandle->pUSARTx->CR3 = tempreg;
 

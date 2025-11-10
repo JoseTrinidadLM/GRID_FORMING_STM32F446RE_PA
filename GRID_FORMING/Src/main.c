@@ -33,6 +33,8 @@ uint32_t packets_value[5];
 uint8_t status = 0b00000011;
 uint8_t frequency = 96;
 
+uint8_t message[6];
+
 char data1[] = "Test data\n";
 char receive_data[1000];
 
@@ -70,6 +72,8 @@ USART_Handle_t USART2Handle;
 TIM_Handle_t TIM3Handle ;
 
 GPIO_Handle_t LED;
+
+DMA_Handle_t DMA2Handle;
 
 void TIM3_GPIOInits(void)
 {
@@ -137,8 +141,28 @@ void USART2_Inits(USART_Handle_t *pUSART2Handle)
 	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
 	pUSART2Handle->USARTConfig.USART_ParityControl = USART_PARITY_DISABLE;
 	pUSART2Handle->USARTConfig.USART_WordLength = USART_WLEN_8BITS;
+	pUSART2Handle->USARTConfig.USART_DMA = USART_DMA_TX;
 
 	USART_Init(pUSART2Handle);
+}
+
+void DMA2_Inits(DMA_Handle_t *pDMA2Handle)
+{
+	pDMA2Handle->pDMAx = DMA2;
+	pDMA2Handle->DMA_stream = 0;
+	pDMA2Handle->DMA_Config.DMA_Channel = DMA_CHANNEL_0;
+	pDMA2Handle->DMA_Config.DMA_Direction = DMA_DIR_MEM_TO_PERIPH;
+	pDMA2Handle->DMA_Config.DMA_Priority = DMA_PRIORITY_MEDIUM;
+	pDMA2Handle->DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_WORD;
+	pDMA2Handle->DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
+	pDMA2Handle->DMA_Config.DMA_MemInc = ENABLE;
+	pDMA2Handle->DMA_Config.DMA_PeriphInc = DISABLE;
+	pDMA2Handle->DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
+	pDMA2Handle->DMA_Config.DMA_FIFOThreshold = 0;
+	pDMA2Handle->DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
+	//pDMA2Handle->BufferSize = 1;
+
+	DMA_SetAddresses(pDMA2Handle, (void*)message,(void*)USART2Handle.pUSARTx->DR);
 }
 
 int main(void)
@@ -156,8 +180,8 @@ int main(void)
 	USART2_Inits(&USART2Handle);
 	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
 
-	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
-	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
+	//USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
+	//USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
 
 	memset(receive_data, 0, sizeof(receive_data));
 	while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
@@ -209,19 +233,26 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 
 void USART_HeartBeatTX(void)
 {
-	static uint8_t message[4];
+	//static uint8_t message[4];
 
 	message[0] = '$';
 	message[1] = 'S';
 	message[2] = status;
 	message[3] = frequency;
 
-	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 4);
+	DMA2Handle.BufferSize = 4;
+	DMA_Init(&DMA2Handle);
+	DMA_IRQInterruptConfig(IRQ_NO_DMA2,ENABLE);
+	DMA_IRQPriorityConfig(IRQ_NO_DMA2,NVIC_IRQ_PRI15);
+	DMA_StartTransfer(&DMA2Handle);
+
+	//USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 4);
 }
 
 void USART_TelemetryTX(uint8_t typePacket)
 {
-	static uint8_t message[6];
+	//static uint8_t message[6];
+
 	message[0] = '$';
 	message[1] = packets_keys[typePacket];
 	message[2] = getValue_Variable(message[1]) >> 24;
@@ -229,7 +260,11 @@ void USART_TelemetryTX(uint8_t typePacket)
 	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
 	message[5] = (getValue_Variable(message[1])) & 0xFF;
 
-	USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 6);
+	DMA2Handle.BufferSize = 6;
+	DMA_Init(&DMA2Handle);
+	DMA_StartTransfer(&DMA2Handle);
+
+	//USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 6);
 }
 
 void Send_Status(TIM_Handle_t *pTIMHandle)
