@@ -457,7 +457,8 @@ void EXTI15_10_IRQHandler(void)
 	{
 		TIM_PWM_Disable(&TIM_3);
 		TIM_PWM_Disable(&TIM_4);
-
+		GPIO_WriteToOutputPin(GPIOC, GPIO_PIN_NO_7, RESET);
+		GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 
 	} else if( PWM_ENABLE == 1 )
 	{
