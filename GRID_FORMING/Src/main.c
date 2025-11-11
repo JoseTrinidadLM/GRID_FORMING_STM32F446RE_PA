@@ -27,13 +27,14 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
-char packets_keys[] = {'V','C','F','D','T','S','X','N'};
+char packets_keys[] = {'V','C','F','D','Z','S','X','N'};
 uint32_t packets_value[5];
 
 uint8_t status = 0b00000011;
 uint8_t frequency = 96;
 
-uint8_t message[6];
+uint8_t heartbeat[5];
+uint8_t telemetry[35];
 
 char data1[] = "Test data\n";
 char receive_data[1000];
@@ -67,6 +68,32 @@ void addValue_Variable(char s, uint8_t message[7])
 	}
 }
 
+void heartbeatStructure(void)
+{
+	heartbeat[0] = '$';
+	heartbeat[1] = 'S';
+	heartbeat[2] = 2;
+}
+
+void telemetryStructure(void)
+{
+	telemetry[0] = '$';
+	telemetry[1] = 'V';
+	telemetry[2] = 4;
+	telemetry[7] = '$';
+	telemetry[8] = 'C';
+	telemetry[9] = 4;
+	telemetry[14] = '$';
+	telemetry[15] = 'F';
+	telemetry[16] = 4;
+	telemetry[21] = '$';
+	telemetry[22] = 'D';
+	telemetry[23] = 4;
+	telemetry[28] = '$';
+	telemetry[29] = 'Z';
+	telemetry[30] = 4;
+}
+
 USART_Handle_t USART2Handle;
 
 TIM_Handle_t TIM3Handle ;
@@ -74,20 +101,6 @@ TIM_Handle_t TIM3Handle ;
 GPIO_Handle_t LED;
 
 DMA_Handle_t DMA1Handle;
-
-void TIM3_GPIOInits(void)
-{
-	GPIO_Handle_t TIM3pin;
-	TIM3pin.pGPIOx = GPIOA;
-	TIM3pin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
-	TIM3pin.GPIO_PinConfig.GPIO_PinAltFunMode = 2;
-	TIM3pin.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
-	TIM3pin.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
-	TIM3pin.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
-	//TIM3_CH1
-	TIM3pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_6;
-	GPIO_Init(&TIM3pin);
-}
 
 void LED_GPIOInits(void)
 {
@@ -108,7 +121,7 @@ void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
 	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency = 30000000;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 40000000;
 	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
 
@@ -164,7 +177,6 @@ void DMA1_Inits(DMA_Handle_t *pDMA1Handle)
 	pDMA1Handle->BufferSize = 4;
 
 	DMA_Init(pDMA1Handle);
-	DMA_SetAddresses(pDMA1Handle, (void*)message, (void*)&USART2Handle.pUSARTx->DR);
 }
 
 void USART_HeartBeatTX(void);
@@ -205,6 +217,9 @@ int main(void)
 	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM6,ENABLE);
 	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI15);
 
+	heartbeatStructure();
+	telemetryStructure();
+
 	while(1);
 	return 0;
 }
@@ -242,54 +257,59 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 
 void USART_HeartBeatTX(void)
 {
-	//static uint8_t message[4];
-
 	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
-	message[0] = '$';
-	message[1] = 'S';
-	message[2] = status;
-	message[3] = frequency;
+	heartbeat[3] = status;
+	heartbeat[4] = frequency;
 
-	DMA_ConfigureBuffer(&DMA1Handle, 4);
+	DMA_SetAddresses(&DMA1Handle, (void*)heartbeat, (void*)&USART2Handle.pUSARTx->DR);
+	DMA_ConfigureBuffer(&DMA1Handle, 5);
 	DMA_StartTransfer(&DMA1Handle);
-
-	//USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 4);
 }
 
-void USART_TelemetryTX(uint8_t typePacket)
+void USART_TelemetryTX(void)
 {
-	//static uint8_t message[6];
+	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
+	telemetry[3] = getValue_Variable('V') >> 24;
+	telemetry[4] = (getValue_Variable('V') >> 16) & 0xFF;
+	telemetry[5] = (getValue_Variable('V') >> 8) & 0xFF;
+	telemetry[6] = (getValue_Variable('V')) & 0xFF;
 
-	message[0] = '$';
-	message[1] = packets_keys[typePacket];
-	message[2] = getValue_Variable(message[1]) >> 24;
-	message[3] = (getValue_Variable(message[1]) >> 16) & 0xFF;
-	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
-	message[5] = (getValue_Variable(message[1])) & 0xFF;
+	telemetry[10] = getValue_Variable('C') >> 24;
+	telemetry[11] = (getValue_Variable('C') >> 16) & 0xFF;
+	telemetry[12] = (getValue_Variable('C') >> 8) & 0xFF;
+	telemetry[13] = (getValue_Variable('C')) & 0xFF;
 
-	DMA_ConfigureBuffer(&DMA1Handle, 6);
+	telemetry[17] = getValue_Variable('F') >> 24;
+	telemetry[18] = (getValue_Variable('F') >> 16) & 0xFF;
+	telemetry[19] = (getValue_Variable('F') >> 8) & 0xFF;
+	telemetry[20] = (getValue_Variable('F')) & 0xFF;
+
+	telemetry[24] = getValue_Variable('D') >> 24;
+	telemetry[25] = (getValue_Variable('D') >> 16) & 0xFF;
+	telemetry[26] = (getValue_Variable('D') >> 8) & 0xFF;
+	telemetry[27] = (getValue_Variable('D')) & 0xFF;
+
+	telemetry[31] = getValue_Variable('Z') >> 24;
+	telemetry[32] = (getValue_Variable('Z') >> 16) & 0xFF;
+	telemetry[33] = (getValue_Variable('Z') >> 8) & 0xFF;
+	telemetry[34] = (getValue_Variable('Z')) & 0xFF;
+
+	DMA_SetAddresses(&DMA1Handle, (void*)telemetry, (void*)&USART2Handle.pUSARTx->DR);
+	DMA_ConfigureBuffer(&DMA1Handle, 35);
 	DMA_StartTransfer(&DMA1Handle);
-
-	//USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 6);
 }
 
 void Send_Status(TIM_Handle_t *pTIMHandle)
 {
-	static uint8_t count = 0;
 	static uint16_t toggle = 1;
 
-	if(count > 4)
-	{
-		count = 0;
-	}
 	if(((pTIMHandle->TIM_Config.TIM_Frequency)/(toggle*1000)) <= 1) //Count until 1Hz   BaudRate/times > 1Hz
 	{
 		USART_HeartBeatTX();
 		toggle = 1;
 	}else
 	{
-		USART_TelemetryTX(count);
-		count++;
+		USART_TelemetryTX();
 		toggle++;
 	}
 }
