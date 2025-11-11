@@ -136,7 +136,7 @@
  */
 typedef struct
 {
-	float	 TIM_Frequency;				//Desired frequency
+	uint64_t TIM_Frequency;				//Desired frequency
 	uint8_t  TIM_CLKDivision;			/* <  possible values from @TIM_CKD > */
 	uint8_t  TIM_CAModeSel;				/* <  possible values from @TIM_CMS > */
 	uint8_t  TIM_CNTMode;				/* <  possible values from @TIM_CNT > */

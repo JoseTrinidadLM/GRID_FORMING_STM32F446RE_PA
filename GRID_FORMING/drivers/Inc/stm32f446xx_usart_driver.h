@@ -22,6 +22,7 @@ typedef struct
 	uint8_t USART_WordLength;
 	uint8_t	USART_ParityControl;
 	uint8_t USART_HWFlowControl;
+	uint8_t USART_DMA;
 }USART_Config_t;
 
 /*
@@ -74,7 +75,7 @@ typedef struct
 #define USART_STD_BAUD_460800 				460800
 #define USART_STD_BAUD_921600 				921600
 #define USART_STD_BAUD_2M 					2000000
-#define SUART_STD_BAUD_3M 					3000000
+#define USART_STD_BAUD_3M 					3000000
 
 /*
  * NoOfStopBits
@@ -136,6 +137,15 @@ typedef struct
 #define USART_ERREVENT_FE		6
 #define USART_ERREVENT_NF		7
 #define USART_ERREVENT_ORE		8
+
+/*
+ * USART DMA
+ */
+
+#define USART_DMA_DISABLE		0
+#define USART_DMA_TX			1
+#define USART_DMA_RX			2
+#define USART_DMA_TX_RX			3
 
 
 /*

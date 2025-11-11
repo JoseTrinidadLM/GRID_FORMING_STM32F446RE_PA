@@ -75,7 +75,7 @@ void TIM_PClkC(TIM_RegDef_t *pTIMx, uint8_t EnorDi)
 void TIM_Init(TIM_Handle_t *pTIMHandle)
 {
 	TIM_PClkC(pTIMHandle->pTIMx, ENABLE);
-	float f_CK_PSC = 0;
+	uint64_t f_CK_PSC = 0;
 	if((pTIMHandle->pTIMx == TIM2)||(pTIMHandle->pTIMx == TIM3)||
 			(pTIMHandle->pTIMx == TIM4)||(pTIMHandle->pTIMx == TIM5)||
 			(pTIMHandle->pTIMx == TIM6)||(pTIMHandle->pTIMx == TIM7)||
@@ -91,7 +91,7 @@ void TIM_Init(TIM_Handle_t *pTIMHandle)
 	}
 
 
-	float InputFrequency = pTIMHandle->TIM_Config.TIM_Frequency;
+	uint64_t InputFrequency = pTIMHandle->TIM_Config.TIM_Frequency;
 	//The counter clock frequency CK_CNT is equal to fCK_PSC / (PSC[15:0] + 1). (RM PG[604])
 	//In upcounting mode, the counter counts from 0 to the auto-reload value
 	//fCK_PSC = APB1_Timer_Clock = 84 MHz
@@ -99,10 +99,10 @@ void TIM_Init(TIM_Handle_t *pTIMHandle)
 	uint32_t psc_temp = 0;
 	uint32_t arr_temp = 0;
 	//Max value ARR can count up to is 0xFFFF
-	arr_temp = ( ( (f_CK_PSC/InputFrequency )) / (psc_temp + 1) ) - 1;
+	arr_temp = (((f_CK_PSC*1000)/InputFrequency) / (psc_temp + 1) ) - 1;
 	while( arr_temp > 0xFFFF ){
 		psc_temp++ ;
-		arr_temp = ( ( (f_CK_PSC/InputFrequency )) / (psc_temp + 1) ) - 1;
+		arr_temp = (((f_CK_PSC*1000)/InputFrequency) / (psc_temp + 1) ) - 1;
 	}
 
 	pTIMHandle->pTIMx->PSC = psc_temp; //Setting PSC to calculated PSC

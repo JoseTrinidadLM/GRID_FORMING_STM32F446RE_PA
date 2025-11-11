@@ -27,6 +27,15 @@
  *
  */
 
+/*
+ * USART 2->STLINK
+ *
+ * TX->PA2
+ * RX->PA3
+ *
+ */
+
+#include <string.h>
 #include "stm32f446xx.h"
 
 uint64_t BUFFER_SIZE = 9;
@@ -40,10 +49,14 @@ float i_inv;
 
 float time=0;	//Elapsed time variable
 
+char packets_keys[] = {'V','C','F','D','Z','S','X','N'};
 uint32_t packets_value[5]; 	//Data packet to be sent via UART
 int valid_send = 1;		//Flag to indicate when data packet is ready to be sent
 
 uint8_t status = 0x00000000; //Status variable to monitor system states
+uint8_t frequency = 96;
+
+char receive_data[1000];
 
 /*sine wave for DQ and power-factor correction*/
 float cosine;
@@ -110,7 +123,6 @@ void PWM_GPIOInits(void)
 
 	GPIO_Init(&GpioPWMB);
 }
-
 
 GPIO_Handle_t GPIO_Sensor[4];
 ADC_Handle_t ADC_1;
@@ -368,6 +380,9 @@ void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe
 	(*py2_z_1) = 0;
 }
 
+uint8_t heartbeat[5];
+uint8_t telemetry[35];
+
 /*This function set the values for USART buffer*/
 void USART_SetBuffer()
 {
@@ -390,6 +405,142 @@ void ResetTime(void)
 	time = 0;
 }
 
+void executeCommand(uint8_t command)
+{
+	status = command;
+}
+
+uint32_t getValue_Variable(char s)
+{
+	uint8_t x;
+	for(x = 0; packets_keys[x] != s; x++);
+	return packets_value[x];
+}
+
+void addValue_Variable(char s, uint8_t message[7])
+{
+	int x;
+	for(x = 0; packets_keys[x] != s; x++);
+	for(int y = 2; y < 6; y++)
+	{
+		packets_value[x] |= (message[x] << (y-2)*8) & 0xFF;
+	}
+}
+
+void heartbeatStructure(void)
+{
+	heartbeat[0] = '$';
+	heartbeat[1] = 'S';
+	heartbeat[2] = 2;
+}
+
+void telemetryStructure(void)
+{
+	telemetry[0] = '$';
+	telemetry[1] = 'V';
+	telemetry[2] = 4;
+	telemetry[7] = '$';
+	telemetry[8] = 'C';
+	telemetry[9] = 4;
+	telemetry[14] = '$';
+	telemetry[15] = 'F';
+	telemetry[16] = 4;
+	telemetry[21] = '$';
+	telemetry[22] = 'D';
+	telemetry[23] = 4;
+	telemetry[28] = '$';
+	telemetry[29] = 'Z';
+	telemetry[30] = 4;
+}
+
+USART_Handle_t USART2Handle;
+
+TIM_Handle_t TIM3Handle ;
+
+GPIO_Handle_t LED;
+
+DMA_Handle_t DMA1Handle;
+
+void LED_GPIOInits(void)
+{
+	LED.pGPIOx = GPIOA;
+	LED.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	//LED.GPIO_PinConfig.GPIO_PinAltFunMode = 2;
+	LED.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	LED.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	LED.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	//LED D13
+	LED.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_5;
+	GPIO_Init(&LED);
+}
+
+void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
+{
+	pTIM3Handle->pTIMx = TIM3;
+	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
+	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
+	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 1;
+	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
+	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
+
+	TIM_Init(pTIM3Handle);
+}
+
+void USART2_GPIOInits(void)
+{
+	GPIO_Handle_t USART2pin;
+	USART2pin.pGPIOx = GPIOA;
+	USART2pin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+	USART2pin.GPIO_PinConfig.GPIO_PinAltFunMode = 7;
+	USART2pin.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	USART2pin.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	USART2pin.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	//TX
+	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_2;
+	GPIO_Init(&USART2pin);
+	//RX
+	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_3;
+	GPIO_Init(&USART2pin);
+}
+
+void USART2_Inits(USART_Handle_t *pUSART2Handle)
+{
+	pUSART2Handle->pUSARTx = USART2;
+	pUSART2Handle->USARTConfig.USART_Baud = 2200000;
+	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
+	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
+	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
+	pUSART2Handle->USARTConfig.USART_ParityControl = USART_PARITY_DISABLE;
+	pUSART2Handle->USARTConfig.USART_WordLength = USART_WLEN_8BITS;
+	pUSART2Handle->USARTConfig.USART_DMA = USART_DMA_TX;
+
+	USART_Init(pUSART2Handle);
+}
+
+void DMA1_Inits(DMA_Handle_t *pDMA1Handle)
+{
+	pDMA1Handle->pDMAx = DMA1;
+	pDMA1Handle->DMA_stream = 6;
+	pDMA1Handle->DMA_Config.DMA_Channel = DMA_CHANNEL_4;
+	pDMA1Handle->DMA_Config.DMA_Direction = DMA_DIR_MEM_TO_PERIPH;
+	pDMA1Handle->DMA_Config.DMA_Priority = DMA_PRIORITY_MEDIUM;
+	pDMA1Handle->DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_BYTE;
+	pDMA1Handle->DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
+	pDMA1Handle->DMA_Config.DMA_MemInc = ENABLE;
+	pDMA1Handle->DMA_Config.DMA_PeriphInc = DISABLE;
+	pDMA1Handle->DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
+	pDMA1Handle->DMA_Config.DMA_FIFOThreshold = 0;
+	pDMA1Handle->DMA_Config.DMA_Mode = DMA_MODE_NORMAL;
+	pDMA1Handle->DMA_Config.DMA_TransferIT = ENABLE;
+	pDMA1Handle->BufferSize = 4;
+
+	DMA_Init(pDMA1Handle);
+}
+
+void USART_HeartBeatTX(void);
+void USART_TelemetryTX(void);
+
 int main(void)
 {
 	SystemCLK_Config_84MHz();
@@ -402,7 +553,36 @@ int main(void)
 	SamplingRateTIMInit(9600);
 	PWM_TIMInits(9600);
 
+    USART2_GPIOInits();
+	USART2_Inits(&USART2Handle);
+	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
+
+	//USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
+	//USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
+
+	memset(receive_data, 0, sizeof(receive_data));
+	//while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
+
+	//TIM3_GPIOInits();
+	TIM3_Inits(&TIM3Handle);
+
+	TIM_IRQInterruptConfig(IRQ_NO_TIM3,ENABLE);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI1);
+
+	LED_GPIOInits();
+
+	//DMA 1 Stream 6 Channel 4
+	DMA1_Inits(&DMA1Handle);
+	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM6,ENABLE);
+	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI15);
+
+	heartbeatStructure();
+	telemetryStructure();
+
 	TIM_Start(&TIM_2);
+	TIM_Start(&TIM3Handle);
+
+	//USART_TelemetryTX();
 
 	while(1);
 	return 0;
@@ -470,7 +650,7 @@ void TIM2_IRQHandler(void)
 		CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
 	}
 
-	TIM_PWM_DutyCycle(&TIM_1, u_control_pos);
+	TIM_PWM_DutyCycle(&TIM_3, u_control_pos);
 	TIM_PWM_DutyCycle(&TIM_4, u_control_neg);
 
 }
@@ -513,7 +693,6 @@ void EXTI15_10_IRQHandler(void)
 		status |= (1 << 1); //Set PWM Status Flag to Enabled
 
 	}
-
 }
 
 void ShiftSensorsValue(void)
@@ -525,10 +704,118 @@ void ShiftSensorsValue(void)
 	}
 }
 
+void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
+{
+	/*
+	uint8_t message[2];
+	static uint8_t valid = DISABLE;
+	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
+
+	for(int x = 0; x < pUSARTHandle->RxLen; x++)
+	{
+		message[x] = *pUSARTHandle->pRxBuffer;
+		pUSARTHandle->pRxBuffer++;
+	}
+
+
+	if(receive_data[0] == '$')
+	{
+		valid = ENABLE;
+		while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 2) != USART_READY);
+	}else
+	{
+		while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
+	}
+	*/
+
+	if(receive_data[0] == '$')
+	{
+		if(receive_data[1] == 'X')
+		{
+			executeCommand(receive_data[2]);
+			//valid = DISABLE;
+		}
+	}
+}
+
+void USART_HeartBeatTX(void)
+{
+	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
+	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
+	heartbeat[3] = status;
+	heartbeat[4] = frequency;
+
+	DMA_SetAddresses(&DMA1Handle, (void*)heartbeat, (void*)&USART2Handle.pUSARTx->DR);
+	DMA_ConfigureBuffer(&DMA1Handle, 5);
+	DMA_StartTransfer(&DMA1Handle);
+}
+
+void USART_TelemetryTX(void)
+{
+	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
+	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
+	telemetry[3] = getValue_Variable('V') >> 24;
+	telemetry[4] = (getValue_Variable('V') >> 16) & 0xFF;
+	telemetry[5] = (getValue_Variable('V') >> 8) & 0xFF;
+	telemetry[6] = (getValue_Variable('V')) & 0xFF;
+
+	telemetry[10] = getValue_Variable('C') >> 24;
+	telemetry[11] = (getValue_Variable('C') >> 16) & 0xFF;
+	telemetry[12] = (getValue_Variable('C') >> 8) & 0xFF;
+	telemetry[13] = (getValue_Variable('C')) & 0xFF;
+
+	telemetry[17] = getValue_Variable('F') >> 24;
+	telemetry[18] = (getValue_Variable('F') >> 16) & 0xFF;
+	telemetry[19] = (getValue_Variable('F') >> 8) & 0xFF;
+	telemetry[20] = (getValue_Variable('F')) & 0xFF;
+
+	telemetry[24] = getValue_Variable('D') >> 24;
+	telemetry[25] = (getValue_Variable('D') >> 16) & 0xFF;
+	telemetry[26] = (getValue_Variable('D') >> 8) & 0xFF;
+	telemetry[27] = (getValue_Variable('D')) & 0xFF;
+
+	telemetry[31] = getValue_Variable('Z') >> 24;
+	telemetry[32] = (getValue_Variable('Z') >> 16) & 0xFF;
+	telemetry[33] = (getValue_Variable('Z') >> 8) & 0xFF;
+	telemetry[34] = (getValue_Variable('Z')) & 0xFF;
+
+	DMA_SetAddresses(&DMA1Handle, (void*)telemetry, (void*)&USART2Handle.pUSARTx->DR);
+	DMA_ConfigureBuffer(&DMA1Handle, 35);
+	DMA_StartTransfer(&DMA1Handle);
+}
+
+void TIM3_IRQHandler(void)
+{
+	USART_HeartBeatTX();
+	TIM_IRQHandling(&TIM3Handle);
+}
+
+void USART2_IRQHandler(void)
+{
+	USART_IRQHandling(&USART2Handle);
+}
+
+void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
+{
+	if(ApEv == USART_EVENT_RX_CMPLT)
+	{
+	   USART_DecodeRX(pUSARTHandle);
+	}else if (ApEv == USART_EVENT_TX_CMPLT)
+	{
+	   ;
+	}
+}
+
 void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 {
-   if(ApEv == DMA_EVENT_TCIF_CMPLT)
-   {
+	if(ApEv == DMA_EVENT_TCIF_CMPLT)
+	{
+		DMA_StopTransfer(&DMA1Handle);
+		USART_TelemetryTX();
+	}
+}
 
-   }
+void DMA1_Stream6_IRQHandler(void)
+{
+	DMA_IRQHandling(&DMA1Handle);
 }
