@@ -56,10 +56,8 @@ void DMA_Init(DMA_Handle_t *pDMAHandle)
 	DMA_PClkC(pDMAHandle->pDMAx, ENABLE);
 	DMA_StopTransfer(pDMAHandle);
 	DMA_ClearFlags(pDMAHandle);
-	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].CR &= ~(0x0FEFFFFF);
+	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].CR = 0;
 	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].NDTR &= ~(0xFFFF);
-	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].PAR = 0;
-	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].M0AR = 0;
 	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].M1AR = 0;
 	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].FCR &= ~(0xBF);
 
@@ -158,6 +156,25 @@ void DMA_StopTransfer(DMA_Handle_t *pDMAHandle)
  * @Note			- none
  *
  * */
+void DMA_ConfigureBuffer(DMA_Handle_t *pDMAHandle, uint8_t BufferSize)
+{
+	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].NDTR |= (BufferSize << 0);
+}
+
+/************************************************************************************
+ * @fn				- DMA_PeriClockControl
+ *
+ * @brief			- This function enables or disables peripheral clock for the given GPIO port
+ *
+ * @param[in]		- base address of the gpio peripheral
+ * @param[in]		- ENABLE or DISABLE macros
+ * @param[in]		-
+ *
+ * @return			- none
+ *
+ * @Note			- none
+ *
+ * */
 void DMA_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi)
 {
 	if(EnorDi == ENABLE)
@@ -165,7 +182,7 @@ void DMA_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi)
 		*NVIC_ISER[IRQNumber/32] |= (1<<IRQNumber%32);
 	}else
 	{
-		*NVIC_ISER[IRQNumber/32] |= (1<<IRQNumber%32);
+		*NVIC_ICER[IRQNumber/32] |= (1<<IRQNumber%32);
 	}
 
 }
@@ -321,8 +338,15 @@ void DMA_SetAddresses(DMA_Handle_t *pDMAHandle, void *pSrc, void *pDest)
 
 	if( !(pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].CR & ( 1 << 0 )) )
 	{
-		pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].PAR = pDMAHandle->pSourceAddr;
-		pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].M0AR = pDMAHandle->pDestAddr;
+		if(pDMAHandle->DMA_Config.DMA_Direction == DMA_DIR_MEM_TO_PERIPH)
+		{
+			pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].PAR = pDMAHandle->pDestAddr;
+			pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].M0AR = pDMAHandle->pSourceAddr;
+		}else
+		{
+			pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].PAR = pDMAHandle->pSourceAddr;
+			pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].M0AR = pDMAHandle->pDestAddr;
+		}
 	}
 }
 

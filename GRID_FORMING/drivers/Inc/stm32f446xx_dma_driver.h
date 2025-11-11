@@ -138,6 +138,8 @@ void DMA_DeInit(DMA_RegDef_t *pDMAx);
 void DMA_StartTransfer(DMA_Handle_t *pDMAHandle);
 void DMA_StopTransfer(DMA_Handle_t *pDMAHandle);
 
+void DMA_ConfigureBuffer(DMA_Handle_t *pDMAHandle, uint8_t BufferSize);
+
 /*
  * IRQ and ISR Handling
  */

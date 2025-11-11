@@ -73,7 +73,7 @@ TIM_Handle_t TIM3Handle ;
 
 GPIO_Handle_t LED;
 
-DMA_Handle_t DMA2Handle;
+DMA_Handle_t DMA1Handle;
 
 void TIM3_GPIOInits(void)
 {
@@ -146,24 +146,28 @@ void USART2_Inits(USART_Handle_t *pUSART2Handle)
 	USART_Init(pUSART2Handle);
 }
 
-void DMA2_Inits(DMA_Handle_t *pDMA2Handle)
+void DMA1_Inits(DMA_Handle_t *pDMA1Handle)
 {
-	pDMA2Handle->pDMAx = DMA2;
-	pDMA2Handle->DMA_stream = 0;
-	pDMA2Handle->DMA_Config.DMA_Channel = DMA_CHANNEL_0;
-	pDMA2Handle->DMA_Config.DMA_Direction = DMA_DIR_MEM_TO_PERIPH;
-	pDMA2Handle->DMA_Config.DMA_Priority = DMA_PRIORITY_MEDIUM;
-	pDMA2Handle->DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_WORD;
-	pDMA2Handle->DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
-	pDMA2Handle->DMA_Config.DMA_MemInc = ENABLE;
-	pDMA2Handle->DMA_Config.DMA_PeriphInc = DISABLE;
-	pDMA2Handle->DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
-	pDMA2Handle->DMA_Config.DMA_FIFOThreshold = 0;
-	pDMA2Handle->DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
-	//pDMA2Handle->BufferSize = 1;
+	pDMA1Handle->pDMAx = DMA1;
+	pDMA1Handle->DMA_stream = 6;
+	pDMA1Handle->DMA_Config.DMA_Channel = DMA_CHANNEL_4;
+	pDMA1Handle->DMA_Config.DMA_Direction = DMA_DIR_MEM_TO_PERIPH;
+	pDMA1Handle->DMA_Config.DMA_Priority = DMA_PRIORITY_MEDIUM;
+	pDMA1Handle->DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_BYTE;
+	pDMA1Handle->DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
+	pDMA1Handle->DMA_Config.DMA_MemInc = ENABLE;
+	pDMA1Handle->DMA_Config.DMA_PeriphInc = DISABLE;
+	pDMA1Handle->DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
+	pDMA1Handle->DMA_Config.DMA_FIFOThreshold = 0;
+	pDMA1Handle->DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
+	pDMA1Handle->DMA_Config.DMA_TransferIT = ENABLE;
+	pDMA1Handle->BufferSize = 4;
 
-	DMA_SetAddresses(pDMA2Handle, (void*)message,(void*)USART2Handle.pUSARTx->DR);
+	DMA_Init(pDMA1Handle);
+	DMA_SetAddresses(pDMA1Handle, (void*)message, (void*)&USART2Handle.pUSARTx->DR);
 }
+
+void USART_HeartBeatTX(void);
 
 int main(void)
 {
@@ -194,9 +198,25 @@ int main(void)
 
 	LED_GPIOInits();
 
-	TIM_Start(&TIM3Handle);
+	//TIM_Start(&TIM3Handle);
 
-	while(1);
+	//DMA 1 Stream 6 Channel 4
+	DMA1_Inits(&DMA1Handle);
+	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM6,ENABLE);
+	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI15);
+
+	uint8_t sizeBuffer = 4;
+
+	USART_HeartBeatTX();
+
+	while(1)
+	{
+		if(sizeBuffer != DMA1Handle.pDMAx->STREAM[DMA1Handle.DMA_stream].NDTR)
+		{
+			sizeBuffer = DMA1Handle.pDMAx->STREAM[DMA1Handle.DMA_stream].NDTR;
+			GPIO_ToggleOutputPin(LED.pGPIOx,GPIO_PIN_NO_5);
+		}
+	}
 	return 0;
 }
 
@@ -235,16 +255,14 @@ void USART_HeartBeatTX(void)
 {
 	//static uint8_t message[4];
 
+	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
 	message[0] = '$';
 	message[1] = 'S';
 	message[2] = status;
 	message[3] = frequency;
 
-	DMA2Handle.BufferSize = 4;
-	DMA_Init(&DMA2Handle);
-	DMA_IRQInterruptConfig(IRQ_NO_DMA2,ENABLE);
-	DMA_IRQPriorityConfig(IRQ_NO_DMA2,NVIC_IRQ_PRI15);
-	DMA_StartTransfer(&DMA2Handle);
+	DMA_ConfigureBuffer(&DMA1Handle, 4);
+	DMA_StartTransfer(&DMA1Handle);
 
 	//USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 4);
 }
@@ -260,9 +278,8 @@ void USART_TelemetryTX(uint8_t typePacket)
 	message[4] = (getValue_Variable(message[1]) >> 8) & 0xFF;
 	message[5] = (getValue_Variable(message[1])) & 0xFF;
 
-	DMA2Handle.BufferSize = 6;
-	DMA_Init(&DMA2Handle);
-	DMA_StartTransfer(&DMA2Handle);
+	DMA_ConfigureBuffer(&DMA1Handle, 6);
+	DMA_StartTransfer(&DMA1Handle);
 
 	//USART_SendDataWithIT(&USART2Handle,(uint8_t *)(&message), 6);
 }
@@ -301,11 +318,25 @@ void USART2_IRQHandler(void)
 
 void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
 {
-   if(ApEv == USART_EVENT_RX_CMPLT)
-   {
+	if(ApEv == USART_EVENT_RX_CMPLT)
+	{
 	   USART_DecodeRX(pUSARTHandle);
-   }else if (ApEv == USART_EVENT_TX_CMPLT)
-   {
+	}else if (ApEv == USART_EVENT_TX_CMPLT)
+	{
 	   ;
-   }
+	}
+}
+
+void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
+{
+	if(ApEv == DMA_EVENT_TCIF_CMPLT)
+	{
+		DMA_StopTransfer(&DMA1Handle);
+		while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
+	}
+}
+
+void DMA1_Stream6_IRQHandler(void)
+{
+	DMA_IRQHandling(&DMA1Handle);
 }
