@@ -108,7 +108,7 @@ void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
 	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency = 15000000;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 30000000;
 	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
 
@@ -159,7 +159,7 @@ void DMA1_Inits(DMA_Handle_t *pDMA1Handle)
 	pDMA1Handle->DMA_Config.DMA_PeriphInc = DISABLE;
 	pDMA1Handle->DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
 	pDMA1Handle->DMA_Config.DMA_FIFOThreshold = 0;
-	pDMA1Handle->DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
+	pDMA1Handle->DMA_Config.DMA_Mode = DMA_MODE_NORMAL;
 	pDMA1Handle->DMA_Config.DMA_TransferIT = ENABLE;
 	pDMA1Handle->BufferSize = 4;
 
@@ -198,25 +198,14 @@ int main(void)
 
 	LED_GPIOInits();
 
-	//TIM_Start(&TIM3Handle);
+	TIM_Start(&TIM3Handle);
 
 	//DMA 1 Stream 6 Channel 4
 	DMA1_Inits(&DMA1Handle);
 	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM6,ENABLE);
 	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI15);
 
-	uint8_t sizeBuffer = 4;
-
-	USART_HeartBeatTX();
-
-	while(1)
-	{
-		if(sizeBuffer != DMA1Handle.pDMAx->STREAM[DMA1Handle.DMA_stream].NDTR)
-		{
-			sizeBuffer = DMA1Handle.pDMAx->STREAM[DMA1Handle.DMA_stream].NDTR;
-			GPIO_ToggleOutputPin(LED.pGPIOx,GPIO_PIN_NO_5);
-		}
-	}
+	while(1);
 	return 0;
 }
 
@@ -332,7 +321,7 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 	if(ApEv == DMA_EVENT_TCIF_CMPLT)
 	{
 		DMA_StopTransfer(&DMA1Handle);
-		while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
+		//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
 	}
 }
 
