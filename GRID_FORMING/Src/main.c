@@ -148,7 +148,7 @@ void USART2_GPIOInits(void)
 void USART2_Inits(USART_Handle_t *pUSART2Handle)
 {
 	pUSART2Handle->pUSARTx = USART2;
-	pUSART2Handle->USARTConfig.USART_Baud = 2620000;
+	pUSART2Handle->USARTConfig.USART_Baud = 2200000;
 	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
 	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
 	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
