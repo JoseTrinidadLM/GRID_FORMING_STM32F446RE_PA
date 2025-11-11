@@ -200,7 +200,7 @@ int main(void)
 	//USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
 
 	memset(receive_data, 0, sizeof(receive_data));
-	while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
+	//while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
 
 	//TIM3_GPIOInits();
 	TIM3_Inits(&TIM3Handle);
@@ -226,6 +226,7 @@ int main(void)
 
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
+	/*
 	uint8_t message[2];
 	static uint8_t valid = DISABLE;
 	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
@@ -236,7 +237,8 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 		pUSARTHandle->pRxBuffer++;
 	}
 
-	if(message[0] == '$')
+
+	if(receive_data[0] == '$')
 	{
 		valid = ENABLE;
 		while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 2) != USART_READY);
@@ -244,13 +246,14 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 	{
 		while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
 	}
+	*/
 
-	if(valid)
+	if(receive_data[0] == '$')
 	{
-		if(message[0] == 'X')
+		if(receive_data[1] == 'X')
 		{
-			executeCommand(message[1]);
-			valid = DISABLE;
+			executeCommand(receive_data[2]);
+			//valid = DISABLE;
 		}
 	}
 }
@@ -301,11 +304,12 @@ void USART_TelemetryTX(void)
 
 void Send_Status(TIM_Handle_t *pTIMHandle)
 {
-	static uint16_t toggle = 1;
+	static uint32_t toggle = 1;
 
 	if(((pTIMHandle->TIM_Config.TIM_Frequency)/(toggle*1000)) <= 1) //Count until 1Hz   BaudRate/times > 1Hz
 	{
 		USART_HeartBeatTX();
+		//TIM_Stop(pTIMHandle);
 		toggle = 1;
 	}else
 	{
