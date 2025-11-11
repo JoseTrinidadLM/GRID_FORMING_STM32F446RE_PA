@@ -222,6 +222,8 @@ void PWM_TIMInits(float carrier_frequency)
 	/*****************Master Timer initialization*****************/
 	TIM_PClkC(TIM1, ENABLE);
 
+	TIM1->BDTR |= ( 1 << 15 );
+
 	TIM_1.pTIMx = TIM1;
 	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency;					//Set as carrier frequency
 	TIM_1.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
@@ -323,8 +325,8 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
 	(*pe2_z_1) = (*pe2_z_0);													//Updating last error as the most recent one
 	(*py2_z_1) = (*py2_z_0);													//Updating last output PI control value as the most recent one
 
-	u_pos_temp = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM3->ARR);
-	u_neg_temp = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM3->ARR);
+	u_pos_temp = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM1->ARR);
+	u_neg_temp = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM1->ARR);
 
 	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
 	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
@@ -336,8 +338,8 @@ void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 	float u_pos_temp = 0;
 	float u_neg_temp = 0;
 
-	u_pos_temp = ((cosine_wt*0.5) + 0.5)*(TIM3->ARR);
-	u_neg_temp = ((-cosine_wt*0.5) + 0.5)*(TIM3->ARR);
+	u_pos_temp = ((cosine_wt*0.5) + 0.5)*(TIM1->ARR);
+	u_neg_temp = ((-cosine_wt*0.5) + 0.5)*(TIM1->ARR);
 
 	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
 	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
@@ -457,7 +459,7 @@ void EXTI15_10_IRQHandler(void)
 	{
 		TIM_PWM_Disable(&TIM_1);
 		TIM_PWM_Disable(&TIM_4);
-		GPIO_WriteToOutputPin(GPIOC, GPIO_PIN_NO_7, RESET);
+		GPIO_WriteToOutputPin(GPIOA, GPIO_PIN_NO_B, RESET);
 		GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 
 	} else if( PWM_ENABLE == 1 )
