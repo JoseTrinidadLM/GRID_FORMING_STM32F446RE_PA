@@ -222,7 +222,7 @@ void PWM_TIMInits(float carrier_frequency)
 	/*****************Master Timer initialization*****************/
 	TIM_PClkC(TIM1, ENABLE);
 
-	TIM1->BDTR |= ( 1 << 15 );
+	TIM1->BDTR |= ( 1 << 15 );											//Main output enable mandatory for TIM1 and TIM8
 
 	TIM_1.pTIMx = TIM1;
 	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency;					//Set as carrier frequency
@@ -459,7 +459,7 @@ void EXTI15_10_IRQHandler(void)
 	{
 		TIM_PWM_Disable(&TIM_1);
 		TIM_PWM_Disable(&TIM_4);
-		GPIO_WriteToOutputPin(GPIOA, GPIO_PIN_NO_B, RESET);
+		GPIO_WriteToOutputPin(GPIOA, GPIO_PIN_NO_9, RESET);
 		GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 
 	} else if( PWM_ENABLE == 1 )
