@@ -38,6 +38,13 @@ float i_L;
 float i_L90;
 float i_inv;
 
+float time=0;	//Elapsed time variable
+
+uint32_t packets_value[5]; 	//Data packet to be sent via UART
+int valid_send = 1;		//Flag to indicate when data packet is ready to be sent
+
+uint8_t status = 0x00000000; //Status variable to monitor system states
+
 /*sine wave for DQ and power-factor correction*/
 float cosine;
 float sine;
@@ -222,7 +229,7 @@ void PWM_TIMInits(float carrier_frequency)
 	/*****************Master Timer initialization*****************/
 	TIM_PClkC(TIM1, ENABLE);
 
-	TIM1->BDTR |= ( 1 << 15 );											//Main output enable mandatory for TIM1 and TIM8
+	TIM1->BDTR |= ( 1 << 15 );			//Main output enable mandatory for TIM1 and TIM8
 
 	TIM_1.pTIMx = TIM1;
 	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency;					//Set as carrier frequency
@@ -361,6 +368,28 @@ void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe
 	(*py2_z_1) = 0;
 }
 
+/*This function set the values for USART buffer*/
+void USART_SetBuffer()
+{
+	if (valid_send == 1) {
+		packets_value[0] = v_g;
+		packets_value[1] = i_L;
+		packets_value[2] = i_inv;
+		packets_value[3] = v_cd;
+		packets_value[4] = time;
+		valid_send = 0;
+	}else {
+		valid_send = 1;
+	}
+	
+}
+
+/*This function resets the value of Elapsed time*/
+void ResetTime(void)
+{
+	time = 0;
+}
+
 int main(void)
 {
 	SystemCLK_Config_84MHz();
@@ -418,6 +447,10 @@ void TIM2_IRQHandler(void)
 	i_inv = (raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
 	i_L = 	(raw_sensor_value[2]/4095.0f - 0.5f)*2.0f;
 	v_cd = 	(raw_sensor_value[3]/4095.0f - 0.5f)*2.0f;
+	time = time + (1.0f/9600.0f);
+	
+	/*This is to refresh the packet_values in buffer for DMA*/
+	USART_SetBuffer();
 
 	/*In case there is a high presence of noise, signals will be filtered*/
 
@@ -451,8 +484,16 @@ void EXTI15_10_IRQHandler(void)
 	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, 14);
 	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, 15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
 
+
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
-	if( OPERATION_MODE == 0 ) ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
+	if( OPERATION_MODE == 0 )
+	{
+		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
+		status &= ~(1 << 0); //Set Loop Status Flag to Open 
+	} else
+	{
+		status |= (1 << 0); //Set Loop Status Flag to Closed
+	}
 
 	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
 	if( PWM_ENABLE == 0 )
@@ -462,10 +503,14 @@ void EXTI15_10_IRQHandler(void)
 		GPIO_WriteToOutputPin(GPIOA, GPIO_PIN_NO_9, RESET);
 		GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 
+		status &= ~(1 << 1); //Set PWM Status Flag to Disabled
+
 	} else if( PWM_ENABLE == 1 )
 	{
 		TIM_PWM_Enable(&TIM_1);
 		TIM_PWM_Enable(&TIM_4);
+
+		status |= (1 << 1); //Set PWM Status Flag to Enabled
 
 	}
 
