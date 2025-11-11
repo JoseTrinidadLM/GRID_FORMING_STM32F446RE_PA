@@ -121,7 +121,7 @@ void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
 	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency = 2000000000;
+	pTIM3Handle->TIM_Config.TIM_Frequency = 1000;
 	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
 	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
 
@@ -180,6 +180,7 @@ void DMA1_Inits(DMA_Handle_t *pDMA1Handle)
 }
 
 void USART_HeartBeatTX(void);
+void USART_TelemetryTX(void);
 
 int main(void)
 {
@@ -219,6 +220,8 @@ int main(void)
 
 	heartbeatStructure();
 	telemetryStructure();
+
+	USART_TelemetryTX();
 
 	while(1);
 	return 0;
@@ -260,6 +263,7 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 
 void USART_HeartBeatTX(void)
 {
+	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
 	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
 	heartbeat[3] = status;
 	heartbeat[4] = frequency;
@@ -271,6 +275,7 @@ void USART_HeartBeatTX(void)
 
 void USART_TelemetryTX(void)
 {
+	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
 	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
 	telemetry[3] = getValue_Variable('V') >> 24;
 	telemetry[4] = (getValue_Variable('V') >> 16) & 0xFF;
@@ -302,25 +307,9 @@ void USART_TelemetryTX(void)
 	DMA_StartTransfer(&DMA1Handle);
 }
 
-void Send_Status(TIM_Handle_t *pTIMHandle)
-{
-	static uint32_t toggle = 1;
-
-	if(((pTIMHandle->TIM_Config.TIM_Frequency)/(toggle*1000)) <= 1) //Count until 1Hz   BaudRate/times > 1Hz
-	{
-		USART_HeartBeatTX();
-		//TIM_Stop(pTIMHandle);
-		toggle = 1;
-	}else
-	{
-		USART_TelemetryTX();
-		toggle++;
-	}
-}
-
 void TIM3_IRQHandler(void)
 {
-	Send_Status(&TIM3Handle);
+	USART_HeartBeatTX();
 	TIM_IRQHandling(&TIM3Handle);
 }
 
@@ -345,7 +334,7 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 	if(ApEv == DMA_EVENT_TCIF_CMPLT)
 	{
 		DMA_StopTransfer(&DMA1Handle);
-		//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
+		USART_TelemetryTX();
 	}
 }
 
