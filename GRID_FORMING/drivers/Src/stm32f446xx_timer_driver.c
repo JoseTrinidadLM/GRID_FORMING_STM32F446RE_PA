@@ -72,7 +72,8 @@ void TIM_PClkC(TIM_RegDef_t *pTIMx, uint8_t EnorDi)
  *
  * */
 
-void TIM_Init(TIM_Handle_t *pTIMHandle)
+void 
+(TIM_Handle_t *pTIMHandle)
 {
 	TIM_PClkC(pTIMHandle->pTIMx, ENABLE);
 	uint64_t f_CK_PSC = 0;
@@ -99,10 +100,10 @@ void TIM_Init(TIM_Handle_t *pTIMHandle)
 	uint32_t psc_temp = 0;
 	uint32_t arr_temp = 0;
 	//Max value ARR can count up to is 0xFFFF
-	arr_temp = (((f_CK_PSC*1000)/InputFrequency) / (psc_temp + 1) ) - 1;
+	arr_temp = (((f_CK_PSC)/InputFrequency) / (psc_temp + 1) ) - 1;
 	while( arr_temp > 0xFFFF ){
 		psc_temp++ ;
-		arr_temp = (((f_CK_PSC*1000)/InputFrequency) / (psc_temp + 1) ) - 1;
+		arr_temp = (((f_CK_PSC)/InputFrequency) / (psc_temp + 1) ) - 1;
 	}
 
 	pTIMHandle->pTIMx->PSC = psc_temp; //Setting PSC to calculated PSC

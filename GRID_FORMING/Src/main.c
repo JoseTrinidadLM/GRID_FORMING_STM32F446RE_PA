@@ -634,12 +634,12 @@ void TIM2_IRQHandler(void)
 
 	/*In case there is a high presence of noise, signals will be filtered*/
 
-	cosine = v_g;															//This is just an example to show its functionality
+	cosine = v_g;		//This is just an example to show its functionality
 
 	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
 
 	i_L90 = NINETYDegreePhaseShift(i_L_buffer, i_L, &Buffer_Counter_iL, &Buffer_Ready_Flag_iL);
-
+	
 	i_Q = QTransform(cosine, sine, i_L, i_L90);
 
 	if(OPERATION_MODE == 0)
