@@ -383,6 +383,10 @@ void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe
 uint8_t heartbeat[5];
 uint8_t telemetry[35];
 
+uint8_t dma_ready;
+uint8_t telemetry_status;
+uint8_t heartbeat_status;
+
 /*This function set the values for USART buffer*/
 void USART_SetBuffer()
 {
@@ -396,7 +400,7 @@ void USART_SetBuffer()
 	}else {
 		valid_send = 1;
 	}
-	
+	telemetry_status = ENABLE;
 }
 
 /*This function resets the value of Elapsed time*/
@@ -567,14 +571,14 @@ int main(void)
 	TIM3_Inits(&TIM3Handle);
 
 	TIM_IRQInterruptConfig(IRQ_NO_TIM3,ENABLE);
-	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI1);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI15);
 
 	LED_GPIOInits();
 
 	//DMA 1 Stream 6 Channel 4
 	DMA1_Inits(&DMA1Handle);
 	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM6,ENABLE);
-	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI15);
+	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI1);
 
 	heartbeatStructure();
 	telemetryStructure();
@@ -582,9 +586,13 @@ int main(void)
 	TIM_Start(&TIM_2);
 	TIM_Start(&TIM3Handle);
 
-	//USART_TelemetryTX();
+	dma_ready = ENABLE;
 
-	while(1);
+	while(1)
+	{
+		USART_TelemetryTX();
+		USART_HeartBeatTX();
+	}
 	return 0;
 }
 
@@ -740,7 +748,8 @@ void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 
 void USART_HeartBeatTX(void)
 {
-	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
+	if(dma_ready == DISABLE) return;
+	if(heartbeat_status == DISABLE) return;
 	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
 	heartbeat[3] = status;
 	heartbeat[4] = frequency;
@@ -748,11 +757,13 @@ void USART_HeartBeatTX(void)
 	DMA_SetAddresses(&DMA1Handle, (void*)heartbeat, (void*)&USART2Handle.pUSARTx->DR);
 	DMA_ConfigureBuffer(&DMA1Handle, 5);
 	DMA_StartTransfer(&DMA1Handle);
+	heartbeat_status = DISABLE;
 }
 
 void USART_TelemetryTX(void)
 {
-	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
+	if(dma_ready == DISABLE) return;
+	if(telemetry_status == DISABLE) return;
 	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
 	telemetry[3] = getValue_Variable('V') >> 24;
 	telemetry[4] = (getValue_Variable('V') >> 16) & 0xFF;
@@ -782,11 +793,12 @@ void USART_TelemetryTX(void)
 	DMA_SetAddresses(&DMA1Handle, (void*)telemetry, (void*)&USART2Handle.pUSARTx->DR);
 	DMA_ConfigureBuffer(&DMA1Handle, 35);
 	DMA_StartTransfer(&DMA1Handle);
+	telemetry_status = DISABLE;
 }
 
 void TIM3_IRQHandler(void)
 {
-	USART_HeartBeatTX();
+	heartbeat_status = ENABLE;
 	TIM_IRQHandling(&TIM3Handle);
 }
 
@@ -811,7 +823,7 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 	if(ApEv == DMA_EVENT_TCIF_CMPLT)
 	{
 		DMA_StopTransfer(&DMA1Handle);
-		USART_TelemetryTX();
+		dma_ready = ENABLE;
 	}
 }
 
