@@ -36,11 +36,12 @@ uint8_t frequency = 96;
 uint8_t heartbeat[5];
 uint8_t telemetry[35];
 
+uint8_t comm[3];
+
 uint8_t dma_ready;
 uint8_t telemetry_status;
 uint8_t heartbeat_status;
 
-char data1[] = "Test data\n";
 char receive_data[1000];
 
 void executeCommand(uint8_t command)
@@ -185,6 +186,7 @@ void DMA1_Inits(DMA_Handle_t *pDMA1Handle)
 
 void USART_HeartBeatTX(void);
 void USART_TelemetryTX(void);
+void USART_CommandBack(uint8_t c1, uint8_t c2, uint8_t c3);
 
 int main(void)
 {
@@ -201,17 +203,17 @@ int main(void)
 	USART2_Inits(&USART2Handle);
 	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
 
-	//USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
-	//USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
+	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
+	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
 
 	memset(receive_data, 0, sizeof(receive_data));
-	//while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
+	USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 3);
 
 	//TIM3_GPIOInits();
 	TIM3_Inits(&TIM3Handle);
 
 	TIM_IRQInterruptConfig(IRQ_NO_TIM3,ENABLE);
-	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI15);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI10);
 
 	LED_GPIOInits();
 
@@ -235,6 +237,7 @@ int main(void)
 			{
 				dma_ready = DISABLE;
 				USART_TelemetryTX();
+				//USART_CommandBack(receive_data[0], receive_data[1], receive_data[2]);
 			}else if(heartbeat_status == ENABLE)
 			{
 				dma_ready = DISABLE;
@@ -245,38 +248,31 @@ int main(void)
 	return 0;
 }
 
+void USART_CommandBack(uint8_t c1, uint8_t c2, uint8_t c3)
+{
+	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
+	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
+	comm[0] = c1;
+	comm[1] = c2;
+	comm[2] = c3;
+
+	DMA_SetAddresses(&DMA1Handle, (void*)comm, (void*)&USART2Handle.pUSARTx->DR);
+	DMA_ConfigureBuffer(&DMA1Handle, 3);
+	DMA_StartTransfer(&DMA1Handle);
+	telemetry_status = DISABLE;
+	memset(receive_data, 0, sizeof(receive_data));
+}
+
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
-	/*
-	uint8_t message[2];
-	static uint8_t valid = DISABLE;
-	pUSARTHandle->pRxBuffer -= pUSARTHandle->RxLen;
-
-	for(int x = 0; x < pUSARTHandle->RxLen; x++)
-	{
-		message[x] = *pUSARTHandle->pRxBuffer;
-		pUSARTHandle->pRxBuffer++;
-	}
-
-
-	if(receive_data[0] == '$')
-	{
-		valid = ENABLE;
-		while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 2) != USART_READY);
-	}else
-	{
-		while(USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 1) != USART_READY);
-	}
-	*/
-
 	if(receive_data[0] == '$')
 	{
 		if(receive_data[1] == 'X')
 		{
-			executeCommand(receive_data[2]);
-			//valid = DISABLE;
+			//executeCommand(receive_data[2]);
 		}
 	}
+	memset(receive_data, 0, sizeof(receive_data));
 }
 
 void USART_HeartBeatTX(void)
@@ -342,10 +338,12 @@ void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
 {
 	if(ApEv == USART_EVENT_RX_CMPLT)
 	{
-	   USART_DecodeRX(pUSARTHandle);
+		telemetry_status = ENABLE;
+		//USART_DecodeRX(pUSARTHandle);
+		USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 3);
 	}else if (ApEv == USART_EVENT_TX_CMPLT)
 	{
-	   ;
+		;
 	}
 }
 
@@ -355,13 +353,12 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 	{
 		DMA_StopTransfer(&DMA1Handle);
 		dma_ready = ENABLE;
-
 		if(heartbeat_status == ENABLE)
 		{
-			telemetry_status = DISABLE;
+			//telemetry_status = DISABLE;
 		}else
 		{
-			telemetry_status = ENABLE;
+			//telemetry_status = ENABLE;
 		}
 
 	}
