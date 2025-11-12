@@ -650,7 +650,7 @@ void TIM2_IRQHandler(void)
 		CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
 	}
 
-	TIM_PWM_DutyCycle(&TIM_3, u_control_pos);
+	TIM_PWM_DutyCycle(&TIM_1, u_control_pos);
 	TIM_PWM_DutyCycle(&TIM_4, u_control_neg);
 
 }
