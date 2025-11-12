@@ -53,7 +53,7 @@ char packets_keys[] = {'V','C','F','D','Z','S','X','N'};
 uint32_t packets_value[5]; 	//Data packet to be sent via UART
 int valid_send = 1;		//Flag to indicate when data packet is ready to be sent
 
-uint8_t status = 0x00000000; //Status variable to monitor system states
+uint8_t status = 0b00000000; //Status variable to monitor system states
 uint8_t frequency = 96;
 
 char receive_data[1000];
