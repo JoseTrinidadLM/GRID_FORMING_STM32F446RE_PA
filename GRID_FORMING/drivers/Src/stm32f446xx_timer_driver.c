@@ -72,8 +72,7 @@ void TIM_PClkC(TIM_RegDef_t *pTIMx, uint8_t EnorDi)
  *
  * */
 
-void 
-(TIM_Handle_t *pTIMHandle)
+void TIM_Init(TIM_Handle_t *pTIMHandle)
 {
 	TIM_PClkC(pTIMHandle->pTIMx, ENABLE);
 	uint64_t f_CK_PSC = 0;
