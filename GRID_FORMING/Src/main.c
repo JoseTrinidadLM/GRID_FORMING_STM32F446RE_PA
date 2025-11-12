@@ -36,6 +36,10 @@ uint8_t frequency = 96;
 uint8_t heartbeat[5];
 uint8_t telemetry[35];
 
+uint8_t dma_ready;
+uint8_t telemetry_status;
+uint8_t heartbeat_status;
+
 char data1[] = "Test data\n";
 char receive_data[1000];
 
@@ -207,7 +211,7 @@ int main(void)
 	TIM3_Inits(&TIM3Handle);
 
 	TIM_IRQInterruptConfig(IRQ_NO_TIM3,ENABLE);
-	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI1);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI15);
 
 	LED_GPIOInits();
 
@@ -216,14 +220,28 @@ int main(void)
 	//DMA 1 Stream 6 Channel 4
 	DMA1_Inits(&DMA1Handle);
 	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM6,ENABLE);
-	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI15);
+	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI1);
 
 	heartbeatStructure();
 	telemetryStructure();
 
-	USART_TelemetryTX();
+	dma_ready = ENABLE;
 
-	while(1);
+	while(1)
+	{
+		if(dma_ready == ENABLE)
+		{
+			if(telemetry_status == ENABLE)
+			{
+				dma_ready = DISABLE;
+				USART_TelemetryTX();
+			}else if(heartbeat_status == ENABLE)
+			{
+				dma_ready = DISABLE;
+				USART_HeartBeatTX();
+			}
+		}
+	}
 	return 0;
 }
 
@@ -271,6 +289,7 @@ void USART_HeartBeatTX(void)
 	DMA_SetAddresses(&DMA1Handle, (void*)heartbeat, (void*)&USART2Handle.pUSARTx->DR);
 	DMA_ConfigureBuffer(&DMA1Handle, 5);
 	DMA_StartTransfer(&DMA1Handle);
+	heartbeat_status = DISABLE;
 }
 
 void USART_TelemetryTX(void)
@@ -305,11 +324,12 @@ void USART_TelemetryTX(void)
 	DMA_SetAddresses(&DMA1Handle, (void*)telemetry, (void*)&USART2Handle.pUSARTx->DR);
 	DMA_ConfigureBuffer(&DMA1Handle, 35);
 	DMA_StartTransfer(&DMA1Handle);
+	telemetry_status = DISABLE;
 }
 
 void TIM3_IRQHandler(void)
 {
-	USART_HeartBeatTX();
+	heartbeat_status = ENABLE;
 	TIM_IRQHandling(&TIM3Handle);
 }
 
@@ -334,7 +354,16 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 	if(ApEv == DMA_EVENT_TCIF_CMPLT)
 	{
 		DMA_StopTransfer(&DMA1Handle);
-		USART_TelemetryTX();
+		dma_ready = ENABLE;
+
+		if(heartbeat_status == ENABLE)
+		{
+			telemetry_status = DISABLE;
+		}else
+		{
+			telemetry_status = ENABLE;
+		}
+
 	}
 }
 
