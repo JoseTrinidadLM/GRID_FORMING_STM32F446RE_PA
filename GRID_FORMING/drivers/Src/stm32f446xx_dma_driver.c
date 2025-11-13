@@ -71,7 +71,6 @@ void DMA_Init(DMA_Handle_t *pDMAHandle)
 	cr_temp |= ( pDMAHandle->DMA_Config.DMA_Mode << 8 );
 	cr_temp |= ( pDMAHandle->DMA_Config.DMA_Direction << 6 );
 	cr_temp |= ( pDMAHandle->DMA_Config.DMA_TransferIT << 4 );
-	cr_temp |= ( pDMAHandle->DMA_Config.DMA_TransferIT << 3 );
 
 	pDMAHandle->pDMAx->STREAM[pDMAHandle->DMA_stream].CR |= cr_temp;
 
