@@ -42,18 +42,17 @@ uint8_t dma_ready;
 uint8_t telemetry_status;
 uint8_t heartbeat_status;
 
-char receive_data[1000];
+#define DMA_TR_NONE			0
+#define DMA_TR_TELEMETRY	1
+#define DMA_TR_HEARTBEAT	2
+
+uint8_t dma_transfer_mode = DMA_TR_NONE;
+
+uint8_t receive_data[3];
 
 void executeCommand(uint8_t command)
 {
 	status = command;
-}
-
-uint8_t validatePacket(char s)
-{
-	uint8_t x;
-	for(x = 0; packets_keys[x] != s; x++);
-	return packets_keys[x];
 }
 
 uint32_t getValue_Variable(char s)
@@ -105,7 +104,9 @@ TIM_Handle_t TIM3Handle ;
 
 GPIO_Handle_t LED;
 
-DMA_Handle_t DMA1Handle;
+DMA_Handle_t DMA1_TX2Handle;
+
+DMA_Handle_t DMA1_RX2Handle;
 
 void LED_GPIOInits(void)
 {
@@ -159,34 +160,54 @@ void USART2_Inits(USART_Handle_t *pUSART2Handle)
 	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
 	pUSART2Handle->USARTConfig.USART_ParityControl = USART_PARITY_DISABLE;
 	pUSART2Handle->USARTConfig.USART_WordLength = USART_WLEN_8BITS;
-	pUSART2Handle->USARTConfig.USART_DMA = USART_DMA_TX;
+	pUSART2Handle->USARTConfig.USART_DMA = USART_DMA_TX_RX;
 
 	USART_Init(pUSART2Handle);
 }
 
-void DMA1_Inits(DMA_Handle_t *pDMA1Handle)
+void DMA1_Inits(void)
 {
-	pDMA1Handle->pDMAx = DMA1;
-	pDMA1Handle->DMA_stream = 6;
-	pDMA1Handle->DMA_Config.DMA_Channel = DMA_CHANNEL_4;
-	pDMA1Handle->DMA_Config.DMA_Direction = DMA_DIR_MEM_TO_PERIPH;
-	pDMA1Handle->DMA_Config.DMA_Priority = DMA_PRIORITY_MEDIUM;
-	pDMA1Handle->DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_BYTE;
-	pDMA1Handle->DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
-	pDMA1Handle->DMA_Config.DMA_MemInc = ENABLE;
-	pDMA1Handle->DMA_Config.DMA_PeriphInc = DISABLE;
-	pDMA1Handle->DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
-	pDMA1Handle->DMA_Config.DMA_FIFOThreshold = 0;
-	pDMA1Handle->DMA_Config.DMA_Mode = DMA_MODE_NORMAL;
-	pDMA1Handle->DMA_Config.DMA_TransferIT = ENABLE;
-	pDMA1Handle->BufferSize = 4;
+	//DMA1 Channel 4 Stream 6 USART2 TX
+	DMA1_TX2Handle.pDMAx = DMA1;
+	DMA1_TX2Handle.DMA_stream = 6;
+	DMA1_TX2Handle.DMA_Config.DMA_Channel = DMA_CHANNEL_4;
+	DMA1_TX2Handle.DMA_Config.DMA_Direction = DMA_DIR_MEM_TO_PERIPH;
+	DMA1_TX2Handle.DMA_Config.DMA_Priority = DMA_PRIORITY_MEDIUM;
+	DMA1_TX2Handle.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_BYTE;
+	DMA1_TX2Handle.DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
+	DMA1_TX2Handle.DMA_Config.DMA_MemInc = ENABLE;
+	DMA1_TX2Handle.DMA_Config.DMA_PeriphInc = DISABLE;
+	DMA1_TX2Handle.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
+	DMA1_TX2Handle.DMA_Config.DMA_FIFOThreshold = 0;
+	DMA1_TX2Handle.DMA_Config.DMA_Mode = DMA_MODE_NORMAL;
+	DMA1_TX2Handle.DMA_Config.DMA_TransferIT = ENABLE;
+	DMA1_TX2Handle.BufferSize = 4;
 
-	DMA_Init(pDMA1Handle);
+	DMA_Init(&DMA1_TX2Handle);
+
+	//DMA1 Channel 4 Stream 5 USART2 RX
+	DMA1_RX2Handle.pDMAx = DMA1;
+	DMA1_RX2Handle.DMA_stream = 5;
+	DMA1_RX2Handle.DMA_Config.DMA_Channel = DMA_CHANNEL_4;
+	DMA1_RX2Handle.DMA_Config.DMA_Direction = DMA_DIR_PERIPH_TO_MEM;
+	DMA1_RX2Handle.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_BYTE;
+	DMA1_RX2Handle.DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
+	DMA1_RX2Handle.DMA_Config.DMA_MemInc = ENABLE;
+	DMA1_RX2Handle.DMA_Config.DMA_PeriphInc = DISABLE;
+	DMA1_RX2Handle.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
+	DMA1_RX2Handle.DMA_Config.DMA_FIFOThreshold = 0;
+	DMA1_RX2Handle.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
+	DMA1_RX2Handle.DMA_Config.DMA_TransferIT = ENABLE;
+	DMA1_RX2Handle.BufferSize = 3;
+
+	DMA_Init(&DMA1_RX2Handle);
+	DMA_SetAddresses(&DMA1_RX2Handle, (void*)&USART2Handle.pUSARTx->DR, (void*)receive_data);
+	DMA_StartTransfer(&DMA1_RX2Handle);
 }
 
 void USART_HeartBeatTX(void);
 void USART_TelemetryTX(void);
-void USART_CommandBack(uint8_t c1, uint8_t c2, uint8_t c3);
+void USART_CommandBack(void);
 
 int main(void)
 {
@@ -203,12 +224,6 @@ int main(void)
 	USART2_Inits(&USART2Handle);
 	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
 
-	USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
-	USART_IRQPriorityConfig(IRQ_NO_USART2,NVIC_IRQ_PRI15);
-
-	memset(receive_data, 0, sizeof(receive_data));
-	USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 3);
-
 	//TIM3_GPIOInits();
 	TIM3_Inits(&TIM3Handle);
 
@@ -219,10 +234,12 @@ int main(void)
 
 	TIM_Start(&TIM3Handle);
 
-	//DMA 1 Stream 6 Channel 4
-	DMA1_Inits(&DMA1Handle);
+	//DMA 1 Channel 4 Stream 5 & 6
+	DMA1_Inits();
 	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM6,ENABLE);
 	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI1);
+	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM5,ENABLE);
+	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM5,NVIC_IRQ_PRI1);
 
 	heartbeatStructure();
 	telemetryStructure();
@@ -237,7 +254,7 @@ int main(void)
 			{
 				dma_ready = DISABLE;
 				USART_TelemetryTX();
-				//USART_CommandBack(receive_data[0], receive_data[1], receive_data[2]);
+				//USART_CommandBack();
 			}else if(heartbeat_status == ENABLE)
 			{
 				dma_ready = DISABLE;
@@ -248,49 +265,41 @@ int main(void)
 	return 0;
 }
 
-void USART_CommandBack(uint8_t c1, uint8_t c2, uint8_t c3)
+void USART_CommandBack(void)
 {
-	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
-	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
-	comm[0] = c1;
-	comm[1] = c2;
-	comm[2] = c3;
+	dma_transfer_mode = DMA_TR_TELEMETRY;
 
-	DMA_SetAddresses(&DMA1Handle, (void*)comm, (void*)&USART2Handle.pUSARTx->DR);
-	DMA_ConfigureBuffer(&DMA1Handle, 3);
-	DMA_StartTransfer(&DMA1Handle);
-	telemetry_status = DISABLE;
-	memset(receive_data, 0, sizeof(receive_data));
+	DMA_SetAddresses(&DMA1_TX2Handle, (void*)comm, (void*)&USART2Handle.pUSARTx->DR);
+	DMA_ConfigureBuffer(&DMA1_TX2Handle, 3);
+	DMA_StartTransfer(&DMA1_TX2Handle);
 }
 
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
-	if(receive_data[0] == '$')
+	comm[0] = receive_data[0];
+	comm[1] = receive_data[1];
+	comm[2] = receive_data[2];
+	if(receive_data[0] == '$' && receive_data[1] == 'X')
 	{
-		if(receive_data[1] == 'X')
-		{
-			//executeCommand(receive_data[2]);
-		}
+		executeCommand(receive_data[2]);
 	}
-	memset(receive_data, 0, sizeof(receive_data));
 }
 
 void USART_HeartBeatTX(void)
 {
-	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
 	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
 	heartbeat[3] = status;
 	heartbeat[4] = frequency;
 
-	DMA_SetAddresses(&DMA1Handle, (void*)heartbeat, (void*)&USART2Handle.pUSARTx->DR);
-	DMA_ConfigureBuffer(&DMA1Handle, 5);
-	DMA_StartTransfer(&DMA1Handle);
-	heartbeat_status = DISABLE;
+	dma_transfer_mode = DMA_TR_HEARTBEAT;
+
+	DMA_SetAddresses(&DMA1_TX2Handle, (void*)heartbeat, (void*)&USART2Handle.pUSARTx->DR);
+	DMA_ConfigureBuffer(&DMA1_TX2Handle, 5);
+	DMA_StartTransfer(&DMA1_TX2Handle);
 }
 
 void USART_TelemetryTX(void)
 {
-	//while(!(USART2Handle.pUSARTx->SR & USART_SR_TC));
 	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
 	telemetry[3] = getValue_Variable('V') >> 24;
 	telemetry[4] = (getValue_Variable('V') >> 16) & 0xFF;
@@ -317,10 +326,11 @@ void USART_TelemetryTX(void)
 	telemetry[33] = (getValue_Variable('Z') >> 8) & 0xFF;
 	telemetry[34] = (getValue_Variable('Z')) & 0xFF;
 
-	DMA_SetAddresses(&DMA1Handle, (void*)telemetry, (void*)&USART2Handle.pUSARTx->DR);
-	DMA_ConfigureBuffer(&DMA1Handle, 35);
-	DMA_StartTransfer(&DMA1Handle);
-	telemetry_status = DISABLE;
+	dma_transfer_mode = DMA_TR_TELEMETRY;
+
+	DMA_SetAddresses(&DMA1_TX2Handle, (void*)telemetry, (void*)&USART2Handle.pUSARTx->DR);
+	DMA_ConfigureBuffer(&DMA1_TX2Handle, 35);
+	DMA_StartTransfer(&DMA1_TX2Handle);
 }
 
 void TIM3_IRQHandler(void)
@@ -329,42 +339,36 @@ void TIM3_IRQHandler(void)
 	TIM_IRQHandling(&TIM3Handle);
 }
 
-void USART2_IRQHandler(void)
-{
-	USART_IRQHandling(&USART2Handle);
-}
-
-void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle,uint8_t ApEv)
-{
-	if(ApEv == USART_EVENT_RX_CMPLT)
-	{
-		telemetry_status = ENABLE;
-		//USART_DecodeRX(pUSARTHandle);
-		USART_ReceiveDataWithIT(&USART2Handle,(uint8_t *)receive_data, 3);
-	}else if (ApEv == USART_EVENT_TX_CMPLT)
-	{
-		;
-	}
-}
-
 void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 {
 	if(ApEv == DMA_EVENT_TCIF_CMPLT)
 	{
-		DMA_StopTransfer(&DMA1Handle);
-		dma_ready = ENABLE;
-		if(heartbeat_status == ENABLE)
+		if(pDMAHandle->DMA_stream == 6)
 		{
-			//telemetry_status = DISABLE;
-		}else
-		{
-			//telemetry_status = ENABLE;
+			DMA_StopTransfer(&DMA1_TX2Handle);
+			dma_ready = ENABLE;
+			if(dma_transfer_mode == DMA_TR_HEARTBEAT)
+			{
+				heartbeat_status = DISABLE;
+			}else if(dma_transfer_mode == DMA_TR_TELEMETRY )
+			{
+				telemetry_status = DISABLE;
+			}
+			dma_transfer_mode = DMA_TR_NONE;
 		}
-
+		if(pDMAHandle->DMA_stream == 5)
+		{
+			USART_DecodeRX(&USART2Handle);
+		}
 	}
 }
 
 void DMA1_Stream6_IRQHandler(void)
 {
-	DMA_IRQHandling(&DMA1Handle);
+	DMA_IRQHandling(&DMA1_TX2Handle);
+}
+
+void DMA1_Stream5_IRQHandler(void)
+{
+	DMA_IRQHandling(&DMA1_RX2Handle);
 }
