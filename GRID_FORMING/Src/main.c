@@ -832,10 +832,6 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 			USART_DecodeRX(&USART2Handle);
 		}
 	}
-	if(ApEv == DMA_EVENT_HTIF)
-	{
-		//TO-DO: interrupt because of circular mode?
-	}
 }
 
 void DMA1_Stream6_IRQHandler(void)
