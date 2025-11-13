@@ -219,7 +219,7 @@ void SamplingRateTIMInit(float sampling_rate)
 {
 
 	TIM_2.pTIMx = TIM2;
-	TIM_2.TIM_Config.TIM_Frequency = sampling_rate*1000;
+	TIM_2.TIM_Config.TIM_Frequency = sampling_rate;
 	TIM_2.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_2.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	TIM_2.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
@@ -244,7 +244,7 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM1->BDTR |= ( 1 << 15 );			//Main output enable mandatory for TIM1 and TIM8
 
 	TIM_1.pTIMx = TIM1;
-	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency*1000;			//Set as carrier frequency
+	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency;			//Set as carrier frequency
 	TIM_1.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_1.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	TIM_1.TIM_Config.TIM_CAModeSel = TIM_CMS_EDGE;
