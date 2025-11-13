@@ -126,7 +126,7 @@ void PWM_GPIOInits(void)
 
 GPIO_Handle_t GPIO_Sensor[4];
 ADC_Handle_t ADC_1;
-DMA_Handle_t DMA_2;
+DMA_Handle_t DMA2_ADC1Handle;
 uint32_t raw_sensor_value[4];												//ADC1 destination buffer
 float	sensor[9][4];														//processed data buffer (?)
 
@@ -193,24 +193,24 @@ void Sensors_Init(void) /*For this application only 4 sensors will be initialize
 
 	/*To transfer data from ADC1 to memory it uses Channel 0 and Stream 0*/
 	/*To change this look up to Table 28-29 of RM0390 p.205*/
-	DMA_2.pDMAx = DMA2;
+	DMA2_ADC1Handle.pDMAx = DMA2;
 
-  	DMA_2.DMA_stream = 0;
-	DMA_2.DMA_Config.DMA_Channel = DMA_CHANNEL_0;
-	DMA_2.DMA_Config.DMA_Direction = DMA_DIR_PERIPH_TO_MEM;							//Transfers from ADC1 to local buffer
-	DMA_2.DMA_Config.DMA_Priority = DMA_PRIORITY_HIGH;
-	DMA_2.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_WORD;							//Resolution is set to 12 bits, so Halfword can work, but since later it'll be be processed to a float it was set to the same size
-	DMA_2.DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_WORD;
-	DMA_2.DMA_Config.DMA_MemInc = ENABLE;											//Memory address pointer incremented after each data transfer (increment is done according to DMA_MemDataSize)
-	DMA_2.DMA_Config.DMA_PeriphInc = DISABLE;										//It's disabled, since we're reading just one peripheral
-	DMA_2.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
-	DMA_2.DMA_Config.DMA_FIFOThreshold = 0;
-	DMA_2.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;									//We want to transfer continuously through the same peripheral to the same buffer
-	DMA_2.BufferSize = 4; 															//Same number of sensors added
+	DMA2_ADC1Handle.DMA_stream = 0;
+	DMA2_ADC1Handle.DMA_Config.DMA_Channel = DMA_CHANNEL_0;
+	DMA2_ADC1Handle.DMA_Config.DMA_Direction = DMA_DIR_PERIPH_TO_MEM;							//Transfers from ADC1 to local buffer
+	DMA2_ADC1Handle.DMA_Config.DMA_Priority = DMA_PRIORITY_HIGH;
+	DMA2_ADC1Handle.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_WORD;							//Resolution is set to 12 bits, so Halfword can work, but since later it'll be be processed to a float it was set to the same size
+	DMA2_ADC1Handle.DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_WORD;
+	DMA2_ADC1Handle.DMA_Config.DMA_MemInc = ENABLE;											//Memory address pointer incremented after each data transfer (increment is done according to DMA_MemDataSize)
+	DMA2_ADC1Handle.DMA_Config.DMA_PeriphInc = DISABLE;										//It's disabled, since we're reading just one peripheral
+	DMA2_ADC1Handle.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
+	DMA2_ADC1Handle.DMA_Config.DMA_FIFOThreshold = 0;
+	DMA2_ADC1Handle.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;									//We want to transfer continuously through the same peripheral to the same buffer
+	DMA2_ADC1Handle.BufferSize = 4; 															//Same number of sensors added
 
-	DMA_Init(&DMA_2);
-	DMA_SetAddresses(&DMA_2,(void*)&ADC_1.pADCx->DR,(void*)raw_sensor_value);
-	DMA_StartTransfer(&DMA_2);
+	DMA_Init(&DMA2_ADC1Handle);
+	DMA_SetAddresses(&DMA2_ADC1Handle,(void*)&ADC_1.pADCx->DR,(void*)raw_sensor_value);
+	DMA_StartTransfer(&DMA2_ADC1Handle);
 }
 
 TIM_Handle_t TIM_2;
@@ -219,7 +219,7 @@ void SamplingRateTIMInit(float sampling_rate)
 {
 
 	TIM_2.pTIMx = TIM2;
-	TIM_2.TIM_Config.TIM_Frequency = sampling_rate;
+	TIM_2.TIM_Config.TIM_Frequency = sampling_rate*1000;
 	TIM_2.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_2.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	TIM_2.TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
@@ -244,7 +244,7 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM1->BDTR |= ( 1 << 15 );			//Main output enable mandatory for TIM1 and TIM8
 
 	TIM_1.pTIMx = TIM1;
-	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency;					//Set as carrier frequency
+	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency*1000;			//Set as carrier frequency
 	TIM_1.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
 	TIM_1.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
 	TIM_1.TIM_Config.TIM_CAModeSel = TIM_CMS_EDGE;
@@ -340,6 +340,8 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
 
 	(*py2_z_0) = (*py2_z_1) - 0.03203*(*pe2_z_0) + 0.03087*(*pe2_z_1); 			//Internal discrete PI control loop
 
+	if((*py2_z_0)> (0.99)) (*py2_z_0) = 0.99;
+	if((*py2_z_0)< (-0.99)) (*py2_z_0) = -0.99;									//Setting boundaries for control signal
 
 	(*pe2_z_1) = (*pe2_z_0);													//Updating last error as the most recent one
 	(*py2_z_1) = (*py2_z_0);													//Updating last output PI control value as the most recent one
