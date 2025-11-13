@@ -47,10 +47,10 @@ float i_L;
 float i_L90;
 float i_inv;
 
-float time=0;	//Elapsed time variable
+float ElapsedTime=0;	//Elapsed time variable
 
 char packets_keys[] = {'V','C','F','D','Z','S','X','N'};
-uint32_t packets_value[5]; 	//Data packet to be sent via UART
+float packets_value[5]; 	//Data packet to be sent via UART
 int valid_send = 1;		//Flag to indicate when data packet is ready to be sent
 
 uint8_t status = 0b00000000; //Status variable to monitor system states
@@ -392,21 +392,21 @@ void USART_SetBuffer()
 {
 	if (valid_send == 1) {
 		packets_value[0] = v_g;
-		packets_value[1] = i_L;
+		packets_value[1] = i_L ;
 		packets_value[2] = i_inv;
 		packets_value[3] = v_cd;
-		packets_value[4] = time;
+		packets_value[4] = ElapsedTime;
 		valid_send = 0;
+		telemetry_status = ENABLE;
 	}else {
 		valid_send = 1;
 	}
-	telemetry_status = ENABLE;
 }
 
 /*This function resets the value of Elapsed time*/
 void ResetTime(void)
 {
-	time = 0;
+	ElapsedTime = 0;
 }
 
 void executeCommand(uint8_t command)
@@ -414,13 +414,16 @@ void executeCommand(uint8_t command)
 	status = command;
 }
 
-uint32_t getValue_Variable(char s)
+uint8_t getValue_Variable(char s, uint8_t byteIndex)
 {
 	uint8_t x;
 	for(x = 0; packets_keys[x] != s; x++);
-	return packets_value[x];
-}
 
+	uint32_t *p = (uint32_t*)&packets_value[x];
+
+	return (*p >> ((3-byteIndex)*8)) & 0xFF;
+}
+/*
 void addValue_Variable(char s, uint8_t message[7])
 {
 	int x;
@@ -430,7 +433,7 @@ void addValue_Variable(char s, uint8_t message[7])
 		packets_value[x] |= (message[x] << (y-2)*8) & 0xFF;
 	}
 }
-
+*/
 void heartbeatStructure(void)
 {
 	heartbeat[0] = '$';
@@ -635,7 +638,7 @@ void TIM2_IRQHandler(void)
 	i_inv = (raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
 	i_L = 	(raw_sensor_value[2]/4095.0f - 0.5f)*2.0f;
 	v_cd = 	(raw_sensor_value[3]/4095.0f - 0.5f)*2.0f;
-	time = time + (1.0f/9600.0f);
+	ElapsedTime = ElapsedTime + (1.0f/9600.0f);
 	
 	/*This is to refresh the packet_values in buffer for DMA*/
 	USART_SetBuffer();
@@ -765,30 +768,31 @@ void USART_TelemetryTX(void)
 	if(dma_ready == DISABLE) return;
 	if(telemetry_status == DISABLE) return;
 	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
-	telemetry[3] = getValue_Variable('V') >> 24;
-	telemetry[4] = (getValue_Variable('V') >> 16) & 0xFF;
-	telemetry[5] = (getValue_Variable('V') >> 8) & 0xFF;
-	telemetry[6] = (getValue_Variable('V')) & 0xFF;
+	telemetry[3] = getValue_Variable('V', 0);
+	telemetry[4] = getValue_Variable('V', 1);
+	telemetry[5] = getValue_Variable('V', 2);
+	telemetry[6] = getValue_Variable('V', 3);
 
-	telemetry[10] = getValue_Variable('C') >> 24;
-	telemetry[11] = (getValue_Variable('C') >> 16) & 0xFF;
-	telemetry[12] = (getValue_Variable('C') >> 8) & 0xFF;
-	telemetry[13] = (getValue_Variable('C')) & 0xFF;
+	telemetry[10] = getValue_Variable('C', 0);
+	telemetry[11] = getValue_Variable('C', 1);
+	telemetry[12] = getValue_Variable('C', 2);
+	telemetry[13] = getValue_Variable('C', 3);
 
-	telemetry[17] = getValue_Variable('F') >> 24;
-	telemetry[18] = (getValue_Variable('F') >> 16) & 0xFF;
-	telemetry[19] = (getValue_Variable('F') >> 8) & 0xFF;
-	telemetry[20] = (getValue_Variable('F')) & 0xFF;
+	telemetry[17] = getValue_Variable('F', 0);
+	telemetry[18] = getValue_Variable('F', 1);
+	telemetry[19] = getValue_Variable('F', 2);
+	telemetry[20] = getValue_Variable('F', 3);
 
-	telemetry[24] = getValue_Variable('D') >> 24;
-	telemetry[25] = (getValue_Variable('D') >> 16) & 0xFF;
-	telemetry[26] = (getValue_Variable('D') >> 8) & 0xFF;
-	telemetry[27] = (getValue_Variable('D')) & 0xFF;
+	telemetry[24] = getValue_Variable('D', 0);
+	telemetry[25] = getValue_Variable('D', 1);
+	telemetry[26] = getValue_Variable('D', 2);
+	telemetry[27] = getValue_Variable('D', 3);
 
-	telemetry[31] = getValue_Variable('Z') >> 24;
-	telemetry[32] = (getValue_Variable('Z') >> 16) & 0xFF;
-	telemetry[33] = (getValue_Variable('Z') >> 8) & 0xFF;
-	telemetry[34] = (getValue_Variable('Z')) & 0xFF;
+	telemetry[31] = getValue_Variable('Z', 0);
+	telemetry[32] = getValue_Variable('Z', 1);
+	telemetry[33] = getValue_Variable('Z', 2);
+	telemetry[34] = getValue_Variable('Z', 3);
+
 
 	DMA_SetAddresses(&DMA1Handle, (void*)telemetry, (void*)&USART2Handle.pUSARTx->DR);
 	DMA_ConfigureBuffer(&DMA1Handle, 35);
