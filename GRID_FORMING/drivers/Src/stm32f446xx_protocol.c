@@ -7,41 +7,22 @@
 
 #include "stm32f446xx_protocol.h"
 
-USART_Handle_t USARTxHandle;
+static USART_Handle_t USARTxHandle;
 
-TIM_Handle_t TIMxHandle;
+static TIM_Handle_t TIMxHandle;
 
-DMA_Handle_t DMAx_TXHandle;
+static DMA_Handle_t DMAx_TXHandle;
 
-DMA_Handle_t DMAx_RXHandle;
+static DMA_Handle_t DMAx_RXHandle;
 
 char packets_keys[] = {'V','C','F','D','Z','S','X','N'};
 float *pBuffer_values; 										//Data packet to be sent via UART
 int valid_send = 1;											//Flag to indicate when data packet is ready to be sent
+static uint8_t *pStatus;
+static uint8_t *pFrequency;
 
 uint8_t heartbeat[5];
-/*HeartBeat Package Stucture*/
-heartbeat[0] = '$';
-heartbeat[1] = 'S';
-heartbeat[2] = 2;
-
 uint8_t telemetry[35];
-/*Telemetry Package Stucture*/
-telemetry[0] = '$';
-telemetry[1] = 'V';
-telemetry[2] = 4;
-telemetry[7] = '$';
-telemetry[8] = 'C';
-telemetry[9] = 4;
-telemetry[14] = '$';
-telemetry[15] = 'F';
-telemetry[16] = 4;
-telemetry[21] = '$';
-telemetry[22] = 'D';
-telemetry[23] = 4;
-telemetry[28] = '$';
-telemetry[29] = 'Z';
-telemetry[30] = 4;
 
 uint8_t receive_data[3];
 
@@ -135,7 +116,30 @@ void ProtocolInit(USART_RegDef_t *pUSARTx, float *Buffer_values, uint8_t *Buffer
 {
 	USARTx_GPIOInits(pUSARTx);
 	USARTx_Inits(pUSARTx);
-	DMAx_Inits(pUSARTx)
+	DMAx_Inits(pUSARTx);
+
+	/*HeartBeat Package Stucture*/
+	heartbeat[0] = '$';
+	heartbeat[1] = 'S';
+	heartbeat[2] = 2;
+
+	/*Telemetry Package Stucture*/
+	telemetry[0] = '$';
+	telemetry[1] = 'V';
+	telemetry[2] = 4;
+	telemetry[7] = '$';
+	telemetry[8] = 'C';
+	telemetry[9] = 4;
+	telemetry[14] = '$';
+	telemetry[15] = 'F';
+	telemetry[16] = 4;
+	telemetry[21] = '$';
+	telemetry[22] = 'D';
+	telemetry[23] = 4;
+	telemetry[28] = '$';
+	telemetry[29] = 'Z';
+	telemetry[30] = 4;
+
 	pBuffer_values = Buffer_values;
 	pStatus = &Buffer_heartbeat[0];
 	pFrequency = &Buffer_heartbeat[1];
@@ -229,12 +233,33 @@ void Protocol_Telemetry(void)
 
 void Protocol_DecodeRX(void)
 {
-	comm[0] = receive_data[0];
-	comm[1] = receive_data[1];
-	comm[2] = receive_data[2];
 	if(receive_data[0] == '$' && receive_data[1] == 'X')
 	{
 		executeCommand(receive_data[2]);
+	}
+}
+
+void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
+{
+	if(ApEv == DMA_EVENT_TCIF_CMPLT)
+	{
+		if(pDMAHandle->DMA_stream == 6)
+		{
+			DMA_StopTransfer(&DMAx_TXHandle);
+			dma_ready = ENABLE;
+			if(dma_transfer_mode == DMA_TR_HEARTBEAT)
+			{
+				heartbeat_status = DISABLE;
+			}else if(dma_transfer_mode == DMA_TR_TELEMETRY )
+			{
+				telemetry_status = DISABLE;
+			}
+			dma_transfer_mode = DMA_TR_NONE;
+		}
+		if(pDMAHandle->DMA_stream == 5)
+		{
+			Protocol_DecodeRX();
+		}
 	}
 }
 
@@ -263,28 +288,4 @@ void TIM3_IRQHandler(void)
 {
 	heartbeat_status = ENABLE;
 	TIM_IRQHandling(&TIM3Handle);
-}
-
-void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
-{
-	if(ApEv == DMA_EVENT_TCIF_CMPLT)
-	{
-		if(pDMAHandle->DMA_stream == 6)
-		{
-			DMA_StopTransfer(&DMA1_TX2Handle);
-			dma_ready = ENABLE;
-			if(dma_transfer_mode == DMA_TR_HEARTBEAT)
-			{
-				heartbeat_status = DISABLE;
-			}else if(dma_transfer_mode == DMA_TR_TELEMETRY )
-			{
-				telemetry_status = DISABLE;
-			}
-			dma_transfer_mode = DMA_TR_NONE;
-		}
-		if(pDMAHandle->DMA_stream == 5)
-		{
-			USART_DecodeRX(&USART2Handle);
-		}
-	}
 }
