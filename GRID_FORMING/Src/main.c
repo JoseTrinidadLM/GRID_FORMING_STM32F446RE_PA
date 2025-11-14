@@ -38,6 +38,10 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
+uint16_t seno[160] = {4374, 4202, 4031, 3860, 3690, 3521, 3353, 3187, 3022, 2860, 2700, 2543, 2388, 2237, 2088, 1944, 1803, 1666, 1533, 1405, 1281, 1162, 1048, 939, 835, 737, 644, 557, 476, 401, 332, 270, 214, 164, 120, 84, 53, 30, 13, 3, 0, 3, 13, 30, 53, 84, 120, 164, 214, 270, 332, 401, 476, 557, 644, 737, 835, 939, 1048, 1162, 1281, 1405, 1533, 1666, 1803, 1944, 2088, 2237, 2388, 2543, 2700, 2860, 3022, 3187, 3353, 3521, 3690, 3860, 4031, 4202, 4374, 4546, 4717, 4888, 5058, 5227, 5395, 5561, 5726, 5888, 6048, 6205, 6360, 6511, 6660, 6804, 6945, 7082, 7215, 7343, 7467, 7586, 7700, 7809, 7913, 8011, 8104, 8191, 8272, 8347, 8416, 8478, 8534, 8584, 8628, 8664, 8695, 8718, 8735, 8745, 8749, 8745, 8735, 8718, 8695, 8664, 8628, 8584, 8534, 8478, 8416, 8347, 8272, 8191, 8104, 8011, 7913, 7809, 7700, 7586, 7467, 7343, 7215, 7082, 6945, 6804, 6660, 6511, 6360, 6205, 6048, 5888, 5726, 5561, 5395, 5227, 5058, 4888, 4717, 4546};
+
+uint16_t seno2[160] = {4374, 4546, 4717, 4888, 5058, 5227, 5395, 5561, 5726, 5888, 6048, 6205, 6360, 6511, 6660, 6804, 6945, 7082, 7215, 7343, 7467, 7586, 7700, 7809, 7913, 8011, 8104, 8191, 8272, 8347, 8416, 8478, 8534, 8584, 8628, 8664, 8695, 8718, 8735, 8745, 8749, 8745, 8735, 8718, 8695, 8664, 8628, 8584, 8534, 8478, 8416, 8347, 8272, 8191, 8104, 8011, 7913, 7809, 7700, 7586, 7467, 7343, 7215, 7082, 6945, 6804, 6660, 6511, 6360, 6205, 6048, 5888, 5726, 5561, 5395, 5227, 5058, 4888, 4717, 4546, 4374, 4202, 4031, 3860, 3690, 3521, 3353, 3187, 3022, 2860, 2700, 2543, 2388, 2237, 2088, 1944, 1803, 1666, 1533, 1405, 1281, 1162, 1048, 939, 835, 737, 644, 557, 476, 401, 332, 270, 214, 164, 120, 84, 53, 30, 13, 3, 0, 3, 13, 30, 53, 84, 120, 164, 214, 270, 332, 401, 476, 557, 644, 737, 835, 939, 1048, 1162, 1281, 1405, 1533, 1666, 1803, 1944, 2088, 2237, 2388, 2543, 2700, 2860, 3022, 3187, 3353, 3521, 3690, 3860, 4031, 4202};
+
 uint64_t BUFFER_SIZE = 9;
 
 /*characterized sensor outputs*/
@@ -101,9 +105,10 @@ GPIO_Handle_t GpioPWMB;
 /*GPIO pin 7 from port C and GPIO pin 6 from port B are declared as High Output Speed for PWM signals*/
 void PWM_GPIOInits(void)
 {
-	GPIO_PClkC(GPIOA, ENABLE);
-	GpioPWMA.pGPIOx = GPIOA;
-	GpioPWMA.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_9;
+	GPIO_PClkC(GPIOB, ENABLE);
+
+	GpioPWMA.pGPIOx = GPIOB;
+	GpioPWMA.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_7;
 	GpioPWMA.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
 	GpioPWMA.GPIO_PinConfig.GPIO_PinAltFunMode = 2;
 	GpioPWMA.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_HIGH;
@@ -112,7 +117,6 @@ void PWM_GPIOInits(void)
 
 	GPIO_Init(&GpioPWMA);
 
-	GPIO_PClkC(GPIOB, ENABLE);
 	GpioPWMB.pGPIOx = GPIOB;
 	GpioPWMB.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_6;
 	GpioPWMB.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
@@ -231,35 +235,15 @@ void SamplingRateTIMInit(float sampling_rate)
 	TIM_IRQPriorityConfig(IRQ_NO_TIM2, 1);
 }
 
-TIM_Handle_t TIM_1;
 TIM_Handle_t TIM_4;
+PWM_Config_t TIM4_PWM_Channel_1;
+PWM_Config_t TIM4_PWM_Channel_2;
 
 /*To create PWM signals with 180-phase shift it is needed to sync dirrefent timer by srtting a master-slave */
 void PWM_TIMInits(float carrier_frequency)
 {
 
 	/*****************Master Timer initialization*****************/
-	TIM_PClkC(TIM1, ENABLE);
-
-	TIM1->BDTR |= ( 1 << 15 );			//Main output enable mandatory for TIM1 and TIM8
-
-	TIM_1.pTIMx = TIM1;
-	TIM_1.TIM_Config.TIM_Frequency = carrier_frequency;			//Set as carrier frequency
-	TIM_1.TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
-	TIM_1.TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
-	TIM_1.TIM_Config.TIM_CAModeSel = TIM_CMS_EDGE;
-	TIM_1.TIM_Config.TIM_IntEnable = TIM_IT_DISABLE;					//Interrupts are not needed
-	TIM_1.TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;				//TIM3 set as master
-	TIM_1.TIM_Config.TIM_Channel = TIM_CHANNEL_2;						//This allows to link PWM signal to GPIO A9
-	TIM_1.TIM_Config.TIM_Mode = TIM_MODE_PWM;							//Selects TIM as PWM
-
-	TIM_1.TIM_Config.TIM_OCMode = TIM_PWM_MODE2;
-	TIM_1.TIM_Config.TIM_OCPolarity = TIM_OC_POLARITY_LOW;				//Set as active low
-	TIM_1.TIM_Config.TIM_OCPreload = TIM_OC_PRELOAD_DISABLED;			//duty cycle can be modified in run-time
-
-	TIM_Init(&TIM_1);
-
-	/*****************Slave Timer initialization*****************/
 	TIM_PClkC(TIM4, ENABLE);
 
 	TIM_4.pTIMx = TIM4;
@@ -269,19 +253,24 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM_4.TIM_Config.TIM_CAModeSel = TIM_CMS_EDGE;
 	TIM_4.TIM_Config.TIM_IntEnable = TIM_IT_DISABLE;
 	TIM_4.TIM_Config.TIM_MasterModeSel = TIM_MMS_RESET;
-	TIM_4.TIM_Config.TIM_SlaveMode = TIM_SMS_GATED;						//TIM4 starts and at the same time TIM1 does
-	TIM_4.TIM_Config.TIM_TriggerSource = TIM_TS_ITR0;					//Its trigger source is TIM1
-
-	TIM_4.TIM_Config.TIM_Channel = TIM_CHANNEL_1;						//This allows to link PWM signal to GPIO B6
-	TIM_4.TIM_Config.TIM_Mode = TIM_MODE_PWM;							//Selects TIM as PWM
-
-	TIM_4.TIM_Config.TIM_OCMode = TIM_PWM_MODE2;
-	TIM_4.TIM_Config.TIM_OCPolarity = TIM_OC_POLARITY_LOW;
-	TIM_4.TIM_Config.TIM_OCPreload = TIM_OC_PRELOAD_DISABLED;
 
 	TIM_Init(&TIM_4);
 
-	TIM_Start(&TIM_1);  //Starting timer just for minimal tests
+	TIM4_PWM_Channel_1.PWM_Channel = PWM_CHANNEL_1;
+	TIM4_PWM_Channel_1.PWM_OCMode = TIM_PWM_MODE2;
+	TIM4_PWM_Channel_1.PWM_OCPolarity = PWM_OC_POLARITY_HIGH;
+	TIM4_PWM_Channel_1.PWM_OCPolarity  = PWM_OC_PRELOAD_DISABLED;
+
+	TIM_PWM_Channel_Init(&TIM_4, &TIM4_PWM_Channel_1);
+
+	TIM4_PWM_Channel_2.PWM_Channel = PWM_CHANNEL_2;
+	TIM4_PWM_Channel_2.PWM_OCMode = TIM_PWM_MODE2;
+	TIM4_PWM_Channel_2.PWM_OCPolarity = PWM_OC_POLARITY_HIGH;
+	TIM4_PWM_Channel_2.PWM_OCPolarity  = PWM_OC_PRELOAD_DISABLED;
+
+	TIM_PWM_Channel_Init(&TIM_4, &TIM4_PWM_Channel_2);
+
+	TIM_Start(&TIM_4);  //Starting timer just for minimal tests
 
 }
 
@@ -346,8 +335,8 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
 	(*pe2_z_1) = (*pe2_z_0);													//Updating last error as the most recent one
 	(*py2_z_1) = (*py2_z_0);													//Updating last output PI control value as the most recent one
 
-	u_pos_temp = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM1->ARR);
-	u_neg_temp = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM1->ARR);
+	u_pos_temp = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM4->ARR);
+	u_neg_temp = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM4->ARR);
 
 	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
 	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
@@ -359,8 +348,8 @@ void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 	float u_pos_temp = 0;
 	float u_neg_temp = 0;
 
-	u_pos_temp = ((cosine_wt*0.5) + 0.5)*(TIM1->ARR);
-	u_neg_temp = ((-cosine_wt*0.5) + 0.5)*(TIM1->ARR);
+	u_pos_temp = ((cosine_wt*0.5) + 0.5)*(TIM4->ARR);
+	u_neg_temp = ((-cosine_wt*0.5) + 0.5)*(TIM4->ARR);
 
 	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
 	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
@@ -654,6 +643,9 @@ void TIM2_IRQHandler(void)
 	__vo static uint8_t Buffer_Counter_iL = 0;
 	__vo static uint8_t Buffer_Ready_Flag_iL = 0;
 
+
+	static uint8_t index = 0;
+
 	TIM_IRQHandling(&TIM_2);
 
 	/*This are critical operations needed before shifting to Closed Loop Mode */
@@ -681,14 +673,19 @@ void TIM2_IRQHandler(void)
 
 	if(OPERATION_MODE == 0)
 	{
-		OpenLoop(v_g, &u_control_pos, &u_control_neg);
+		//OpenLoop(v_g, &u_control_pos, &u_control_neg);
+		u_control_pos = seno[index];
+		u_control_neg = seno2[index];
 	} else
 	{
 		CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
 	}
 
-	TIM_PWM_DutyCycle(&TIM_1, u_control_pos);
-	TIM_PWM_DutyCycle(&TIM_4, u_control_neg);
+	TIM_PWM_DutyCycle(&TIM_4, &TIM4_PWM_Channel_1, u_control_pos);
+	TIM_PWM_DutyCycle(&TIM_4, &TIM4_PWM_Channel_2, u_control_neg);
+
+	index++;
+	if ( index >= 160 ) index = 0;
 
 }
 
@@ -715,17 +712,18 @@ void EXTI15_10_IRQHandler(void)
 	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
 	if( PWM_ENABLE == 0 )
 	{
-		TIM_PWM_Disable(&TIM_1);
-		TIM_PWM_Disable(&TIM_4);
-		GPIO_WriteToOutputPin(GPIOA, GPIO_PIN_NO_9, RESET);
+		TIM_PWM_Disable(&TIM_4, &TIM4_PWM_Channel_1);
+		TIM_PWM_Disable(&TIM_4, &TIM4_PWM_Channel_2);
+
+		GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_7, RESET);
 		GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 
 		status &= ~(1 << 1); //Set PWM Status Flag to Disabled
 
 	} else if( PWM_ENABLE == 1 )
 	{
-		TIM_PWM_Enable(&TIM_1);
-		TIM_PWM_Enable(&TIM_4);
+		TIM_PWM_Enable(&TIM_4, &TIM4_PWM_Channel_1);
+		TIM_PWM_Enable(&TIM_4, &TIM4_PWM_Channel_2);
 
 		status |= (1 << 1); //Set PWM Status Flag to Enabled
 
@@ -740,6 +738,9 @@ void ShiftSensorsValue(void)
 		;
 	}
 }
+
+
+uint64_t comm[3] = {0}; //lo anadi para revisar que compilara
 
 void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
 {
