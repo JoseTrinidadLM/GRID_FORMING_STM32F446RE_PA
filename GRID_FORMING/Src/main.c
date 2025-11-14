@@ -575,6 +575,8 @@ void DMA1_Inits(void)
 	DMA_StartTransfer(&DMA1_RX2Handle);
 }
 
+uint8_t comm[3];
+
 void USART_HeartBeatTX(void);
 void USART_TelemetryTX(void);
 
