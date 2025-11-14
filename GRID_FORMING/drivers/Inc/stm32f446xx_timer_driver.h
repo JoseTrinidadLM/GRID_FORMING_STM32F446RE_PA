@@ -99,12 +99,12 @@
 
 
 /*
- * @TIM_CHANNEL
+ * @PWM_CHANNEL
  */
-#define TIM_CHANNEL_1   	       	1
-#define TIM_CHANNEL_2              	2
-#define TIM_CHANNEL_3 	         	3
-#define TIM_CHANNEL_4              	4
+#define PWM_CHANNEL_1   	       	1
+#define PWM_CHANNEL_2              	2
+#define PWM_CHANNEL_3 	         	3
+#define PWM_CHANNEL_4              	4
 
 /*
  *	@TIM_PWM
@@ -114,16 +114,16 @@
 #define TIM_PWM_MODE2             	0x7
 
 /*
- *	@TIM_OC_POLARITY
+ *	@PWM_OC_POLARITY
  */
-#define TIM_OC_POLARITY_HIGH      	0
-#define TIM_OC_POLARITY_LOW       	1
+#define PWM_OC_POLARITY_HIGH      	0
+#define PWM_OC_POLARITY_LOW       	1
 
 /*
- *	@TIM_OC_PRELOAD
+ *	@PWM_OC_PRELOAD
  */
-#define TIM_OC_PRELOAD_DISABLED     0
-#define TIM_OC_PRELOAD_ENABLED      1
+#define PWM_OC_PRELOAD_DISABLED     0
+#define PWM_OC_PRELOAD_ENABLED      1
 
 
 /************************************************************************************
@@ -146,12 +146,15 @@ typedef struct
 	uint8_t  TIM_SlaveMode;				/* <  possible values from @TIM_SMS > */
 	uint8_t  TIM_TriggerSource;			/* <  possible values from @TIM_TS > */
 
-	uint8_t	 TIM_Mode;					/* <  possible values from @TIM_MODE > */
-	uint8_t	 TIM_Channel;				/* <  possible values from @TIM_CHANNEL > */
-	uint8_t	 TIM_OCMode;				/* <  possible values from @TIM_PWM > */
-	uint8_t	 TIM_OCPolarity;			/* <  possible values from @TIM_OC_POLARITY > */
-	uint8_t	 TIM_OCPreload;				/* <  possible values from @TIM_OC_PRELOAD > */
 }TIM_Config_t;
+
+typedef struct
+{
+	uint8_t	 PWM_Channel;				/* <  possible values from @PWM_CHANNEL > */
+	uint8_t	 PWM_OCMode;				/* <  possible values from @TIM_PWM_MODE > */
+	uint8_t	 PWM_OCPolarity;			/* <  possible values from @PWM_OC_POLARITY > */
+	uint8_t	 PWM_OCPreload;				/* <  possible values from @PWM_OC_PRELOAD > */
+}PWM_Config_t;
 
 /*
  * This is Handle structure for TIMx
@@ -187,13 +190,13 @@ void TIM_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi);
 void TIM_IRQPriorityConfig(uint8_t IRQNumber, uint8_t IRQPriority);
 void TIM_IRQHandling(TIM_Handle_t *pTIMHandle);
 
-void TIM_PWM_Channel_Init(TIM_Handle_t *pTIMHandle);
+void TIM_PWM_Channel_Init(TIM_Handle_t *pTIMHandle, PWM_Config_t *pPWMConfig );
 
-void TIM_PWM_DutyCycle(TIM_Handle_t *pTIMHandle, uint16_t dutyCycle);
+void TIM_PWM_DutyCycle(TIM_Handle_t *pTIMHandle, PWM_Config_t *pPWMConfig, uint16_t dutyCycle);
 
-void TIM_PWM_Enable(TIM_Handle_t *pTIMHandle);
+void TIM_PWM_Enable(TIM_Handle_t *pTIMHandle, PWM_Config_t *pPWMConfig);
 
-void TIM_PWM_Disable(TIM_Handle_t *pTIMHandle);
+void TIM_PWM_Disable(TIM_Handle_t *pTIMHandle, PWM_Config_t *pPWMConfig);
 
 /*
  * DMA Configuration for ADC conversion
