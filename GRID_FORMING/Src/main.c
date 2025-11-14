@@ -53,8 +53,10 @@ char packets_keys[] = {'V','C','F','D','Z','S','X','N'};
 float packets_value[5]; 	//Data packet to be sent via UART
 int valid_send = 1;		//Flag to indicate when data packet is ready to be sent
 
-uint8_t status = 0b00000000; //Status variable to monitor system states
-uint8_t frequency = 96;
+uint8_t heartbeat[2];
+
+uint8_t heartbeat[0] = 0b00000000; 		//Status variable to monitor system states
+uint8_t heartbeat[1] = 96;				//Sampling Frequency
 
 uint8_t receive_data[3];
 
@@ -382,19 +384,6 @@ void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe
 	(*py2_z_1) = 0;
 }
 
-uint8_t heartbeat[5];
-uint8_t telemetry[35];
-
-uint8_t dma_ready;
-uint8_t telemetry_status;
-uint8_t heartbeat_status;
-
-#define DMA_TR_NONE			0
-#define DMA_TR_TELEMETRY	1
-#define DMA_TR_HEARTBEAT	2
-
-uint8_t dma_transfer_mode = DMA_TR_NONE;
-
 /*This function set the values for USART buffer*/
 void USART_SetBuffer()
 {
@@ -417,67 +406,6 @@ void ResetTime(void)
 	ElapsedTime = 0;
 }
 
-void executeCommand(uint8_t command)
-{
-	status = command;
-}
-
-uint8_t getValue_Variable(char s, uint8_t byteIndex)
-{
-	uint8_t x;
-	for(x = 0; packets_keys[x] != s; x++);
-
-	uint32_t *p = (uint32_t*)&packets_value[x];
-
-	return (*p >> ((3-byteIndex)*8)) & 0xFF;
-}
-/*
-void addValue_Variable(char s, uint8_t message[7])
-{
-	int x;
-	for(x = 0; packets_keys[x] != s; x++);
-	for(int y = 2; y < 6; y++)
-	{
-		packets_value[x] |= (message[x] << (y-2)*8) & 0xFF;
-	}
-}
-*/
-void heartbeatStructure(void)
-{
-	heartbeat[0] = '$';
-	heartbeat[1] = 'S';
-	heartbeat[2] = 2;
-}
-
-void telemetryStructure(void)
-{
-	telemetry[0] = '$';
-	telemetry[1] = 'V';
-	telemetry[2] = 4;
-	telemetry[7] = '$';
-	telemetry[8] = 'C';
-	telemetry[9] = 4;
-	telemetry[14] = '$';
-	telemetry[15] = 'F';
-	telemetry[16] = 4;
-	telemetry[21] = '$';
-	telemetry[22] = 'D';
-	telemetry[23] = 4;
-	telemetry[28] = '$';
-	telemetry[29] = 'Z';
-	telemetry[30] = 4;
-}
-
-USART_Handle_t USART2Handle;
-
-TIM_Handle_t TIM3Handle ;
-
-GPIO_Handle_t LED;
-
-DMA_Handle_t DMA1_TX2Handle;
-
-DMA_Handle_t DMA1_RX2Handle;
-
 void LED_GPIOInits(void)
 {
 	LED.pGPIOx = GPIOA;
@@ -491,94 +419,10 @@ void LED_GPIOInits(void)
 	GPIO_Init(&LED);
 }
 
-void TIM3_Inits(TIM_Handle_t *pTIM3Handle)
+void executeCommand(uint8_t command)
 {
-	pTIM3Handle->pTIMx = TIM3;
-	pTIM3Handle->TIM_Config.TIM_AutoReloadPreload = TIM_ARPE_ENABLE;
-	pTIM3Handle->TIM_Config.TIM_CLKDivision = TIM_CKD_DIV1;
-	pTIM3Handle->TIM_Config.TIM_CNTMode = TIM_UPCOUNT_MODE;
-	pTIM3Handle->TIM_Config.TIM_Frequency = 1;
-	pTIM3Handle->TIM_Config.TIM_IntEnable = TIM_IT_ENABLE;
-	pTIM3Handle->TIM_Config.TIM_MasterModeSel = TIM_MMS_UPDATE;
-
-	TIM_Init(pTIM3Handle);
+	//TO-DO: Command changes system status configuration
 }
-
-void USART2_GPIOInits(void)
-{
-	GPIO_Handle_t USART2pin;
-	USART2pin.pGPIOx = GPIOA;
-	USART2pin.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
-	USART2pin.GPIO_PinConfig.GPIO_PinAltFunMode = 7;
-	USART2pin.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
-	USART2pin.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
-	USART2pin.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
-	//TX
-	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_2;
-	GPIO_Init(&USART2pin);
-	//RX
-	USART2pin.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_3;
-	GPIO_Init(&USART2pin);
-}
-
-void USART2_Inits(USART_Handle_t *pUSART2Handle)
-{
-	pUSART2Handle->pUSARTx = USART2;
-	pUSART2Handle->USARTConfig.USART_Baud = 2200000;
-	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
-	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
-	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
-	pUSART2Handle->USARTConfig.USART_ParityControl = USART_PARITY_DISABLE;
-	pUSART2Handle->USARTConfig.USART_WordLength = USART_WLEN_8BITS;
-	pUSART2Handle->USARTConfig.USART_DMA = USART_DMA_TX_RX;
-
-	USART_Init(pUSART2Handle);
-}
-
-void DMA1_Inits(void)
-{
-	//DMA1 Channel 4 Stream 6 USART2 TX
-	DMA1_TX2Handle.pDMAx = DMA1;
-	DMA1_TX2Handle.DMA_stream = 6;
-	DMA1_TX2Handle.DMA_Config.DMA_Channel = DMA_CHANNEL_4;
-	DMA1_TX2Handle.DMA_Config.DMA_Direction = DMA_DIR_MEM_TO_PERIPH;
-	DMA1_TX2Handle.DMA_Config.DMA_Priority = DMA_PRIORITY_MEDIUM;
-	DMA1_TX2Handle.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_BYTE;
-	DMA1_TX2Handle.DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
-	DMA1_TX2Handle.DMA_Config.DMA_MemInc = ENABLE;
-	DMA1_TX2Handle.DMA_Config.DMA_PeriphInc = DISABLE;
-	DMA1_TX2Handle.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
-	DMA1_TX2Handle.DMA_Config.DMA_FIFOThreshold = 0;
-	DMA1_TX2Handle.DMA_Config.DMA_Mode = DMA_MODE_NORMAL;
-	DMA1_TX2Handle.DMA_Config.DMA_TransferIT = ENABLE;
-	DMA1_TX2Handle.BufferSize = 4;
-
-	DMA_Init(&DMA1_TX2Handle);
-
-	//DMA1 Channel 4 Stream 5 USART2 RX
-	DMA1_RX2Handle.pDMAx = DMA1;
-	DMA1_RX2Handle.DMA_stream = 5;
-	DMA1_RX2Handle.DMA_Config.DMA_Channel = DMA_CHANNEL_4;
-	DMA1_RX2Handle.DMA_Config.DMA_Direction = DMA_DIR_PERIPH_TO_MEM;
-	DMA1_RX2Handle.DMA_Config.DMA_MemDataSize = DMA_DATA_SIZE_BYTE;
-	DMA1_RX2Handle.DMA_Config.DMA_PeriphDataSize = DMA_DATA_SIZE_BYTE;
-	DMA1_RX2Handle.DMA_Config.DMA_MemInc = ENABLE;
-	DMA1_RX2Handle.DMA_Config.DMA_PeriphInc = DISABLE;
-	DMA1_RX2Handle.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
-	DMA1_RX2Handle.DMA_Config.DMA_FIFOThreshold = 0;
-	DMA1_RX2Handle.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
-	DMA1_RX2Handle.DMA_Config.DMA_TransferIT = ENABLE;
-	DMA1_RX2Handle.BufferSize = 3;
-
-	DMA_Init(&DMA1_RX2Handle);
-	DMA_SetAddresses(&DMA1_RX2Handle, (void*)&USART2Handle.pUSARTx->DR, (void*)receive_data);
-	DMA_StartTransfer(&DMA1_RX2Handle);
-}
-
-uint8_t comm[3];
-
-void USART_HeartBeatTX(void);
-void USART_TelemetryTX(void);
 
 int main(void)
 {
@@ -592,38 +436,15 @@ int main(void)
 	SamplingRateTIMInit(9600);
 	PWM_TIMInits(9600);
 
-    USART2_GPIOInits();
-	USART2_Inits(&USART2Handle);
-	USART_PeripheralControl(USART2Handle.pUSARTx, ENABLE);
+	ProtocolInit(USART2, &packets_value, heartbeat);
+	Protocol_TIMInit(TIM3);
+	Protocol_Start();
 
-	//TIM3_GPIOInits();
-	TIM3_Inits(&TIM3Handle);
-
-	TIM_IRQInterruptConfig(IRQ_NO_TIM3,ENABLE);
-	TIM_IRQPriorityConfig(IRQ_NO_TIM3,NVIC_IRQ_PRI15);
+	//Call Protocol_Telemetry() to send values in @packets_value
 
 	LED_GPIOInits();
 
-	//DMA 1 Channel 4 Stream 5 & 6
-	DMA1_Inits();
-	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM6,ENABLE);
-	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM6,NVIC_IRQ_PRI1);
-	DMA_IRQInterruptConfig(IRQ_NO_DMA1_STREAM5,ENABLE);
-	DMA_IRQPriorityConfig(IRQ_NO_DMA1_STREAM5,NVIC_IRQ_PRI1);
-
-	heartbeatStructure();
-	telemetryStructure();
-
-	TIM_Start(&TIM_2);
-	TIM_Start(&TIM3Handle);
-
-	dma_ready = ENABLE;
-
-	while(1)
-	{
-		USART_TelemetryTX();
-		USART_HeartBeatTX();
-	}
+	while(1);
 	return 0;
 }
 
@@ -741,107 +562,4 @@ void ShiftSensorsValue(void)
 		//TO-DO: shift processed values
 		;
 	}
-}
-
-void USART_DecodeRX(USART_Handle_t *pUSARTHandle)
-{
-	comm[0] = receive_data[0];
-	comm[1] = receive_data[1];
-	comm[2] = receive_data[2];
-	if(receive_data[0] == '$' && receive_data[1] == 'X')
-	{
-		executeCommand(receive_data[2]);
-	}
-}
-
-void USART_HeartBeatTX(void)
-{
-	if(dma_ready == DISABLE) return;
-	if(heartbeat_status == DISABLE) return;
-	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
-	heartbeat[3] = status;
-	heartbeat[4] = frequency;
-
-	dma_transfer_mode = DMA_TR_HEARTBEAT;
-
-	DMA_SetAddresses(&DMA1_TX2Handle, (void*)heartbeat, (void*)&USART2Handle.pUSARTx->DR);
-	DMA_ConfigureBuffer(&DMA1_TX2Handle, 5);
-	DMA_StartTransfer(&DMA1_TX2Handle);
-}
-
-void USART_TelemetryTX(void)
-{
-	if(dma_ready == DISABLE) return;
-	if(telemetry_status == DISABLE) return;
-	USART_ClearFlag(USART2Handle.pUSARTx, USART_TC_FLAG);
-	telemetry[3] = getValue_Variable('V', 0);
-	telemetry[4] = getValue_Variable('V', 1);
-	telemetry[5] = getValue_Variable('V', 2);
-	telemetry[6] = getValue_Variable('V', 3);
-
-	telemetry[10] = getValue_Variable('C', 0);
-	telemetry[11] = getValue_Variable('C', 1);
-	telemetry[12] = getValue_Variable('C', 2);
-	telemetry[13] = getValue_Variable('C', 3);
-
-	telemetry[17] = getValue_Variable('F', 0);
-	telemetry[18] = getValue_Variable('F', 1);
-	telemetry[19] = getValue_Variable('F', 2);
-	telemetry[20] = getValue_Variable('F', 3);
-
-	telemetry[24] = getValue_Variable('D', 0);
-	telemetry[25] = getValue_Variable('D', 1);
-	telemetry[26] = getValue_Variable('D', 2);
-	telemetry[27] = getValue_Variable('D', 3);
-
-	telemetry[31] = getValue_Variable('Z', 0);
-	telemetry[32] = getValue_Variable('Z', 1);
-	telemetry[33] = getValue_Variable('Z', 2);
-	telemetry[34] = getValue_Variable('Z', 3);
-
-	dma_transfer_mode = DMA_TR_TELEMETRY;
-
-	DMA_SetAddresses(&DMA1_TX2Handle, (void*)telemetry, (void*)&USART2Handle.pUSARTx->DR);
-	DMA_ConfigureBuffer(&DMA1_TX2Handle, 35);
-	DMA_StartTransfer(&DMA1_TX2Handle);
-}
-
-void TIM3_IRQHandler(void)
-{
-	heartbeat_status = ENABLE;
-	TIM_IRQHandling(&TIM3Handle);
-}
-
-void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
-{
-	if(ApEv == DMA_EVENT_TCIF_CMPLT)
-	{
-		if(pDMAHandle->DMA_stream == 6)
-		{
-			DMA_StopTransfer(&DMA1_TX2Handle);
-			dma_ready = ENABLE;
-			if(dma_transfer_mode == DMA_TR_HEARTBEAT)
-			{
-				heartbeat_status = DISABLE;
-			}else if(dma_transfer_mode == DMA_TR_TELEMETRY )
-			{
-				telemetry_status = DISABLE;
-			}
-			dma_transfer_mode = DMA_TR_NONE;
-		}
-		if(pDMAHandle->DMA_stream == 5)
-		{
-			USART_DecodeRX(&USART2Handle);
-		}
-	}
-}
-
-void DMA1_Stream6_IRQHandler(void)
-{
-	DMA_IRQHandling(&DMA1_TX2Handle);
-}
-
-void DMA1_Stream5_IRQHandler(void)
-{
-	DMA_IRQHandling(&DMA1_RX2Handle);
 }
