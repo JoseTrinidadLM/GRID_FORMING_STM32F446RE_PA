@@ -67,6 +67,7 @@ __vo uint16_t u_control_neg;
 
 
 uint8_t OPERATION_MODE = 0;
+uint8_t PWM_ENABLE = 0;
 
 GPIO_Handle_t PWM_EN;
 GPIO_Handle_t LOOP_SEL;
@@ -536,7 +537,6 @@ void TIM2_IRQHandler(void)
 /*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
-	static uint8_t PWM_ENABLE = 0;
 	GPIO_IRQHandling(14);
 	/*Both pins are read*/
 	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, 14);
