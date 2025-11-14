@@ -118,10 +118,6 @@ void TIM_Init(TIM_Handle_t *pTIMHandle)
 	pTIMHandle->pTIMx->CR1 |= cr1_temp; //set register to TIMx configuration
 	for(__vo uint16_t j = 0; j < 5000; j++);
 
-    if(pTIMHandle->TIM_Config.TIM_Mode == TIM_MODE_PWM) {
-        TIM_PWM_Channel_Init(pTIMHandle);
-    }
-
     pTIMHandle->pTIMx->SMCR &= ~(0x7 << 0);  // Clear SMS
     pTIMHandle->pTIMx->SMCR &= ~(0x7 << 4);  // Clear TS
     pTIMHandle->pTIMx->SMCR &= ~(0xF << 8);  // Clear ETF
@@ -254,95 +250,95 @@ void TIM_IRQHandling(TIM_Handle_t *pTIMHandle)
 	if(pTIMHandle->pTIMx->SR & (1 <<0)) pTIMHandle->pTIMx->SR &= ~(1 << 0);
 }
 
-void TIM_PWM_Channel_Init(TIM_Handle_t *pTIMHandle){
+void TIM_PWM_Channel_Init(TIM_Handle_t *pTIMHandle, PWM_Config_t *pPWMConfig){
 
-	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_1){
+	if(pPWMConfig->PWM_Channel == PWM_CHANNEL_1){
 		pTIMHandle->pTIMx->CCR1 = 0;
 		pTIMHandle->pTIMx->CCMR1 &= ~(0xFF << 0);		//Only clear channel 1
 
-        pTIMHandle->pTIMx->CCMR1 |= (pTIMHandle->TIM_Config.TIM_OCMode << 4);
+        pTIMHandle->pTIMx->CCMR1 |= (pPWMConfig->PWM_OCMode << 4);
 
-        if(pTIMHandle->TIM_Config.TIM_OCPreload)
+        if(pPWMConfig->PWM_OCPreload)
             pTIMHandle->pTIMx->CCMR1 |= (1 << 3);
 
         pTIMHandle->pTIMx->CCMR1 &= ~(0x3 << 0); //To secure output
 
         pTIMHandle->pTIMx->CCER &= ~(0xB << 0); //Clean b3,b1,b0
         pTIMHandle->pTIMx->CCER |= (1 << 0);
-        if(pTIMHandle->TIM_Config.TIM_OCPolarity)
+        if(pPWMConfig->PWM_OCPolarity)
             pTIMHandle->pTIMx->CCER |= (1 << 1); //Active low
 
-	}else if((pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_2)){
+	}else if((pPWMConfig->PWM_Channel == PWM_CHANNEL_2)){
 		pTIMHandle->pTIMx->CCR2 = 0;
 		pTIMHandle->pTIMx->CCMR1 &= ~(0xFF << 8);		//Only clear channel 2
 
-        pTIMHandle->pTIMx->CCMR1 |= (pTIMHandle->TIM_Config.TIM_OCMode << 12);
+        pTIMHandle->pTIMx->CCMR1 |= (pPWMConfig->PWM_OCMode << 12);
 
-        if(pTIMHandle->TIM_Config.TIM_OCPreload)
+        if(pPWMConfig->PWM_OCPreload)
             pTIMHandle->pTIMx->CCMR1 |= (1 << 11);
 
         pTIMHandle->pTIMx->CCMR1 &= ~(0x3 << 8); //To secure output
 
         pTIMHandle->pTIMx->CCER &= ~(0xB << 4); //Clean b7,b5,b4
         pTIMHandle->pTIMx->CCER |= (1 << 4);
-        if(pTIMHandle->TIM_Config.TIM_OCPolarity)
+        if(pPWMConfig->PWM_OCPolarity)
             pTIMHandle->pTIMx->CCER |= (1 << 5); //Active low
 
 
-	}else if((pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_3)){
+	}else if((pPWMConfig->PWM_Channel == PWM_CHANNEL_3)){
 		pTIMHandle->pTIMx->CCR3 = 0;
 
 		pTIMHandle->pTIMx->CCMR2 &= ~(0xFF << 0);		//Only clear channel 3
 
-        pTIMHandle->pTIMx->CCMR2 |= (pTIMHandle->TIM_Config.TIM_OCMode << 4);
+        pTIMHandle->pTIMx->CCMR2 |= (pPWMConfig->PWM_OCMode << 4);
 
-        if(pTIMHandle->TIM_Config.TIM_OCPreload)
+        if(pPWMConfig->PWM_OCPreload)
             pTIMHandle->pTIMx->CCMR2 |= (1 << 3);
 
         pTIMHandle->pTIMx->CCMR2 &= ~(0x3 << 0); //To secure output
 
         pTIMHandle->pTIMx->CCER &= ~(0xB << 8); //Clean b11,b9,b8
         pTIMHandle->pTIMx->CCER |= (1 << 8);
-        if(pTIMHandle->TIM_Config.TIM_OCPolarity)
+        if(pPWMConfig->PWM_OCPolarity)
             pTIMHandle->pTIMx->CCER |= (1 << 9); //Active low
 
-	}else if((pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_4)){
+	}else if((pPWMConfig->PWM_Channel == PWM_CHANNEL_4)){
 		pTIMHandle->pTIMx->CCR4 = 0;
 
 		pTIMHandle->pTIMx->CCMR2 &= ~(0xFF << 8);		//Only clear channel 4
 
-        pTIMHandle->pTIMx->CCMR2 |= (pTIMHandle->TIM_Config.TIM_OCMode << 12);
+        pTIMHandle->pTIMx->CCMR2 |= (pPWMConfig->PWM_OCMode << 12);
 
-        if(pTIMHandle->TIM_Config.TIM_OCPreload)
+        if(pPWMConfig->PWM_OCPreload)
             pTIMHandle->pTIMx->CCMR2 |= (1 << 11);
 
         pTIMHandle->pTIMx->CCMR2 &= ~(0x3 << 8); //To secure output
 
         pTIMHandle->pTIMx->CCER &= ~(0xB << 12); //Clean b15,b13,b12
         pTIMHandle->pTIMx->CCER |= (1 << 12);
-        if(pTIMHandle->TIM_Config.TIM_OCPolarity)
+        if(pPWMConfig->PWM_OCPolarity)
             pTIMHandle->pTIMx->CCER |= (1 << 13); //Active low
 
 	}
 }
 
 
-void TIM_PWM_DutyCycle(TIM_Handle_t *pTIMHandle, uint16_t dutyCycle){
+void TIM_PWM_DutyCycle(TIM_Handle_t *pTIMHandle, PWM_Config_t *pPWMConfig, uint16_t dutyCycle){
 
-	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_1) pTIMHandle->pTIMx->CCR1 = dutyCycle;
-	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_2) pTIMHandle->pTIMx->CCR2 = dutyCycle;
-	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_3)  pTIMHandle->pTIMx->CCR3 = dutyCycle;
-	if(pTIMHandle->TIM_Config.TIM_Channel == TIM_CHANNEL_4)  pTIMHandle->pTIMx->CCR4 = dutyCycle;
+	if(pPWMConfig->PWM_Channel == PWM_CHANNEL_1) pTIMHandle->pTIMx->CCR1 = dutyCycle;
+	if(pPWMConfig->PWM_Channel == PWM_CHANNEL_2) pTIMHandle->pTIMx->CCR2 = dutyCycle;
+	if(pPWMConfig->PWM_Channel == PWM_CHANNEL_3)  pTIMHandle->pTIMx->CCR3 = dutyCycle;
+	if(pPWMConfig->PWM_Channel == PWM_CHANNEL_4)  pTIMHandle->pTIMx->CCR4 = dutyCycle;
 }
 
-void TIM_PWM_Enable(TIM_Handle_t *pTIMHandle)
+void TIM_PWM_Enable(TIM_Handle_t *pTIMHandle, PWM_Config_t *pPWMConfig)
 {
-	pTIMHandle->pTIMx->CCER |= (1 << ((pTIMHandle->TIM_Config.TIM_Channel - 1 )*4));
+	pTIMHandle->pTIMx->CCER |= (1 << ((pPWMConfig->PWM_Channel - 1 )*4));
 }
 
-void TIM_PWM_Disable(TIM_Handle_t *pTIMHandle)
+void TIM_PWM_Disable(TIM_Handle_t *pTIMHandle, PWM_Config_t *pPWMConfig)
 {
-	pTIMHandle->pTIMx->CCER &= ~(1 << ((pTIMHandle->TIM_Config.TIM_Channel - 1 )*4));
+	pTIMHandle->pTIMx->CCER &= ~(1 << ((pPWMConfig->PWM_Channel - 1 )*4));
 }
 
 /*
