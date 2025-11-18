@@ -232,7 +232,7 @@ void Protocol_Start(void)
 	dma_ready = ENABLE;
 }
 
-void Protocol_Telemetry_EN(void)
+void Protocol_HeartBeat_EN(void)
 {
 	heartbeat_status = ENABLE;
 }
