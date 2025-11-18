@@ -453,17 +453,17 @@ int main(void)
 void TIM3_IRQHandler(void)
 {
 	Protocol_HearBeat_EN();
-	TIM_IRQHandling(&TIMxHandle);
+	Protocol_TIMx_IRQHandling();
 }
 
 void DMA1_Stream6_IRQHandler(void)
 {
-	DMA_IRQHandling(&DMAx_TXHandle);
+	Protocol_DMAx_TX_IRQHandling();
 }
 
 void DMA1_Stream5_IRQHandler(void)
 {
-	DMA_IRQHandling(&DMAx_RXHandle);
+	Protocol_DMAx_RX_IRQHandling();
 }
 
 

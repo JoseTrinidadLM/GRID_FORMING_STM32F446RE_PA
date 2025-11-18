@@ -340,3 +340,18 @@ __weak void executeCommand(uint8_t command)
 {
 	/*Expect other library to complete*/
 }
+
+void Protocol_TIMx_IRQHandling(void)
+{
+	TIM_IRQHandling(&TIMxHandle);
+}
+
+void Protocol_DMAx_TX_IRQHandling(void)
+{
+	DMA_IRQHandling(&DMAx_TXHandle)
+}
+
+void Protocol_DMAx_RX_IRQHandling(void)
+{
+	DMA_IRQHandling(&DMAx_RXHandle)
+}
