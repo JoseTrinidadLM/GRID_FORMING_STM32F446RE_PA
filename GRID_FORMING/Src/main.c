@@ -203,13 +203,13 @@ void TIM2_IRQHandler(void)
 
 	/*This are critical operations needed before shifting to Closed Loop Mode */
 
-	/*TO DO: Read and characterize sensors */
+	/*TO DO: Read and characterize sensors @Macros for documentation*/
 
-	v_g = 	(raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
-	i_inv = (raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
-	i_L = 	(raw_sensor_value[2]/4095.0f - 0.5f)*2.0f;
-	v_cd = 	(raw_sensor_value[3]/4095.0f - 0.5f)*2.0f;
-	ElapsedTime = ElapsedTime + (1.0f/9600.0f);
+	v_g = 	(raw_sensor_value[0]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
+	i_inv = (raw_sensor_value[1]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
+	i_L = 	(raw_sensor_value[2]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
+	v_cd = 	(raw_sensor_value[3]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
+	ElapsedTime = ElapsedTime + SAMPLING_PERIOD;
 	
 	/*This is to refresh the packet_values in buffer for DMA*/
 	USART_SetBuffer();
@@ -251,10 +251,10 @@ void EXTI15_10_IRQHandler(void)
 	if( OPERATION_MODE == DISABLE)
 	{
 		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
-		heartbeat[0] &= ~(1 << 0); //Set Loop Status Flag to Open
+		SET_OPEN_LOOP_MODE;
 	} else
 	{
-		heartbeat[0] |= (1 << 0); //Set Loop Status Flag to Closed
+		SET_CLOSED_LOOP_MODE;
 	}
 
 	if( PWM_ENABLE == DISABLE )

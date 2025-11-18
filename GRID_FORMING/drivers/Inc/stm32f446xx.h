@@ -1051,6 +1051,7 @@ typedef struct
 #define START_TIME 			    0
 #define SAMPLING_FREQUENCY		9600
 #define PWM_FREQUENCY			9600
+#define SAMPLING_PERIOD		(1.0f/SAMPLING_FREQUENCY)
 
 #include "stm32f446xx_gpio_driver.h"
 #include "stm32f446xx_rcc_driver.h"
