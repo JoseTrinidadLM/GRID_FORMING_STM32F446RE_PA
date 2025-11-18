@@ -49,16 +49,10 @@ float i_inv;
 
 float ElapsedTime=0;	//Elapsed time variable
 
-char packets_keys[] = {'V','C','F','D','Z','S','X','N'};
 float packets_value[5]; 	//Data packet to be sent via UART
 int valid_send = 1;		//Flag to indicate when data packet is ready to be sent
 
 uint8_t heartbeat[2];
-
-uint8_t heartbeat[0] = 0b00000000; 		//Status variable to monitor system states
-uint8_t heartbeat[1] = 96;				//Sampling Frequency
-
-uint8_t receive_data[3];
 
 /*sine wave for DQ and power-factor correction*/
 float cosine;
@@ -394,7 +388,7 @@ void USART_SetBuffer()
 		packets_value[3] = v_cd;
 		packets_value[4] = ElapsedTime;
 		valid_send = 0;
-		telemetry_status = ENABLE;
+		Protocol_Telemetry_EN();
 	}else {
 		valid_send = 1;
 	}
@@ -405,6 +399,8 @@ void ResetTime(void)
 {
 	ElapsedTime = 0;
 }
+
+GPIO_Handle_t LED;
 
 void LED_GPIOInits(void)
 {
@@ -436,16 +432,38 @@ int main(void)
 	SamplingRateTIMInit(9600);
 	PWM_TIMInits(9600);
 
-	ProtocolInit(USART2, &packets_value, heartbeat);
+	ProtocolInit(USART2, GPIOA, GPIOA, GPIO_PIN_NO_2, GPIO_PIN_NO_3, packets_value, heartbeat);
 	Protocol_TIMInit(TIM3);
 	Protocol_Start();
 
-	//Call Protocol_Telemetry() to send values in @packets_value
+	//Call Protocol_Telemetry_EN() to send values in @packets_value
 
 	LED_GPIOInits();
 
-	while(1);
+	Protocol_Telemetry_EN();
+
+	while(1)
+	{
+		Protocol_HeartBeat();
+		Protocol_Telemetry();
+	}
 	return 0;
+}
+
+void TIM3_IRQHandler(void)
+{
+	Protocol_HearBeat_EN();
+	TIM_IRQHandling(&TIMxHandle);
+}
+
+void DMA1_Stream6_IRQHandler(void)
+{
+	DMA_IRQHandling(&DMAx_TXHandle);
+}
+
+void DMA1_Stream5_IRQHandler(void)
+{
+	DMA_IRQHandling(&DMAx_RXHandle);
 }
 
 
@@ -529,10 +547,10 @@ void EXTI15_10_IRQHandler(void)
 	if( OPERATION_MODE == 0 )
 	{
 		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
-		status &= ~(1 << 0); //Set Loop Status Flag to Open 
+		heartbeat[0] &= ~(1 << 0); //Set Loop Status Flag to Open 
 	} else
 	{
-		status |= (1 << 0); //Set Loop Status Flag to Closed
+		heartbeat[0] |= (1 << 0); //Set Loop Status Flag to Closed
 	}
 
 	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
@@ -543,14 +561,14 @@ void EXTI15_10_IRQHandler(void)
 		GPIO_WriteToOutputPin(GPIOA, GPIO_PIN_NO_9, RESET);
 		GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 
-		status &= ~(1 << 1); //Set PWM Status Flag to Disabled
+		heartbeat[0] &= ~(1 << 1); //Set PWM Status Flag to Disabled
 
 	} else if( PWM_ENABLE == 1 )
 	{
 		TIM_PWM_Enable(&TIM_1);
 		TIM_PWM_Enable(&TIM_4);
 
-		status |= (1 << 1); //Set PWM Status Flag to Enabled
+		heartbeat[0] |= (1 << 1); //Set PWM Status Flag to Enabled
 
 	}
 }

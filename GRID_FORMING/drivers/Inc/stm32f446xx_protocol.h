@@ -15,13 +15,19 @@
  *
  */
 
-void ProtocolInit(USART_RegDef_t *pUSARTx, float *Buffer_values, uint8_t *Buffer_heartbeat);
+void ProtocolInit(USART_RegDef_t *pUSARTx, GPIO_RegDef_t *pGPIOx_TX, GPIO_RegDef_t *pGPIOx_RX , uint8_t Pin_TX, uint8_t Pin_RX ,float *Buffer_values, uint8_t *Buffer_heartbeat);
 
 void Protocol_TIMInit(TIM_RegDef_t *pTIMx);
 
 void Protocol_Start(void);
 
+void Protocol_HeartBeat(void);
+
+void Protocol_HeartBeat_EN(void);
+
 void Protocol_Telemetry(void);
+
+void Protocol_Telemetry_EN(void);
 
 __weak void executeCommand(uint8_t command);
 
