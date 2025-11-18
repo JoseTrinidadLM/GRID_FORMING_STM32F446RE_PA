@@ -1048,6 +1048,7 @@ typedef struct
 #include "stm32f446xx_timer_driver.h"
 #include "stm32f446xx_dma_driver.h"
 #include "stm32f446xx_adc_driver.h"
+#include "stm32f446xx_control.h"
 //#include "stm32f446xx_spi_driver.h"
 //#include "stm32f446xx_i2c_driver.h"
 #include "stm32f446xx_usart_driver.h"
