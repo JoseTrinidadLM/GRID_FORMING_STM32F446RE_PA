@@ -22,6 +22,8 @@ void PWM_TIMInits(float carrier_frequency);
 
 float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *pBuffer_Counter, __vo uint8_t *pBuffer_Ready_Flag);
 
+float SignalDelay(float *pSignal_Buffer, float signal, __vo uint8_t *pBuffer_Counter, __vo uint8_t *pBuffer_Ready_Flag, uint8_t samples_to_delay);
+
 float DTransform(float cosine_wt, float sine_wt, float alpha, float beta);
 
 float QTransform(float cosine_wt, float sine_wt, float alpha, float beta);

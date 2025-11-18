@@ -230,6 +230,29 @@ float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *p
 	return temp_sin;
 }
 
+/*Delays a signal a fixed o variable sample periods**/
+float SignalDelay(float *pSignal_Buffer, float signal, __vo uint8_t *pBuffer_Counter, __vo uint8_t *pBuffer_Ready_Flag, uint8_t samples_to_delay)
+{
+	float temp_delayed_signal = 0;
+
+	if(*pBuffer_Ready_Flag == 1) temp_delayed_signal =  pSignal_Buffer[*pBuffer_Counter];
+
+
+	pSignal_Buffer[*pBuffer_Counter] = signal;
+
+	//Counter updates
+	(*pBuffer_Counter)++;
+
+	//Once the buffer is completely filled counter is reset
+	if(*pBuffer_Counter >= samples_to_delay)									//This condition is subject to sampling rate being 9.6 kHz
+	{
+		*pBuffer_Ready_Flag = 1;
+		*pBuffer_Counter = 0;
+	}
+	return temp_delayed_signal;
+}
+
+
 
 /*This function computes partially the Park Transformation of two-phase orthogonal components its output returns the quadrature axis component */
 float DTransform(float cosine_wt, float sine_wt, float alpha, float beta)
