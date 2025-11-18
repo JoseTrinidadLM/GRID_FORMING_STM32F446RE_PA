@@ -260,14 +260,12 @@ void EXTI15_10_IRQHandler(void)
 	if( PWM_ENABLE == DISABLE )
 	{
 		PWM_Disable();
-
-		heartbeat[0] &= ~(1 << 1); //Set PWM Status Flag to Disabled
+		PWM_DISABLE_FLAG
 
 	} else if( PWM_ENABLE == ENABLE )
 	{
 		PWM_Enable();
-		heartbeat[0] |= (1 << 1); //Set PWM Status Flag to Enabled
-
+		PWM_ENABLE_FLAG
 	}
 }
 
