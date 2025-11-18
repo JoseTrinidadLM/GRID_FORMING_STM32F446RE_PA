@@ -1043,6 +1043,15 @@ typedef struct
 #define FLAG_RESET					RESET
 #define FLAG_SET					SET
 
+/*
+ * Macros for documentation purpose
+ */
+
+#define BUFFER_LENGTH_9			9
+#define START_TIME 			    0
+#define SAMPLING_FREQUENCY		9600
+#define PWM_FREQUENCY			9600
+
 #include "stm32f446xx_gpio_driver.h"
 #include "stm32f446xx_rcc_driver.h"
 #include "stm32f446xx_timer_driver.h"

@@ -38,7 +38,7 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
-uint64_t BUFFER_SIZE = 9;
+uint64_t BUFFER_SIZE = BUFFER_LENGTH_9;
 
 /*characterized sensor outputs*/
 float v_cd;
@@ -49,10 +49,10 @@ float i_inv;
 
 uint32_t raw_sensor_value[4];
 
-float ElapsedTime=0;	//Elapsed time variable
+float ElapsedTime = START_TIME;	//Elapsed time variable
 
 float packets_value[5]; 	//Data packet to be sent via UART
-int valid_send = 1;		//Flag to indicate when data packet is ready to be sent
+int valid_send = FLAG_SET;		//Flag to indicate when data packet is ready to be sent
 
 uint8_t heartbeat[2];
 
@@ -68,28 +68,28 @@ __vo uint16_t u_control_pos;
 __vo uint16_t u_control_neg;
 
 
-uint8_t OPERATION_MODE = 0;
+uint8_t OPERATION_MODE = DISABLE;
 
 /*This function set the values for USART buffer*/
 void USART_SetBuffer()
 {
-	if (valid_send == 1) {
+	if (valid_send == FLAG_SET) {
 		packets_value[0] = v_g;
 		packets_value[1] = i_L ;
 		packets_value[2] = i_inv;
 		packets_value[3] = v_cd;
 		packets_value[4] = ElapsedTime;
-		valid_send = 0;
+		valid_send = FLAG_RESET;
 		Protocol_Telemetry_EN();
 	}else {
-		valid_send = 1;
+		valid_send = FLAG_SET;
 	}
 }
 
 /*This function resets the value of Elapsed time*/
 void ResetTime(void)
 {
-	ElapsedTime = 0;
+	ElapsedTime = START_TIME;
 }
 
 GPIO_Handle_t LED;
@@ -133,8 +133,8 @@ int main(void)
 	Utility_GPIOInits();
 	PWM_GPIOInits();
 	Sensors_Init((void*)raw_sensor_value);
-	SamplingRateTIMInit(9600);
-	PWM_TIMInits(9600);
+	SamplingRateTIMInit(SAMPLING_FREQUENCY);
+	PWM_TIMInits(PWM_FREQUENCY);
 
 	ProtocolInit(USART2, GPIOA, GPIOA, GPIO_PIN_NO_2, GPIO_PIN_NO_3, packets_value, heartbeat);
 	Protocol_TIMInit(TIM3);
@@ -173,31 +173,31 @@ void DMA1_Stream5_IRQHandler(void)
 
 /*Buffers to store quarter of a period of cos and i_L*/
 /*For every shifted signal it is needed a buffer*/
-float cos_buffer[40] = {0};
-float i_L_buffer[40] = {0};
+float cos_buffer[40] = {RESET};
+float i_L_buffer[40] = {RESET};
 
 
 /*Control global variables*/
-__vo float e1_z_0 = 0;
-__vo float e1_z_1 = 0;
+__vo float e1_z_0 = RESET;
+__vo float e1_z_1 = RESET;
 
-__vo float e2_z_0 = 0;
-__vo float e2_z_1 = 0;
+__vo float e2_z_0 = RESET;
+__vo float e2_z_1 = RESET;
 
-__vo float y1_z_0 = 0;
-__vo float y1_z_1 = 0;
+__vo float y1_z_0 = RESET;
+__vo float y1_z_1 = RESET;
 
-__vo float y2_z_0 = 0;
-__vo float y2_z_1 = 0;
+__vo float y2_z_0 = RESET;
+__vo float y2_z_1 = RESET;
 
 void TIM2_IRQHandler(void)
 {
 	/*Flags and counters used for 90-degree shiftimg*/
-	__vo static uint8_t Buffer_Counter_Cos = 0;
-	__vo static uint8_t Buffer_Ready_Flag_Cos = 0;
+	__vo static uint8_t Buffer_Counter_Cos = RESET;
+	__vo static uint8_t Buffer_Ready_Flag_Cos = RESET;
 
-	__vo static uint8_t Buffer_Counter_iL = 0;
-	__vo static uint8_t Buffer_Ready_Flag_iL = 0;
+	__vo static uint8_t Buffer_Counter_iL = RESET;
+	__vo static uint8_t Buffer_Ready_Flag_iL = RESET;
 
 	TIM2_IRQHandling();
 
@@ -224,7 +224,7 @@ void TIM2_IRQHandler(void)
 	
 	i_Q = QTransform(cosine, sine, i_L, i_L90);
 
-	if(OPERATION_MODE == 0)
+	if(OPERATION_MODE == DISABLE)
 	{
 		OpenLoop(v_g, &u_control_pos, &u_control_neg);
 
@@ -240,15 +240,15 @@ void TIM2_IRQHandler(void)
 /*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
-	static uint8_t PWM_ENABLE = 0;
-	GPIO_IRQHandling(14);
+	static uint8_t PWM_ENABLE = DISABLE;
+	GPIO_IRQHandling(GPIO_PIN_NO_14);
 	/*Both pins are read*/
-	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, 14);
-	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, 15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
+	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14);
+	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
 
 
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
-	if( OPERATION_MODE == 0 )
+	if( OPERATION_MODE == DISABLE)
 	{
 		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
 		heartbeat[0] &= ~(1 << 0); //Set Loop Status Flag to Open
@@ -257,13 +257,13 @@ void EXTI15_10_IRQHandler(void)
 		heartbeat[0] |= (1 << 0); //Set Loop Status Flag to Closed
 	}
 
-	if( PWM_ENABLE == 0 )
+	if( PWM_ENABLE == DISABLE )
 	{
 		PWM_Disable();
 
 		heartbeat[0] &= ~(1 << 1); //Set PWM Status Flag to Disabled
 
-	} else if( PWM_ENABLE == 1 )
+	} else if( PWM_ENABLE == ENABLE )
 	{
 		PWM_Enable();
 		heartbeat[0] |= (1 << 1); //Set PWM Status Flag to Enabled
@@ -281,5 +281,5 @@ void ShiftSensorsValue(void)
 }
 
 
-uint64_t comm[3] = {0}; //lo anadi para revisar que compilara
+uint64_t comm[3] = {RESET}; //lo anadi para revisar que compilara
 
