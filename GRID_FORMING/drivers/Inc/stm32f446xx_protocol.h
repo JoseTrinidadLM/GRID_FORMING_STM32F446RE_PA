@@ -37,5 +37,4 @@ void Protocol_DMAx_TX_IRQHandling(void);
 
 void Protocol_DMAx_RX_IRQHandling(void);
 
-
 #endif /* INC_STM32F446XX_PROTOCOL_H_ */

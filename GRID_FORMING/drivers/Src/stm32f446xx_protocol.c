@@ -348,10 +348,10 @@ void Protocol_TIMx_IRQHandling(void)
 
 void Protocol_DMAx_TX_IRQHandling(void)
 {
-	DMA_IRQHandling(&DMAx_TXHandle)
+	DMA_IRQHandling(&DMAx_TXHandle);
 }
 
 void Protocol_DMAx_RX_IRQHandling(void)
 {
-	DMA_IRQHandling(&DMAx_RXHandle)
+	DMA_IRQHandling(&DMAx_RXHandle);
 }
