@@ -403,7 +403,6 @@ void EXTI15_10_IRQHandler(void)
 		status |= (1 << 0); //Set Loop Status Flag to Closed
 	}
 
-	/*To disable PWM output, when PWM_ENABLE is 0 TIM5 (which controls PWM GPIO C7-A9) is stopped and both pins are reset. When PWM_ENABLE is 1 it starts TIM5 again*/
 	if( PWM_ENABLE == 0 )
 	{
 		PWM_Disable();
