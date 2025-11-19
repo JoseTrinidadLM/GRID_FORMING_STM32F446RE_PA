@@ -38,59 +38,11 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
-uint64_t BUFFER_SIZE = BUFFER_LENGTH_9;
-
-/*characterized sensor outputs*/
-float v_cd;
-float v_g;
-float i_L;
-float i_L90;
-float i_inv;
-
 uint32_t raw_sensor_value[4];
 
-float ElapsedTime = START_TIME;	//Elapsed time variable
-
 float packets_value[5]; 	//Data packet to be sent via UART
-int valid_send = FLAG_SET;		//Flag to indicate when data packet is ready to be sent
 
 uint8_t heartbeat[2];
-
-/*sine wave for DQ and power-factor correction*/
-float cosine;
-float sine;
-
-float i_Q;
-
-
-/*modulator signal*/
-__vo uint16_t u_control_pos;
-__vo uint16_t u_control_neg;
-
-
-uint8_t OPERATION_MODE = DISABLE;
-
-/*This function set the values for USART buffer*/
-void USART_SetBuffer()
-{
-	if (valid_send == FLAG_SET) {
-		packets_value[0] = v_g;
-		packets_value[1] = i_L ;
-		packets_value[2] = i_inv;
-		packets_value[3] = v_cd;
-		packets_value[4] = ElapsedTime;
-		valid_send = FLAG_RESET;
-		Protocol_Telemetry_EN();
-	}else {
-		valid_send = FLAG_SET;
-	}
-}
-
-/*This function resets the value of Elapsed time*/
-void ResetTime(void)
-{
-	ElapsedTime = START_TIME;
-}
 
 GPIO_Handle_t LED;
 
@@ -105,20 +57,6 @@ void LED_GPIOInits(void)
 	//LED D13
 	LED.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_5;
 	GPIO_Init(&LED);
-}
-
-void USART2_Inits(USART_Handle_t *pUSART2Handle)
-{
-	pUSART2Handle->pUSARTx = USART2;
-	pUSART2Handle->USARTConfig.USART_Baud = 2200000;
-	pUSART2Handle->USARTConfig.USART_HWFlowControl = USART_HW_FC_NONE;
-	pUSART2Handle->USARTConfig.USART_Mode = USART_MODE_TX_RX;
-	pUSART2Handle->USARTConfig.USART_NoOfStopBits = USART_1_STOPBITS;
-	pUSART2Handle->USARTConfig.USART_ParityControl = USART_PARITY_DISABLE;
-	pUSART2Handle->USARTConfig.USART_WordLength = USART_WLEN_8BITS;
-	pUSART2Handle->USARTConfig.USART_DMA = USART_DMA_TX_RX;
-
-	USART_Init(pUSART2Handle);
 }
 
 void USART_HeartBeatTX(void);
@@ -170,105 +108,23 @@ void DMA1_Stream5_IRQHandler(void)
 	Protocol_DMAx_RX_IRQHandling();
 }
 
-
-/*Buffers to store quarter of a period of cos and i_L*/
-/*For every shifted signal it is needed a buffer*/
-float cos_buffer[40] = {RESET};
-float i_L_buffer[40] = {RESET};
-
-
-/*Control global variables*/
-__vo float e1_z_0 = RESET;
-__vo float e1_z_1 = RESET;
-
-__vo float e2_z_0 = RESET;
-__vo float e2_z_1 = RESET;
-
-__vo float y1_z_0 = RESET;
-__vo float y1_z_1 = RESET;
-
-__vo float y2_z_0 = RESET;
-__vo float y2_z_1 = RESET;
-
 void TIM2_IRQHandler(void)
 {
-	/*Flags and counters used for 90-degree shiftimg*/
-	__vo static uint8_t Buffer_Counter_Cos = RESET;
-	__vo static uint8_t Buffer_Ready_Flag_Cos = RESET;
-
-	__vo static uint8_t Buffer_Counter_iL = RESET;
-	__vo static uint8_t Buffer_Ready_Flag_iL = RESET;
-
 	TIM2_IRQHandling();
 
 	/*This are critical operations needed before shifting to Closed Loop Mode */
 
-	/*TO DO: Read and characterize sensors */
-
-	v_g = 	(raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
-	i_inv = (raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
-	i_L = 	(raw_sensor_value[2]/4095.0f - 0.5f)*2.0f;
-	v_cd = 	(raw_sensor_value[3]/4095.0f - 0.5f)*2.0f;
-	ElapsedTime = ElapsedTime + (1.0f/9600.0f);
+	/*Read and characterize sensors */
+	Control_ReadSensors(packets_value);
 	
-	/*This is to refresh the packet_values in buffer for DMA*/
-	USART_SetBuffer();
-
-	/*In case there is a high presence of noise, signals will be filtered*/
-
-	cosine = v_g;		//This is just an example to show its functionality
-
-	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
-
-	i_L90 = NINETYDegreePhaseShift(i_L_buffer, i_L, &Buffer_Counter_iL, &Buffer_Ready_Flag_iL);
-	
-	i_Q = QTransform(cosine, sine, i_L, i_L90);
-
-	if(OPERATION_MODE == DISABLE)
-	{
-		OpenLoop(v_g, &u_control_pos, &u_control_neg);
-
-	} else
-	{
-		CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
-	}
-
-	PWM_dutyCycle_control(u_control_pos, u_control_neg);
+	Control_DutyCycle();
 
 }
 
 /*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
-	static uint8_t PWM_ENABLE = DISABLE;
-	GPIO_IRQHandling(GPIO_PIN_NO_14);
-	/*Both pins are read*/
-	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14);
-	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
-
-
-	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
-	if( OPERATION_MODE == DISABLE)
-	{
-		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
-		heartbeat[0] &= ~(1 << 0); //Set Loop Status Flag to Open
-	} else
-	{
-		heartbeat[0] |= (1 << 0); //Set Loop Status Flag to Closed
-	}
-
-	if( PWM_ENABLE == DISABLE )
-	{
-		PWM_Disable();
-
-		heartbeat[0] &= ~(1 << 1); //Set PWM Status Flag to Disabled
-
-	} else if( PWM_ENABLE == ENABLE )
-	{
-		PWM_Enable();
-		heartbeat[0] |= (1 << 1); //Set PWM Status Flag to Enabled
-
-	}
+	Control_Mode(void)
 }
 
 void ShiftSensorsValue(void)

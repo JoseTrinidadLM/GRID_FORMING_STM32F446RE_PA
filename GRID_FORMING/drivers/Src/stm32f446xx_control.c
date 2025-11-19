@@ -24,6 +24,76 @@ static TIM_Handle_t TIM_4;
 static PWM_Config_t TIM4_PWM_Channel_1;
 static PWM_Config_t TIM4_PWM_Channel_2;
 
+static uint8_t PWM_ENABLE = DISABLE;
+
+int valid_send = FLAG_SET;		//Flag to indicate when data packet is ready to be sent
+
+/*Buffers to store quarter of a period of cos and i_L*/
+/*For every shifted signal it is needed a buffer*/
+float cos_buffer[40] = {RESET};
+float i_L_buffer[40] = {RESET};
+
+
+/*Control global variables*/
+__vo float e1_z_0 = RESET;
+__vo float e1_z_1 = RESET;
+
+__vo float e2_z_0 = RESET;
+__vo float e2_z_1 = RESET;
+
+__vo float y1_z_0 = RESET;
+__vo float y1_z_1 = RESET;
+
+__vo float y2_z_0 = RESET;
+__vo float y2_z_1 = RESET;
+
+/*Flags and counters used for 90-degree shiftimg*/
+__vo static uint8_t Buffer_Counter_Cos = RESET;
+__vo static uint8_t Buffer_Ready_Flag_Cos = RESET;
+
+__vo static uint8_t Buffer_Counter_iL = RESET;
+__vo static uint8_t Buffer_Ready_Flag_iL = RESET;
+
+uint64_t BUFFER_SIZE = BUFFER_LENGTH_9;
+
+/*characterized sensor outputs*/
+float v_cd;
+float v_g;
+float i_L;
+float i_L90;
+float i_inv;
+
+uint32_t raw_sensor_value[4];
+
+float ElapsedTime = START_TIME;	//Elapsed time variable
+
+/*sine wave for DQ and power-factor correction*/
+float cosine;
+float sine;
+
+float i_Q;
+
+/*modulator signal*/
+__vo uint16_t u_control_pos;
+__vo uint16_t u_control_neg;
+
+
+uint8_t OPERATION_MODE = DISABLE;
+uint8_t operationMode;
+
+
+#define SET_OPEN_LOOP_MODE		do{ &= ~(1 << 0); }while(0)
+#define SET_CLOSED_LOOP_MODE	do{ |= (1 << 0); }while(0)
+
+#define PWM_DISABLE_FLAG		do{ &= ~(1 << 1); }while(0)
+#define PWM_ENABLE_FLAG			do{ |= (1 << 1); }while(0)
+
+/*This function resets the value of Elapsed time*/
+void ResetTime(void)
+{
+	ElapsedTime = START_TIME;
+}
+
 /*GPIO pins 14-15 from port B are declared as input that activate EXTI15_10 to control PWM on/off, as well as change Operation Mode*/
 void Utility_GPIOInits(void)
 {
@@ -150,7 +220,6 @@ void Sensors_Init(void *pDest) /*For this application only 4 sensors will be ini
 
 	DMA_Init(&DMA2_ADC1Handle);
 	DMA_SetAddresses(&DMA2_ADC1Handle,(void*)&ADC_1.pADCx->DR, pDest);
-	DMA_StartTransfer(&DMA2_ADC1Handle);
 }
 
 void SamplingRateTIMInit(float sampling_rate)
@@ -167,8 +236,6 @@ void SamplingRateTIMInit(float sampling_rate)
 
 	TIM_IRQInterruptConfig(IRQ_NO_TIM2, ENABLE);
 	TIM_IRQPriorityConfig(IRQ_NO_TIM2, 1);
-
-	TIM_Start(&TIM_2);
 }
 
 void PWM_TIMInits(float carrier_frequency)
@@ -200,9 +267,6 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM4_PWM_Channel_2.PWM_OCPolarity  = PWM_OC_PRELOAD_DISABLED;
 
 	TIM_PWM_Channel_Init(&TIM_4, &TIM4_PWM_Channel_2);
-
-	TIM_Start(&TIM_4);  //Starting timer just for minimal tests
-
 }
 
 /*ALL PARAMETERS AND DESIGN OF THIS FUNCTION ARE GIVEN FOR A 60 HZ SIGNAL***/
@@ -324,8 +388,106 @@ void PWM_dutyCycle_control(uint16_t u_pos ,uint16_t u_neg)
 	TIM_PWM_DutyCycle(&TIM_4, &TIM4_PWM_Channel_2, u_neg);
 }
 
+void ControlInit(void)
+{
+	Utility_GPIOInits();
+	PWM_GPIOInits();
+	Sensors_Init((void*)raw_sensor_value);
+	SamplingRateTIMInit(SAMPLING_FREQUENCY);
+	PWM_TIMInits(PWM_FREQUENCY);
+}
+
+void Control_Start(void)
+{
+	TIM_Start(&TIM_2);
+	TIM_Start(&TIM_4);  //Starting timer just for minimal tests
+	DMA_StartTransfer(&DMA2_ADC1Handle);
+}
+
 void TIM2_IRQHandling(void)
 {
 	TIM_IRQHandling(&TIM_2);
+}
+
+uint8_t Control_ReadSensors(float* values)
+{
+	/*TO DO: Read and characterize sensors */
+
+	v_g = 	(raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
+	i_inv = (raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
+	i_L = 	(raw_sensor_value[2]/4095.0f - 0.5f)*2.0f;
+	v_cd = 	(raw_sensor_value[3]/4095.0f - 0.5f)*2.0f;
+	ElapsedTime = ElapsedTime + (1.0f/9600.0f);
+
+	if (valid_send == FLAG_SET) {
+		*values[0] = v_g;
+		*values[1] = i_L ;
+		*values[2] = i_inv;
+		*values[3] = v_cd;
+		*values[4] = ElapsedTime;
+		valid_send = FLAG_RESET;
+	}else {
+		valid_send = FLAG_SET;
+	}
+
+	return valid_send;
+}
+
+void Control_DutyCycle(void)
+{
+	/*In case there is a high presence of noise, signals will be filtered*/
+
+	cosine = v_g;		//This is just an example to show its functionality
+
+	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
+
+	i_L90 = NINETYDegreePhaseShift(i_L_buffer, i_L, &Buffer_Counter_iL, &Buffer_Ready_Flag_iL);
+	
+	i_Q = QTransform(cosine, sine, i_L, i_L90);
+
+	if(OPERATION_MODE == DISABLE)
+	{
+		OpenLoop(v_g, &u_control_pos, &u_control_neg);
+
+	} else
+	{
+		CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
+	}
+
+	PWM_dutyCycle_control(u_control_pos, u_control_neg);
+}
+
+uint8_t Control_Mode(void)
+{
+	//TO-DO: Change to use Command value
+	GPIO_IRQHandling(GPIO_PIN_NO_14);
+	/*Both pins are read*/
+	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14);
+	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
+
+
+	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
+	if( OPERATION_MODE == DISABLE)
+	{
+		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
+		operationMode &= ~(1 << 0); //Set Loop Status Flag to Open
+	} else
+	{
+		operationMode |= (1 << 0); //Set Loop Status Flag to Closed
+	}
+
+	if( PWM_ENABLE == DISABLE )
+	{
+		PWM_Disable();
+
+		operationMode &= ~(1 << 1); //Set PWM Status Flag to Disabled
+
+	} else if( PWM_ENABLE == ENABLE )
+	{
+		PWM_Enable();
+		operationMode |= (1 << 1); //Set PWM Status Flag to Enabled
+
+	}
+	return operationMode;
 }
 
