@@ -38,8 +38,6 @@
 #include <string.h>
 #include "stm32f446xx.h"
 
-uint32_t raw_sensor_value[4];
-
 float packets_value[5]; 	//Data packet to be sent via UART
 
 uint8_t heartbeat[2];
@@ -59,20 +57,14 @@ void LED_GPIOInits(void)
 	GPIO_Init(&LED);
 }
 
-void USART_HeartBeatTX(void);
-void USART_TelemetryTX(void);
-
 int main(void)
 {
 	SystemCLK_Config_84MHz();
 
 	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
 
-	Utility_GPIOInits();
-	PWM_GPIOInits();
-	Sensors_Init((void*)raw_sensor_value);
-	SamplingRateTIMInit(SAMPLING_FREQUENCY);
-	PWM_TIMInits(PWM_FREQUENCY);
+	ControlInit();
+	//Control_Start(); Note: Use after comand start
 
 	ProtocolInit(USART2, GPIOA, GPIOA, GPIO_PIN_NO_2, GPIO_PIN_NO_3, packets_value, heartbeat);
 	Protocol_TIMInit(TIM3);
@@ -81,9 +73,6 @@ int main(void)
 	//Call Protocol_Telemetry_EN() to send values in @packets_value
 
 	LED_GPIOInits();
-
-	Protocol_Telemetry_EN();
-
 	while(1)
 	{
 		Protocol_HeartBeat();
@@ -112,10 +101,7 @@ void TIM2_IRQHandler(void)
 {
 	TIM2_IRQHandling();
 
-	/*This are critical operations needed before shifting to Closed Loop Mode */
-
-	/*Read and characterize sensors */
-	Control_ReadSensors(packets_value);
+	if(Control_ReadSensors(packets_value) == FLAG_RESET) Protocol_Telemetry_EN();
 	
 	Control_DutyCycle();
 
@@ -124,16 +110,8 @@ void TIM2_IRQHandler(void)
 /*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
-	Control_Mode(void)
-}
-
-void ShiftSensorsValue(void)
-{
-	for(uint64_t x = BUFFER_SIZE-1; x>0; x--)
-	{
-		//TO-DO: shift processed values
-		;
-	}
+	//TO-DO: Receive command value
+	heartbeat[0] = Control_Mode();
 }
 
 

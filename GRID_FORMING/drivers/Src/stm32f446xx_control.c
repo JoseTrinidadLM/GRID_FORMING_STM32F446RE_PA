@@ -81,13 +81,6 @@ __vo uint16_t u_control_neg;
 uint8_t OPERATION_MODE = DISABLE;
 uint8_t operationMode;
 
-
-#define SET_OPEN_LOOP_MODE		do{ &= ~(1 << 0); }while(0)
-#define SET_CLOSED_LOOP_MODE	do{ |= (1 << 0); }while(0)
-
-#define PWM_DISABLE_FLAG		do{ &= ~(1 << 1); }while(0)
-#define PWM_ENABLE_FLAG			do{ |= (1 << 1); }while(0)
-
 /*This function resets the value of Elapsed time*/
 void ResetTime(void)
 {
@@ -470,24 +463,32 @@ uint8_t Control_Mode(void)
 	if( OPERATION_MODE == DISABLE)
 	{
 		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
-		operationMode &= ~(1 << 0); //Set Loop Status Flag to Open
+		SET_OPEN_LOOP_MODE	 //Set Loop Status Flag to Open
 	} else
 	{
-		operationMode |= (1 << 0); //Set Loop Status Flag to Closed
+		SET_CLOSED_LOOP_MODE //Set Loop Status Flag to Closed
 	}
 
 	if( PWM_ENABLE == DISABLE )
 	{
 		PWM_Disable();
 
-		operationMode &= ~(1 << 1); //Set PWM Status Flag to Disabled
+		PWM_DISABLE_FLAG //Set PWM Status Flag to Disabled
 
 	} else if( PWM_ENABLE == ENABLE )
 	{
 		PWM_Enable();
-		operationMode |= (1 << 1); //Set PWM Status Flag to Enabled
+		PWM_ENABLE_FLAG	 //Set PWM Status Flag to Enabled
 
 	}
 	return operationMode;
 }
 
+void ShiftSensorsValue(void)
+{
+	for(uint64_t x = BUFFER_SIZE-1; x>0; x--)
+	{
+		//TO-DO: shift processed values
+		;
+	}
+}

@@ -38,6 +38,16 @@ void PWM_Disable(void);
 
 void PWM_dutyCycle_control(uint16_t u_pos ,uint16_t u_neg);
 
+void ControlInit(void);
+
+void Control_Start(void);
+
+uint8_t Control_ReadSensors(float* values);
+
+void Control_DutyCycle(void);
+
+uint8_t Control_Mode(void);
+
 void TIM2_IRQHandling(void);
 
 
