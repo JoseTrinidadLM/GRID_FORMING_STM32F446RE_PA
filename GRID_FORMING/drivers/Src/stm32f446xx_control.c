@@ -395,6 +395,16 @@ void Control_Start(void)
 	TIM_Start(&TIM_2);
 	TIM_Start(&TIM_4);  //Starting timer just for minimal tests
 	DMA_StartTransfer(&DMA2_ADC1Handle);
+	//TO-DO: Wait 40 samplings to start PWM
+	//PWM_Enable();
+}
+
+void Control_Stop(void)
+{
+	TIM_Stop(&TIM_2);
+	TIM_Stop(&TIM_4);  //Starting timer just for minimal tests
+	DMA_StopTransfer(&DMA2_ADC1Handle);
+	PWM_Disable();
 }
 
 void TIM2_IRQHandling(void)
@@ -468,7 +478,7 @@ uint8_t Control_Mode(void)
 	{
 		SET_CLOSED_LOOP_MODE; //Set Loop Status Flag to Closed
 	}
-
+	//TO-DO: ON/OFF Flag, ON Enables TIM2 -> After 40 samples start PWM Note: Use Control_Start & Control_Stop
 	if( PWM_ENABLE == DISABLE )
 	{
 		PWM_Disable();

@@ -107,9 +107,15 @@ void TIM2_IRQHandler(void)
 
 }
 
+void executeCommand(uint8_t command)
+{
+	heartbeat[0] = Control_Mode();
+}
+
 /*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
+	//TO-DO: Detect button pressed
 	//TO-DO: Receive command value
 	heartbeat[0] = Control_Mode();
 }
