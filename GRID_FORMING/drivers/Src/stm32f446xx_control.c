@@ -24,7 +24,7 @@ static TIM_Handle_t TIM_4;
 static PWM_Config_t TIM4_PWM_Channel_1;
 static PWM_Config_t TIM4_PWM_Channel_2;
 
-static uint8_t PWM_ENABLE = DISABLE;
+static uint8_t SYSTEM_STATE = DISABLE;
 
 int valid_send = FLAG_SET;		//Flag to indicate when data packet is ready to be sent
 
@@ -355,11 +355,11 @@ void PWM_TIMInits(float carrier_frequency)
  *********************************************************************************************************************************************************************/
 float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *pBuffer_Counter, __vo uint8_t *pBuffer_Ready_Flag)
 {
-	float temp_sin = 0;
+	float temp_sin = RESET;
 
 	//temp_sin stores a 90-degree phase shift signal
 	//This buffer stores a quarter a of period of a 60 Hz sine wave
-	if(*pBuffer_Ready_Flag == 1) temp_sin =  pCos_Buffer[*pBuffer_Counter];
+	if(*pBuffer_Ready_Flag == FLAG_SET) temp_sin =  pCos_Buffer[*pBuffer_Counter];
 
 	//Updates current buffer after saving the temp_sine wave
 
@@ -371,8 +371,8 @@ float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *p
 	//Once the buffer is completely filled counter is reset
 	if(*pBuffer_Counter >= 40)									//This condition is subject to sampling rate being 9.6 kHz and grid-load fundamental frequency are 60 Hz
 	{															//Buffer may be larger but to store and create a ring-buffer we only take account of the first quarter of a period
-		*pBuffer_Ready_Flag = 1;
-		*pBuffer_Counter = 0;
+		*pBuffer_Ready_Flag = FLAG_SET;
+		*pBuffer_Counter = RESET;
 	}
 	return temp_sin;
 }
@@ -458,8 +458,8 @@ float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
 
 void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float I_INV, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 {
-	float u_pos_temp = 0;
-	float u_neg_temp = 0;
+	float u_pos_temp = RESET;
+	float u_neg_temp = RESET;
 
 	(*pe1_z_0) = 36 - V_CD;														//Evaluates error among reference and DC sensed value on DC bus of the inverter
 
@@ -505,8 +505,8 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
  *********************************************************************************************************************************************************************/
 void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 {
-	float u_pos_temp = 0;
-	float u_neg_temp = 0;
+	float u_pos_temp = RESET;
+	float u_neg_temp = RESET;
 
 	u_pos_temp = ((cosine_wt*0.5) + 0.5)*(TIM4->ARR);
 	u_neg_temp = ((-cosine_wt*0.5) + 0.5)*(TIM4->ARR);
@@ -538,17 +538,17 @@ void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
  *********************************************************************************************************************************************************************/
 void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
 {
-	(*pe1_z_0) = 0;
-	(*pe1_z_1) = 0;
+	(*pe1_z_0) = RESET;
+	(*pe1_z_1) = RESET;
 
-	(*py1_z_0) = 0;
-	(*py1_z_1) = 0;
+	(*py1_z_0) = RESET;
+	(*py1_z_1) = RESET;
 
-	(*pe2_z_0) = 0;
-	(*pe2_z_1) = 0;
+	(*pe2_z_0) = RESET;
+	(*pe2_z_1) = RESET;
 
-	(*py2_z_0) = 0;
-	(*py2_z_1) = 0;
+	(*py2_z_0) = RESET;
+	(*py2_z_1) = RESET;
 }
 
 /*********************************************************************************************************************************************************************
@@ -650,8 +650,6 @@ void Control_Start(void)
 	TIM_Start(&TIM_2);
 	TIM_Start(&TIM_4);  //Starting timer just for minimal tests
 	DMA_StartTransfer(&DMA2_ADC1Handle);
-	//TO-DO: Wait 40 samplings to start PWM
-	//PWM_Enable();
 }
 
 void Control_Stop(void)
@@ -660,6 +658,8 @@ void Control_Stop(void)
 	TIM_Stop(&TIM_4);  //Starting timer just for minimal tests
 	DMA_StopTransfer(&DMA2_ADC1Handle);
 	PWM_Disable();
+	cos_buffer[40] = {RESET};
+	i_L_buffer[40] = {RESET};
 }
 
 
@@ -684,7 +684,6 @@ uint8_t Control_ReadSensors(float* values)
 	}else {
 		valid_send = FLAG_SET;
 	}
-
 	return valid_send;
 }
 
@@ -712,15 +711,8 @@ void Control_DutyCycle(void)
 	PWM_dutyCycle_control(u_control_pos, u_control_neg);
 }
 
-uint8_t Control_Mode(void)
+uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 {
-	//TO-DO: Change to use Command value
-	GPIO_IRQHandling(GPIO_PIN_NO_14);
-	/*Both pins are read*/
-	PWM_ENABLE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14);
-	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
-
-
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
 	if( OPERATION_MODE == DISABLE)
 	{
@@ -731,17 +723,15 @@ uint8_t Control_Mode(void)
 		SET_CLOSED_LOOP_MODE; //Set Loop Status Flag to Closed
 	}
 	//TO-DO: ON/OFF Flag, ON Enables TIM2 -> After 40 samples start PWM Note: Use Control_Start & Control_Stop
-	if( PWM_ENABLE == DISABLE )
+	if( SYSTEM_STATE == DISABLE )
 	{
-		PWM_Disable();
+		Control_Stop(); 
+		SYSTEM_OFF_FLAG; //Set PWM Status Flag to Disabled
 
-		PWM_DISABLE_FLAG; //Set PWM Status Flag to Disabled
-
-	} else if( PWM_ENABLE == ENABLE )
+	} else if( SYSTEM_STATE == ENABLE )
 	{
-		PWM_Enable();
-		PWM_ENABLE_FLAG;	 //Set PWM Status Flag to Enabled
-
+		Control_Start(); 
+		SYSTEM_ON_FLAG;	 //Set PWM Status Flag to Enabled
 	}
 	return operationMode;
 }

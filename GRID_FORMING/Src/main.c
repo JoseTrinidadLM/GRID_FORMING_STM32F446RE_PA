@@ -110,9 +110,14 @@ void TIM2_IRQHandler(void)
 /*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
-	//TO-DO: Detect button pressed
-	//TO-DO: Receive command value
-	heartbeat[0] = Control_Mode();
+	//TO-DO: Detect button pressed once (valid)
+	//toggle values Power & Loop
+	GPIO_IRQHandling(GPIO_PIN_NO_14);
+	/*Both pins are read*/
+	SYSTEM_STATE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14);
+	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
+
+	heartbeat[0] = Control_Mode(); //Introduce Power & Loop values
 }
 
 

@@ -1047,11 +1047,11 @@ typedef struct
  * Macros to set the status register
 */
 
-#define SET_OPEN_LOOP_MODE		do{ operationMode &= ~(1 << 0); }while(0)
-#define SET_CLOSED_LOOP_MODE	do{ operationMode |= (1 << 0); }while(0)
+#define SET_OPEN_LOOP_MODE		do{ operationMode &= ~(1 << 1); }while(0)
+#define SET_CLOSED_LOOP_MODE	do{ operationMode |=  (1 << 1); }while(0)
 
-#define PWM_DISABLE_FLAG		do{ operationMode &= ~(1 << 1); }while(0)
-#define PWM_ENABLE_FLAG			do{ operationMode |= (1 << 1); }while(0)
+#define SYSTEM_OFF_FLAG			do{ operationMode &= ~(1 << 0); }while(0)
+#define SYSTEM_ON_FLAG			do{ operationMode |=  (1 << 0); }while(0)
 
 
 
