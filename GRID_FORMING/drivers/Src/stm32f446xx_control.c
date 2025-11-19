@@ -413,11 +413,11 @@ uint8_t Control_ReadSensors(float* values)
 	ElapsedTime = ElapsedTime + (1.0f/9600.0f);
 
 	if (valid_send == FLAG_SET) {
-		*values[0] = v_g;
-		*values[1] = i_L ;
-		*values[2] = i_inv;
-		*values[3] = v_cd;
-		*values[4] = ElapsedTime;
+		values[0] = v_g;
+		values[1] = i_L ;
+		values[2] = i_inv;
+		values[3] = v_cd;
+		values[4] = ElapsedTime;
 		valid_send = FLAG_RESET;
 	}else {
 		valid_send = FLAG_SET;
@@ -463,22 +463,22 @@ uint8_t Control_Mode(void)
 	if( OPERATION_MODE == DISABLE)
 	{
 		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
-		SET_OPEN_LOOP_MODE	 //Set Loop Status Flag to Open
+		SET_OPEN_LOOP_MODE;	 //Set Loop Status Flag to Open
 	} else
 	{
-		SET_CLOSED_LOOP_MODE //Set Loop Status Flag to Closed
+		SET_CLOSED_LOOP_MODE; //Set Loop Status Flag to Closed
 	}
 
 	if( PWM_ENABLE == DISABLE )
 	{
 		PWM_Disable();
 
-		PWM_DISABLE_FLAG //Set PWM Status Flag to Disabled
+		PWM_DISABLE_FLAG; //Set PWM Status Flag to Disabled
 
 	} else if( PWM_ENABLE == ENABLE )
 	{
 		PWM_Enable();
-		PWM_ENABLE_FLAG	 //Set PWM Status Flag to Enabled
+		PWM_ENABLE_FLAG;	 //Set PWM Status Flag to Enabled
 
 	}
 	return operationMode;
