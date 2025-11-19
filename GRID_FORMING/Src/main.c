@@ -64,7 +64,7 @@ int main(void)
 	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
 
 	ControlInit();
-	//Control_Start(); Note: Use after comand start
+	//Control_Start(); Note: Use after comand start or start btn
 
 	ProtocolInit(USART2, GPIOA, GPIOA, GPIO_PIN_NO_2, GPIO_PIN_NO_3, packets_value, heartbeat);
 	Protocol_TIMInit(TIM3);
@@ -105,11 +105,6 @@ void TIM2_IRQHandler(void)
 	
 	Control_DutyCycle();
 
-}
-
-void executeCommand(uint8_t command)
-{
-	heartbeat[0] = Control_Mode();
 }
 
 /*This interruption can be triggered by GPIOB 14-15*/

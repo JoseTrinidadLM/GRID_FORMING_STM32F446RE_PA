@@ -54,17 +54,17 @@ void GPIO_PClkC(GPIO_RegDef_t *pGPIOx, uint8_t EnorDi)
  * Init and De-Init
  */
 
-/*
- * @fn				-GPIO_Init
+/*********************************************************************************************************************************************************************
+ * @function_name			-
  *
- * @brief			-Initialize variables for the given GPIO port
+ * @brief					-ass
  *
- * @param[in]		-Handling Structure of the GPIO port
+ * @parameters				-big
  *
- * @return			-none
+ * @return					-
  *
- * @Note			-none
- */
+ * @Requirements			-
+ *********************************************************************************************************************************************************************/
 
 void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 {

@@ -81,13 +81,33 @@ __vo uint16_t u_control_neg;
 uint8_t OPERATION_MODE = DISABLE;
 uint8_t operationMode;
 
-/*This function resets the value of Elapsed time*/
+/*********************************************************************************************************************************************************************
+ * @fn		               ResetTime
+ *
+ * @brief                  Resets the global elapsed time counter to the predefined start value.
+ *
+ * @param  	      		   None
+ *
+ * @return                 None
+ *
+ * @Requirements           TO-DO
+ *********************************************************************************************************************************************************************/
 void ResetTime(void)
 {
 	ElapsedTime = START_TIME;
 }
 
-/*GPIO pins 14-15 from port B are declared as input that activate EXTI15_10 to control PWM on/off, as well as change Operation Mode*/
+/*********************************************************************************************************************************************************************
+ * @fn 			           Utility_GPIOInits
+ *
+ * @brief                  Initializes GPIO pins PB14 and PB15 as input with interrupt capability (EXTI15_10) to control PWM on/off and change operation mode.
+ *
+ * @param	               None
+ *
+ * @return                 None
+ *
+ * @Requirements           TO-DO
+ *********************************************************************************************************************************************************************/
 void Utility_GPIOInits(void)
 {
 	GPIO_PClkC(GPIOB, ENABLE);
@@ -107,7 +127,17 @@ void Utility_GPIOInits(void)
 	GPIO_IRQPriorityConfig(IRQ_NO_EXTI15_10, 0);
 }
 
-/*GPIO pin 7 from port B and GPIO pin 6 from port B are declared as High Output Speed for PWM signals*/
+/*********************************************************************************************************************************************************************
+ * @fn         			   PWM_GPIOInits
+ *
+ * @brief                  Configures GPIO pins PB6 and PB7 for PWM output by setting them to alternate function mode with high-speed output.
+ *
+ * @param                  None
+ *
+ * @return                 None
+ *
+ * @Requirements           TO-DO
+ *********************************************************************************************************************************************************************/
 void PWM_GPIOInits(void)
 {
 	GPIO_PClkC(GPIOB, ENABLE);
@@ -132,10 +162,22 @@ void PWM_GPIOInits(void)
 
 	GPIO_Init(&GpioPWMB);
 }
-
-/*Add as much sensors you want to read (look up pinout for compatibility) */
-
-void Sensors_Init(void *pDest) /*For this application only 4 sensors will be initialized (name may be changed)*/
+/*********************************************************************************************************************************************************************
+ * @fn        			   Sensors_Init
+ *
+ * @brief                  Initializes GPIO pins for analog sensor inputs, configures ADC1 for multi-channel conversion triggered by TIM2, and sets up DMA for 
+ * 						   continuous data transfer to memory.
+ * 
+ * @param             	   pDest – Pointer to the destination buffer where ADC conversion results will be stored.
+ *
+ * @return                 None
+ * 
+ * @note				   Add as much sensors you want to read (look up pinout for compatibility)
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
+void Sensors_Init(void *pDest) //For this application only 4 sensors will be initialized
 {
 	/*****************GPIO analog inputs initialization*****************/
 	GPIO_PClkC(GPIOA, ENABLE);
@@ -215,6 +257,22 @@ void Sensors_Init(void *pDest) /*For this application only 4 sensors will be ini
 	DMA_SetAddresses(&DMA2_ADC1Handle,(void*)&ADC_1.pADCx->DR, pDest);
 }
 
+
+/*********************************************************************************************************************************************************************
+ * @fn                     SamplingRateTIMInit
+ *
+ * @brief                  Configures TIM2 to generate periodic update events at the specified sampling rate. These events act as triggers for ADC conversions.
+ * 
+ * @param                  sampling_rate – Desired sampling frequency in Hz (float).
+ *
+ * @return                 None
+ * 
+ * @note                   TIM2 is set as the master timer to trigger ADC1 conversions via update events. Interrupts are enabled for TIM2.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
+
 void SamplingRateTIMInit(float sampling_rate)
 {
 
@@ -231,6 +289,20 @@ void SamplingRateTIMInit(float sampling_rate)
 	TIM_IRQPriorityConfig(IRQ_NO_TIM2, 1);
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     PWM_TIMInits
+ *
+ * @brief                  Configures TIM4 as the master timer for PWM generation on channels 1 and 2, using center-aligned mode and PWM Mode 2.
+ * 
+ * @param                  carrier_frequency – Desired PWM carrier frequency in Hz (float).
+ *
+ * @return                 None
+ * 
+ * @note                   TIM4 is initialized with center-aligned mode (CA_1) and two PWM channels are configured with high polarity and Mode 2.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void PWM_TIMInits(float carrier_frequency)
 {
 
@@ -262,7 +334,25 @@ void PWM_TIMInits(float carrier_frequency)
 	TIM_PWM_Channel_Init(&TIM_4, &TIM4_PWM_Channel_2);
 }
 
-/*ALL PARAMETERS AND DESIGN OF THIS FUNCTION ARE GIVEN FOR A 60 HZ SIGNAL***/
+/*********************************************************************************************************************************************************************
+ * @fn                     NINETYDegreePhaseShift
+ *
+ * @brief                  Generates a 90° phase-shifted signal from a cosine wave by using a circular buffer that stores one-quarter of a 60 Hz period.
+ * 
+ * @param                  pCos_Buffer – Pointer to the buffer storing cosine samples.
+ * @param                  cos_wave – Current cosine sample to be added to the buffer.
+ * @param                  pBuffer_Counter – Pointer to the buffer index counter (updated each call).
+ * @param                  pBuffer_Ready_Flag – Pointer to a flag indicating when the buffer is fully populated.
+ *
+ * @return                 temp_sin – A float representing the sine value (90° phase shift) derived from the buffer.
+ * 
+ * @note                   - Designed for a 60 Hz signal with a sampling rate of 9.6 kHz.
+ *                         - Buffer stores 40 samples (¼ of a 60 Hz period).
+ *                         - Implements a ring-buffer mechanism for continuous phase-shift generation.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *pBuffer_Counter, __vo uint8_t *pBuffer_Ready_Flag)
 {
 	float temp_sin = 0;
@@ -287,21 +377,85 @@ float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *p
 	return temp_sin;
 }
 
-
-/*This function computes partially the Park Transformation of two-phase orthogonal components its output returns the quadrature axis component */
+/*********************************************************************************************************************************************************************
+ * @fn                     DTransform
+ *
+ * @brief                  Computes the quadrature-axis component of the Park Transformation using two-phase orthogonal components.
+ * 
+ * @param                  cosine_wt – Cosine of the electrical angle (ωt).
+ * @param                  sine_wt   – Sine of the electrical angle (ωt).
+ * @param                  alpha     – α-axis component.
+ * @param                  beta      – β-axis component.
+ *
+ * @return                 Quadrature-axis component (float).
+ * 
+ * @note                   This function performs a partial Park Transformation, returning only the q-axis value.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 float DTransform(float cosine_wt, float sine_wt, float alpha, float beta)
 {
 	return (alpha*cosine_wt + beta*sine_wt);
 }
 
-/*This function computes partially the Park Transformation of two-phase orthogonal components its output returns the direct axis component */
+/*********************************************************************************************************************************************************************
+ * @fn                     QTransform
+ *
+ * @brief                  Computes the direct-axis component of the Park Transformation using two-phase orthogonal components.
+ * 
+ * @param                  cosine_wt – Cosine of the electrical angle (ωt).
+ * @param                  sine_wt   – Sine of the electrical angle (ωt).
+ * @param                  alpha     – α-axis component.
+ * @param                  beta      – β-axis component.
+ *
+ * @return                 Direct-axis component (float).
+ * 
+ * @note                   This function performs a partial Park Transformation, returning only the d-axis value.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
 {
 	return (-alpha*sine_wt + beta*cosine_wt);
 }
 
-/*Parametres highly tied to sampling rate being 9600*/
-/*To differentiate local varaibles from global variables names in local instance for this function have been written in caps*/
+/*********************************************************************************************************************************************************************
+ * @fn                     CascadeControl
+ *
+ * @brief                  Implements a cascaded control strategy with two discrete PI loops: 
+ *                         - Outer loop regulates DC bus voltage.
+ *                         - Inner loop regulates inverter current using Park Transformation components.
+ *                         Updates PWM duty cycles for positive and negative signals based on control output.
+ * 
+ * @param                  cosine_wt   – Cosine of the electrical angle (ωt).
+ * @param                  sine_wt     – Sine of the electrical angle (ωt).
+ * @param                  V_CD        – Measured DC bus voltage.
+ * @param                  I_Q         – Quadrature current component.
+ * @param                  I_INV       – Measured inverter current.
+ * @param                  pe1_z_0     – Pointer to current error of outer PI loop.
+ * @param                  pe1_z_1     – Pointer to previous error of outer PI loop.
+ * @param                  pe2_z_0     – Pointer to current error of inner PI loop.
+ * @param                  pe2_z_1     – Pointer to previous error of inner PI loop.
+ * @param                  py1_z_0     – Pointer to current output of outer PI loop.
+ * @param                  py1_z_1     – Pointer to previous output of outer PI loop.
+ * @param                  py2_z_0     – Pointer to current output of inner PI loop.
+ * @param                  py2_z_1     – Pointer to previous output of inner PI loop.
+ * @param                  u_pos       – Pointer to positive PWM duty cycle (uint16_t).
+ * @param                  u_neg       – Pointer to negative PWM duty cycle (uint16_t).
+ *
+ * @return                 None
+ * 
+ * @note                   - Sampling rate is tightly coupled to control parameters (designed for ~9600 Hz).
+ *                         - Local variables are written in uppercase to differentiate from global variables.
+ *                         - Saturation limits applied to inner loop output: [-0.99, 0.99].
+ *                         - PWM duty cycles computed relative to TIM4->ARR register.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
+
 void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float I_INV, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 {
 	float u_pos_temp = 0;
@@ -332,6 +486,23 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
 
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     OpenLoop
+ *
+ * @brief                  Generates open-loop PWM duty cycles based on a cosine reference signal. Updates positive and negative control signals relative to TIM4 ARR.
+ * 
+ * @param                  cosine_wt – Cosine of the electrical angle (ωt).
+ * @param                  u_pos     – Pointer to positive PWM duty cycle (uint16_t).
+ * @param                  u_neg     – Pointer to negative PWM duty cycle (uint16_t).
+ *
+ * @return                 None
+ * 
+ * @note                   - Computes duty cycles using a normalized cosine signal.
+ *                         - Positive and negative signals are scaled to the PWM resolution defined by TIM4->ARR.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 {
 	float u_pos_temp = 0;
@@ -344,7 +515,27 @@ void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
 }
 
-/*This functions resets CascadeControl() input-output parameters*/
+/*********************************************************************************************************************************************************************
+ * @fn                     ResetPIControllers
+ *
+ * @brief                  Resets all input-output parameters of the cascaded PI controllers used in CascadeControl() to zero.
+ * 
+ * @param                  pe1_z_0 – Pointer to current error of outer PI loop.
+ * @param                  pe1_z_1 – Pointer to previous error of outer PI loop.
+ * @param                  pe2_z_0 – Pointer to current error of inner PI loop.
+ * @param                  pe2_z_1 – Pointer to previous error of inner PI loop.
+ * @param                  py1_z_0 – Pointer to current output of outer PI loop.
+ * @param                  py1_z_1 – Pointer to previous output of outer PI loop.
+ * @param                  py2_z_0 – Pointer to current output of inner PI loop.
+ * @param                  py2_z_1 – Pointer to previous output of inner PI loop.
+ *
+ * @return                 None
+ * 
+ * @note                   This function is typically called during system initialization or when resetting control states after a mode change.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
 {
 	(*pe1_z_0) = 0;
@@ -360,12 +551,41 @@ void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe
 	(*py2_z_1) = 0;
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     PWM_Enable
+ *
+ * @brief                  Enables PWM output on TIM4 channels 1 and 2.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   Uses TIM_PWM_Enable() to activate PWM signals on both configured channels.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void PWM_Enable(void)
 {
 	TIM_PWM_Enable(&TIM_4, &TIM4_PWM_Channel_1);
 	TIM_PWM_Enable(&TIM_4, &TIM4_PWM_Channel_2);
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     PWM_Disable
+ *
+ * @brief                  Disables PWM output on TIM4 channels 1 and 2 and resets GPIO pins PB6 and PB7 to LOW state.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   - Calls TIM_PWM_Disable() for both channels.
+ *                         - Ensures GPIO pins PB6 and PB7 are set to RESET to avoid floating outputs.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void PWM_Disable(void)
 {
 	TIM_PWM_Disable(&TIM_4, &TIM4_PWM_Channel_1);
@@ -375,10 +595,45 @@ void PWM_Disable(void)
 	GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     PWM_dutyCycle_control
+ *
+ * @brief                  Updates the PWM duty cycle for TIM4 channels 1 and 2 based on the provided values.
+ * 
+ * @param                  u_pos – Duty cycle value for PWM channel 1 (uint16_t).
+ * @param                  u_neg – Duty cycle value for PWM channel 2 (uint16_t).
+ *
+ * @return                 None
+ * 
+ * @note                   - Uses TIM_PWM_DutyCycle() to apply new duty cycle values.
+ *                         - Duty cycle values should be within the range defined by TIM4->ARR.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void PWM_dutyCycle_control(uint16_t u_pos ,uint16_t u_neg)
 {
 	TIM_PWM_DutyCycle(&TIM_4, &TIM4_PWM_Channel_1, u_pos);
 	TIM_PWM_DutyCycle(&TIM_4, &TIM4_PWM_Channel_2, u_neg);
+}
+
+/*********************************************************************************************************************************************************************
+ * @fn                     TIM2_IRQHandling
+ *
+ * @brief                  Handles the interrupt request for TIM2 by calling the corresponding IRQ handler function.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   Delegates interrupt handling to TIM_IRQHandling() for TIM2.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
+void TIM2_IRQHandling(void)
+{
+	TIM_IRQHandling(&TIM_2);
 }
 
 void ControlInit(void)
@@ -407,10 +662,7 @@ void Control_Stop(void)
 	PWM_Disable();
 }
 
-void TIM2_IRQHandling(void)
-{
-	TIM_IRQHandling(&TIM_2);
-}
+
 
 uint8_t Control_ReadSensors(float* values)
 {
@@ -502,3 +754,16 @@ void ShiftSensorsValue(void)
 		;
 	}
 }
+
+
+/*********************************************************************************************************************************************************************
+ * @function_name			-
+ *
+ * @brief					-as
+ *
+ * @parameters				-
+ *
+ * @return					-
+ *
+ * @Requirements			-
+ *********************************************************************************************************************************************************************/
