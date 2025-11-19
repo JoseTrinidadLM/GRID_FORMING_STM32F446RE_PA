@@ -107,6 +107,12 @@ void TIM2_IRQHandler(void)
 
 }
 
+void executeCommand(uint8_t command)
+{
+	//TO-DO: Depending on command change values in Power & Loop
+	heartbeat[0] = Control_Mode(); //Introduce Power & Loop values
+}
+
 /*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
@@ -114,10 +120,10 @@ void EXTI15_10_IRQHandler(void)
 	//toggle values Power & Loop
 	GPIO_IRQHandling(GPIO_PIN_NO_14);
 	/*Both pins are read*/
-	SYSTEM_STATE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14);
-	OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);				//This lecture autmatically changes Operation Mode as: Open Loop when Operation Mode = 0, Closed Loop when 1
+	//SYSTEM_STATE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14); // TO-DO: make a function to toggle between ENABLE/DISABLE
+	//OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);				
 
-	heartbeat[0] = Control_Mode(); //Introduce Power & Loop values
+	heartbeat[0] = Control_Mode(heartbeat[0] && 0b1, (heartbeat[0] >> 1) && 0b1); //Introduce Power & Loop values
 }
 
 
