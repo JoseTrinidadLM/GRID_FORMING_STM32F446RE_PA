@@ -42,6 +42,9 @@ float packets_value[5]; 	//Data packet to be sent via UART
 
 uint8_t heartbeat[2];
 
+uint8_t SYSTEM_STATE = DISABLE;   //Initial System State is OFF, that means Timers for Sampling and PWM generation are disabled
+uint8_t OPERATION_MODE = DISABLE; //Initial Operation Mode is Open Loop
+
 GPIO_Handle_t LED;
 
 void LED_GPIOInits(void)
@@ -109,21 +112,25 @@ void TIM2_IRQHandler(void)
 
 void executeCommand(uint8_t command)
 {
+	uint8_t temp_value_command_1 = 0;
+	uint8_t temp_value_command_2 = 0;
 	//TO-DO: Depending on command change values in Power & Loop
-	heartbeat[0] = Control_Mode(); //Introduce Power & Loop values
+	heartbeat[0] = Control_Mode(temp_value_command_1, temp_value_command_2); //Introduce Power & Loop values
 }
 
 /*This interruption can be triggered by GPIOB 14-15*/
 void EXTI15_10_IRQHandler(void)
 {
-	//TO-DO: Detect button pressed once (valid)
-	//toggle values Power & Loop
-	GPIO_IRQHandling(GPIO_PIN_NO_14);
-	/*Both pins are read*/
-	//SYSTEM_STATE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14); // TO-DO: make a function to toggle between ENABLE/DISABLE
-	//OPERATION_MODE = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);				
+	uint8_t temp_toggle_loop = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14);
+	uint8_t temp_toggle_power = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_15);
 
-	heartbeat[0] = Control_Mode(heartbeat[0] && 0b1, (heartbeat[0] >> 1) && 0b1); //Introduce Power & Loop values
+	GPIO_IRQHandling(GPIO_PIN_NO_14);
+	GPIO_IRQHandling(GPIO_PIN_NO_15);
+
+	if (temp_toggle_power) heartbeat[0] ^= (1 << 0); //toggle power bit if button pressed
+	if (temp_toggle_loop)  heartbeat[0] ^= (1 << 1); //toggle loop bit if button pressed
+
+	heartbeat[0] = Control_Mode(heartbeat[0] && 0b1, (heartbeat[0] >> 1) && 0b1); //Introduce Power & Loop values (TO-DO: maybe change to main.c)
 }
 
 

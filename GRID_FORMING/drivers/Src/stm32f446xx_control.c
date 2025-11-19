@@ -24,8 +24,6 @@ static TIM_Handle_t TIM_4;
 static PWM_Config_t TIM4_PWM_Channel_1;
 static PWM_Config_t TIM4_PWM_Channel_2;
 
-static uint8_t SYSTEM_STATE = DISABLE;
-
 int valid_send = FLAG_SET;		//Flag to indicate when data packet is ready to be sent
 
 /*Buffers to store quarter of a period of cos and i_L*/
@@ -77,8 +75,6 @@ float i_Q;
 __vo uint16_t u_control_pos;
 __vo uint16_t u_control_neg;
 
-
-uint8_t OPERATION_MODE = DISABLE;
 uint8_t operationMode;
 
 /*********************************************************************************************************************************************************************
@@ -113,13 +109,13 @@ void Utility_GPIOInits(void)
 	GPIO_PClkC(GPIOB, ENABLE);
 	PWM_EN.pGPIOx = GPIOB;
 	PWM_EN.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_14;
-	PWM_EN.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IT_RFT;
+	PWM_EN.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IT_RT;
 	PWM_EN.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
 	GPIO_Init(&PWM_EN);
 
 	LOOP_SEL.pGPIOx = GPIOB;
 	LOOP_SEL.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_15;
-	LOOP_SEL.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IT_RFT;
+	LOOP_SEL.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IT_RT;
 	LOOP_SEL.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
 	GPIO_Init(&LOOP_SEL);
 
@@ -636,6 +632,22 @@ void TIM2_IRQHandling(void)
 	TIM_IRQHandling(&TIM_2);
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     ControlInit
+ *
+ * @brief                  Initializes all essential peripherals and configurations for the control system, including GPIO, sensors, timers, and PWM.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   - Calls initialization routines for GPIO inputs, PWM outputs, sensor ADC with DMA, sampling timer, and PWM timer.
+ *                         - Uses global constants `SAMPLING_FREQUENCY` and `PWM_FREQUENCY` for timing configuration.
+ *                         - Passes `raw_sensor_value` buffer to Sensors_Init() for DMA data storage.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void ControlInit(void)
 {
 	Utility_GPIOInits();
@@ -645,6 +657,22 @@ void ControlInit(void)
 	PWM_TIMInits(PWM_FREQUENCY);
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     Control_Start
+ *
+ * @brief                  Starts the control system by enabling timers and initiating DMA transfer for sensor data acquisition.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   - TIM2 is started to generate sampling triggers for ADC conversions.
+ *                         - TIM4 is started to enable PWM generation (initial tests).
+ *                         - DMA transfer begins to continuously move ADC data to the destination buffer.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void Control_Start(void)
 {
 	TIM_Start(&TIM_2);
@@ -652,27 +680,62 @@ void Control_Start(void)
 	DMA_StartTransfer(&DMA2_ADC1Handle);
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     Control_Stop
+ *
+ * @brief                  Stops the control system by disabling timers, halting DMA transfers, turning off PWM outputs, and clearing internal buffers.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   - TIM2 and TIM4 are stopped to halt sampling and PWM generation.
+ *                         - DMA transfer for ADC data acquisition is disabled.
+ *                         - PWM outputs are turned off using PWM_Disable().
+ *                         - Clears `cos_buffer` and `i_L_buffer` arrays (40 elements each) to reset stored data.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void Control_Stop(void)
 {
 	TIM_Stop(&TIM_2);
 	TIM_Stop(&TIM_4);  //Starting timer just for minimal tests
 	DMA_StopTransfer(&DMA2_ADC1Handle);
 	PWM_Disable();
-	cos_buffer[40] = {RESET};
-	i_L_buffer[40] = {RESET};
+	for (int i=0; i<40; i++) 
+	{
+		cos_buffer[i] = 0;
+		i_L_buffer[i] = 0;
+	}
 }
 
-
-
+/*********************************************************************************************************************************************************************
+ * @fn                     Control_ReadSensors
+ *
+ * @brief                  Reads raw ADC sensor values, normalizes them to a [-1, 1] range, updates global variables, and optionally stores them in the provided buffer.
+ * 
+ * @param                  values – Pointer to a float array where processed sensor values will be stored (size ≥ 5).
+ *
+ * @return                 uint8_t – Returns `valid_send` flag indicating whether new data was stored (FLAG_SET or FLAG_RESET).
+ * 
+ * @note                   - Converts raw ADC readings (12-bit resolution) to normalized values using the formula: ((raw / 4095) - 0.5) * 2.
+ *                         - Updates global variables: `v_g`, `i_inv`, `i_L`, `v_cd`, and increments `ElapsedTime` based on sampling rate (9600 Hz).
+ *                         - Stores values in the array only when `valid_send == FLAG_SET`; otherwise toggles the flag.
+ *                         - The output array contains: [v_g, i_L, i_inv, v_cd, ElapsedTime].
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 uint8_t Control_ReadSensors(float* values)
 {
 	/*TO DO: Read and characterize sensors */
 
-	v_g = 	(raw_sensor_value[0]/4095.0f - 0.5f)*2.0f;
-	i_inv = (raw_sensor_value[1]/4095.0f - 0.5f)*2.0f;
-	i_L = 	(raw_sensor_value[2]/4095.0f - 0.5f)*2.0f;
-	v_cd = 	(raw_sensor_value[3]/4095.0f - 0.5f)*2.0f;
-	ElapsedTime = ElapsedTime + (1.0f/9600.0f);
+	v_g = 	(raw_sensor_value[0]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
+	i_inv = (raw_sensor_value[1]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
+	i_L = 	(raw_sensor_value[2]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
+	v_cd = 	(raw_sensor_value[3]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
+	ElapsedTime = ElapsedTime + SAMPLING_PERIOD;
 
 	if (valid_send == FLAG_SET) {
 		values[0] = v_g;
@@ -687,6 +750,25 @@ uint8_t Control_ReadSensors(float* values)
 	return valid_send;
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     Control_DutyCycle
+ *
+ * @brief                  Computes PWM duty cycles based on the selected operation mode. Applies signal processing, phase shifting, and control algorithms.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   - Filters signals if noise is present (future implementation).
+ *                         - Calculates `cosine` from `v_g` and computes `sine` using a 90° phase shift via NINETYDegreePhaseShift().
+ *                         - Computes quadrature current component `i_Q` using QTransform().
+ *                         - If `operationMode` bit 0 is DISABLE → Executes OpenLoop() for PWM control.
+ *                         - Else → Executes CascadeControl() for closed-loop control using PI regulators.
+ *                         - Updates PWM duty cycles through PWM_dutyCycle_control() using computed positive and negative control signals.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 void Control_DutyCycle(void)
 {
 	/*In case there is a high presence of noise, signals will be filtered*/
@@ -699,7 +781,7 @@ void Control_DutyCycle(void)
 	
 	i_Q = QTransform(cosine, sine, i_L, i_L90);
 
-	if(OPERATION_MODE == DISABLE)
+	if((operationMode & 0b1) == DISABLE)
 	{
 		OpenLoop(v_g, &u_control_pos, &u_control_neg);
 
@@ -711,24 +793,41 @@ void Control_DutyCycle(void)
 	PWM_dutyCycle_control(u_control_pos, u_control_neg);
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     Control_Mode
+ *
+ * @brief                  Sets the control system operation mode (Open Loop or Closed Loop) and power state (Enable or Disable). Handles safe transitions by resetting PI controllers when switching to Open Loop.
+ * 
+ * @param                  Power – Indicates whether the system should be powered ON (ENABLE) or OFF (DISABLE).
+ * @param                  Loop  – Indicates whether the control loop should operate in Closed Loop (ENABLE) or Open Loop (DISABLE).
+ *
+ * @return                 uint8_t – Returns the updated `operationMode` status flag.
+ * 
+ * @note                   - If `Loop == DISABLE`, resets PI controllers and sets Open Loop mode.
+ *                         - If `Loop == ENABLE`, sets Closed Loop mode.
+ *                         - If `Power == DISABLE`, stops control system and sets PWM status to OFF.
+ *                         - If `Power == ENABLE`, starts control system and sets PWM status to ON.
+ *                         - Uses macros: `SET_OPEN_LOOP_MODE`, `SET_CLOSED_LOOP_MODE`, `SYSTEM_OFF_FLAG`, `SYSTEM_ON_FLAG`.
+ *
+ * @Requirements           TO-DO
+ * 
+ *********************************************************************************************************************************************************************/
 uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 {
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
-	if( OPERATION_MODE == DISABLE)
+	if( Loop == DISABLE)
 	{
 		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
 		SET_OPEN_LOOP_MODE;	 //Set Loop Status Flag to Open
-	} else
+	} else if ( Loop == ENABLE )
 	{
 		SET_CLOSED_LOOP_MODE; //Set Loop Status Flag to Closed
 	}
-	//TO-DO: ON/OFF Flag, ON Enables TIM2 -> After 40 samples start PWM Note: Use Control_Start & Control_Stop
-	if( SYSTEM_STATE == DISABLE )
+	if( Power == DISABLE )
 	{
 		Control_Stop(); 
 		SYSTEM_OFF_FLAG; //Set PWM Status Flag to Disabled
-
-	} else if( SYSTEM_STATE == ENABLE )
+	} else if( Power == ENABLE )
 	{
 		Control_Start(); 
 		SYSTEM_ON_FLAG;	 //Set PWM Status Flag to Enabled
@@ -736,6 +835,17 @@ uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 	return operationMode;
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn		  				- ShiftSensorsValue
+ *
+ * @brief					- Pending function to shift processed sensor values in a buffer for further analysis or filtering.
+ *
+ * @param					None
+ *
+ * @return					- None
+ *
+ * @Requirements			- TO-DO
+ *********************************************************************************************************************************************************************/
 void ShiftSensorsValue(void)
 {
 	for(uint64_t x = BUFFER_SIZE-1; x>0; x--)
@@ -744,16 +854,3 @@ void ShiftSensorsValue(void)
 		;
 	}
 }
-
-
-/*********************************************************************************************************************************************************************
- * @function_name			-
- *
- * @brief					-as
- *
- * @parameters				-
- *
- * @return					-
- *
- * @Requirements			-
- *********************************************************************************************************************************************************************/

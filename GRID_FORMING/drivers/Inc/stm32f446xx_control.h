@@ -18,7 +18,7 @@ uint8_t Control_ReadSensors(float* values);
 
 void Control_DutyCycle(void);
 
-uint8_t Control_Mode(void);
+uint8_t Control_Mode(uint8_t Power, uint8_t Loop);
 
 void TIM2_IRQHandling(void);
 
