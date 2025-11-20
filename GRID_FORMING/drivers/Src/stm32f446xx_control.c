@@ -815,22 +815,26 @@ void Control_DutyCycle(void)
 uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 {
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
-	if( Loop == DISABLE && (operationMode >> MODE_FLAG) == FLAG_SET)
-	{
-		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
-		SET_OPEN_LOOP_MODE(operationMode); //Set Loop Status Flag to Open
-	} else if ( Loop == ENABLE && (operationMode >> MODE_FLAG) == FLAG_RESET)
-	{
-		SET_CLOSED_LOOP_MODE(operationMode); //Set Loop Status Flag to Closed
-	}
-	if( Power == DISABLE && (operationMode >> SYSTEM_STATUS_FLAG) == FLAG_SET )
+	if( Power == DISABLE && ((operationMode >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_SET )
 	{
 		Control_Stop(); 
 		SYSTEM_OFF_FLAG(operationMode);	//Set System Status Flag to Disabled
-	} else if( Power == ENABLE && (operationMode >> SYSTEM_STATUS_FLAG) == FLAG_RESET )
+		SET_OPEN_LOOP_MODE(operationMode); //Set Loop Status Flag to Open
+	} else if( Power == ENABLE && ((operationMode >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_RESET )
 	{
 		Control_Start(); 
 		SYSTEM_ON_FLAG(operationMode); //Set System Status Flag to Enabled
+	}
+	if((operationMode >> SYSTEM_STATUS_FLAG) & 0b1)
+	{
+		if( Loop == DISABLE && (operationMode >> MODE_FLAG) == FLAG_SET)
+		{
+			ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
+			SET_OPEN_LOOP_MODE(operationMode); //Set Loop Status Flag to Open
+		} else if ( Loop == ENABLE && (operationMode >> MODE_FLAG) == FLAG_RESET)
+		{
+			SET_CLOSED_LOOP_MODE(operationMode); //Set Loop Status Flag to Closed
+		}
 	}
 	return operationMode;
 }

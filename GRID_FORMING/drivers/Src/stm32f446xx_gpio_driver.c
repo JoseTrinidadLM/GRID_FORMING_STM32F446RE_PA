@@ -219,7 +219,7 @@ void GPIO_WriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t pinNumber, uint8_t Val
 		pGPIOx->ODR |= (1 << pinNumber);
 	}else
 	{
-		pGPIOx->ODR |= ~(0x1 << pinNumber);
+		pGPIOx->ODR &= ~(1 << pinNumber);
 	}
 }
 

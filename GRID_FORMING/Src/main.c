@@ -82,10 +82,10 @@ int main(void)
 
 void LED_Indicator(void)
 {
-	if((heartbeat[0] >> SYSTEM_STATUS_FLAG) == FLAG_SET)
+	if(((heartbeat[0] >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_SET)
 	{
 		GPIO_WriteToOutputPin(LED.pGPIOx, GPIO_PIN_NO_5, ENABLE);
-	}else if((heartbeat[0] >> SYSTEM_STATUS_FLAG) == FLAG_RESET)
+	}else if(((heartbeat[0] >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_RESET)
 	{
 		GPIO_WriteToOutputPin(LED.pGPIOx, GPIO_PIN_NO_5, DISABLE);
 	}
@@ -95,7 +95,7 @@ void TIM3_IRQHandler(void)
 {
 	Protocol_HeartBeat_EN();
 	Protocol_TIMx_IRQHandling();
-	if((heartbeat[0] >> SYSTEM_STATUS_FLAG) && (heartbeat[0] >> MODE_FLAG)) GPIO_ToggleOutputPin(LED.pGPIOx, GPIO_PIN_NO_5);
+	if(((heartbeat[0] >> SYSTEM_STATUS_FLAG) & 0b1) && ((heartbeat[0] >> MODE_FLAG) & 0b1)) GPIO_ToggleOutputPin(LED.pGPIOx, GPIO_PIN_NO_5);
 }
 
 void DMA1_Stream6_IRQHandler(void)
@@ -133,7 +133,7 @@ void executeCommand(uint8_t command)
 	{
 		SET_CLOSED_LOOP_MODE(heartbeat[0]);
 	}
-	heartbeat[0] = Control_Mode(heartbeat[0] && 0b1, (heartbeat[0] >> 1) && 0b1); //Introduce Power & Loop values
+	heartbeat[0] = Control_Mode(heartbeat[0] & 0b1, (heartbeat[0] >> 1) & 0b1); //Introduce Power & Loop values
 	LED_Indicator();
 }
 
@@ -153,7 +153,7 @@ void EXTI15_10_IRQHandler(void)
 		heartbeat[0] ^= (1 << 1); //toggle loop bit if button pressed
 	} 
 
-	heartbeat[0] = Control_Mode(heartbeat[0] && 0b1, (heartbeat[0] >> 1) && 0b1); //Introduce Power & Loop values (TO-DO: maybe change to main.c)
+	heartbeat[0] = Control_Mode(heartbeat[0] & 0b1, (heartbeat[0] >> 1) & 0b1); //Introduce Power & Loop values (TO-DO: maybe change to main.c)
 	LED_Indicator();
 }
 
