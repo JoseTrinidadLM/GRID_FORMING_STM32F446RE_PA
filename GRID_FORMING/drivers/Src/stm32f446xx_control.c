@@ -676,7 +676,8 @@ void ControlInit(void)
 void Control_Start(void)
 {
 	TIM_Start(&TIM_2);
-	TIM_Start(&TIM_4);  //Starting timer just for minimal tests
+	PWM_Disable();
+	TIM_Start(&TIM_4);
 	DMA_StartTransfer(&DMA2_ADC1Handle);
 }
 
@@ -700,7 +701,7 @@ void Control_Start(void)
 void Control_Stop(void)
 {
 	TIM_Stop(&TIM_2);
-	TIM_Stop(&TIM_4);  //Starting timer just for minimal tests
+	TIM_Stop(&TIM_4);
 	DMA_StopTransfer(&DMA2_ADC1Handle);
 	PWM_Disable();
 	for (int i=0; i<40; i++) 
@@ -729,13 +730,11 @@ void Control_Stop(void)
  *********************************************************************************************************************************************************************/
 uint8_t Control_ReadSensors(float* values)
 {
-	/*TO DO: Read and characterize sensors */
 
-	v_g = 	(raw_sensor_value[0]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
-	i_inv = (raw_sensor_value[1]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
-	i_L = 	(raw_sensor_value[2]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
-	v_cd = 	(raw_sensor_value[3]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF;
-	ElapsedTime = ElapsedTime + SAMPLING_PERIOD;
+	v_g = 	(raw_sensor_value[0]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_GRID_VOLTAGE_K;
+	i_inv = (raw_sensor_value[1]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_INV_CURRENT_K;
+	i_L = 	(raw_sensor_value[2]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_LOAD_CURRENT_K;
+	v_cd = 	(raw_sensor_value[3]/ADC_RESOLUTION)*ADC_DC_VOLTAGE_K;
 
 	if (valid_send == FLAG_SET) {
 		values[0] = v_g;
@@ -773,7 +772,7 @@ void Control_DutyCycle(void)
 {
 	/*In case there is a high presence of noise, signals will be filtered*/
 
-	cosine = v_g;		//This is just an example to show its functionality
+	cosine = v_g/18.0f;
 
 	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
 
