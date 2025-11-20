@@ -42,8 +42,10 @@ float packets_value[5]; 	//Data packet to be sent via UART
 
 uint8_t heartbeat[2];
 
-uint8_t SYSTEM_STATE = DISABLE;   //Initial System State is OFF, that means Timers for Sampling and PWM generation are disabled
-uint8_t OPERATION_MODE = DISABLE; //Initial Operation Mode is Open Loop
+uint8_t SYSTEM_MODE = DISABLE; //System Mode Flag
+uint8_t LOOP_MODE = DISABLE;   //Loop Mode Flag
+uint8_t SYSTEM_MODE_CHANGE = FLAG_RESET; //System Mode Change Flag
+uint8_t LOOP_MODE_CHANGE = FLAG_RESET;   //Loop Mode Change Flag
 
 GPIO_Handle_t LED;
 
@@ -64,10 +66,9 @@ int main(void)
 {
 	SystemCLK_Config_84MHz();
 
-	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled
+	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled`
 
 	ControlInit();
-	//Control_Start(); Note: Use after comand start or start btn
 
 	ProtocolInit(USART2, GPIOA, GPIOA, GPIO_PIN_NO_2, GPIO_PIN_NO_3, packets_value, heartbeat);
 	Protocol_TIMInit(TIM3);
@@ -80,6 +81,7 @@ int main(void)
 	{
 		Protocol_HeartBeat();
 		Protocol_Telemetry();
+		SYSTEM_MODE_CHANGE = Control_ChangeMode(SYSTEM_MODE_CHANGE);
 	}
 	return 0;
 }
@@ -127,10 +129,17 @@ void EXTI15_10_IRQHandler(void)
 	GPIO_IRQHandling(GPIO_PIN_NO_14);
 	GPIO_IRQHandling(GPIO_PIN_NO_15);
 
-	if (temp_toggle_power) heartbeat[0] ^= (1 << 0); //toggle power bit if button pressed
-	if (temp_toggle_loop)  heartbeat[0] ^= (1 << 1); //toggle loop bit if button pressed
+	if (temp_toggle_power){
+		heartbeat[0] ^= (1 << 0); //toggle power bit if button pressed
+		SYSTEM_MODE_CHANGE = ENABLE; //Flag to indicate system mode change (probably used in executeCommand)
+	} 
+	if (temp_toggle_loop){
+		heartbeat[0] ^= (1 << 1); //toggle loop bit if button pressed
+		//LOOP_MODE_CHANGE = ENABLE; //Not used for now
+	} 
 
 	heartbeat[0] = Control_Mode(heartbeat[0] && 0b1, (heartbeat[0] >> 1) && 0b1); //Introduce Power & Loop values (TO-DO: maybe change to main.c)
+	
 }
 
 
