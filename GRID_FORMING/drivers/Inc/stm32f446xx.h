@@ -1043,31 +1043,6 @@ typedef struct
 #define FLAG_RESET					RESET
 #define FLAG_SET					SET
 
-/*
- * Macros to set the status register
-*/
-
-#define SET_OPEN_LOOP_MODE		do{ operationMode &= ~(1 << 1); }while(0)
-#define SET_CLOSED_LOOP_MODE	do{ operationMode |=  (1 << 1); }while(0)
-
-#define SYSTEM_OFF_FLAG			do{ operationMode &= ~(1 << 0); }while(0)
-#define SYSTEM_ON_FLAG			do{ operationMode |=  (1 << 0); }while(0)
-
-
-
-/*
- * Macros for documentation purpose
- */
-
-#define BUFFER_LENGTH_9			9
-#define START_TIME 			    0
-#define SAMPLING_FREQUENCY		9600
-#define PWM_FREQUENCY			9600
-#define SAMPLING_PERIOD			(1.0f/9600.0f)  //in seconds
-#define ADC_RESOLUTION			4095.0f
-#define ADC_OFFSET_VOLTAGE		0.5f
-#define ADC_VOLTAGE_REF		    2.0f
-
 #include "stm32f446xx_gpio_driver.h"
 #include "stm32f446xx_rcc_driver.h"
 #include "stm32f446xx_timer_driver.h"

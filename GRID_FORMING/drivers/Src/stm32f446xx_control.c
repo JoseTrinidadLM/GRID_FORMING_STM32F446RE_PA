@@ -815,56 +815,24 @@ void Control_DutyCycle(void)
 uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 {
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
-	if( Loop == DISABLE)
+	if( Loop == DISABLE && (operationMode >> MODE_FLAG) == FLAG_SET)
 	{
 		ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
-		SET_OPEN_LOOP_MODE;	 //Set Loop Status Flag to Open
-	} else if ( Loop == ENABLE )
+		SET_OPEN_LOOP_MODE(operationMode); //Set Loop Status Flag to Open
+	} else if ( Loop == ENABLE && (operationMode >> MODE_FLAG) == FLAG_RESET)
 	{
-		SET_CLOSED_LOOP_MODE; //Set Loop Status Flag to Closed
+		SET_CLOSED_LOOP_MODE(operationMode); //Set Loop Status Flag to Closed
 	}
-	if( Power == DISABLE )
+	if( Power == DISABLE && (operationMode >> SYSTEM_STATUS_FLAG) == FLAG_SET )
 	{
 		Control_Stop(); 
-		SYSTEM_OFF_FLAG; //Set PWM Status Flag to Disabled
-	} else if( Power == ENABLE )
+		SYSTEM_OFF_FLAG(operationMode);	//Set System Status Flag to Disabled
+	} else if( Power == ENABLE && (operationMode >> SYSTEM_STATUS_FLAG) == FLAG_RESET )
 	{
 		Control_Start(); 
-		SYSTEM_ON_FLAG;	 //Set PWM Status Flag to Enabled
+		SYSTEM_ON_FLAG(operationMode); //Set System Status Flag to Enabled
 	}
 	return operationMode;
-}
-
-/*********************************************************************************************************************************************************************
- * @fn                     Control_ChangeMode
- *
- * @brief                  Changes the control system state (Start or Stop) based on the least significant bit of `Status` and the value of `Flag`.
- *                         After performing the action, the flag is reset.
- *
- * @param                  Status – Indicates the desired state (bit 0 determines whether to start or stop the control).
- * @param                  Flag   – A flag that enables the mode change (must be FLAG_SET to allow the action).
- *
- * @return                 uint8_t – Returns the updated flag value (typically FLAG_RESET after the action).
- *
- * @note                   - If `Status & 0b1` and `Flag == FLAG_SET`, Control_Start() is called and the flag is reset.
- *                         - If `Status & 0b1 == 0` and `Flag == FLAG_SET`, Control_Stop() is called and the flag is reset.
- *                         - This function does not directly modify `operationMode`; it only manages the flag and triggers actions.
- *
- * @Requirements           TO-DO
- *
- *********************************************************************************************************************************************************************/
-uint8_t Control_ChangeMode(uint8_t Status, uint8_t Flag)
-{
-	if((Status & 0b1) & (Flag == FLAG_SET))
-	{
-		Control_Start();
-		Flag = FLAG_RESET;
-	}else if (!(Status & 0b1) & (Flag == FLAG_SET))
-	{
-		Control_Stop();
-		Flag = FLAG_RESET;
-	}
-	return Flag;
 }
 
 /*********************************************************************************************************************************************************************

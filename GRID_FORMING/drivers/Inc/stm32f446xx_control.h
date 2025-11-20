@@ -10,6 +10,32 @@
 
 #include "stm32f446xx.h"
 
+/*
+ * Macros to set the status register
+*/
+
+#define MODE_FLAG		    	    1
+#define SYSTEM_STATUS_FLAG			0
+
+#define SET_OPEN_LOOP_MODE(var)         var &= ~(1 << MODE_FLAG)
+#define SET_CLOSED_LOOP_MODE(var)       var |=  (1 << MODE_FLAG)
+
+#define SYSTEM_OFF_FLAG(var)		    var &= ~(1 << SYSTEM_STATUS_FLAG)
+#define SYSTEM_ON_FLAG(var)			    var |=  (1 << SYSTEM_STATUS_FLAG)
+
+/*
+ * Macros for documentation purpose
+ */
+
+#define BUFFER_LENGTH_9			9
+#define START_TIME 			    0
+#define SAMPLING_FREQUENCY		9600
+#define PWM_FREQUENCY			9600
+#define SAMPLING_PERIOD			(1.0f/9600.0f)  //in seconds
+#define ADC_RESOLUTION			4095.0f
+#define ADC_OFFSET_VOLTAGE		0.5f
+#define ADC_VOLTAGE_REF		    2.0f
+
 void ControlInit(void);
 
 void Control_Start(void);

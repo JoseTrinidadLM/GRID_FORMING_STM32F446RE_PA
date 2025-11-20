@@ -42,11 +42,6 @@ float packets_value[5]; 	//Data packet to be sent via UART
 
 uint8_t heartbeat[2];
 
-uint8_t SYSTEM_MODE = DISABLE; //System Mode Flag
-uint8_t LOOP_MODE = DISABLE;   //Loop Mode Flag
-uint8_t SYSTEM_MODE_CHANGE = FLAG_RESET; //System Mode Change Flag
-uint8_t LOOP_MODE_CHANGE = FLAG_RESET;   //Loop Mode Change Flag
-
 GPIO_Handle_t LED;
 
 void LED_GPIOInits(void)
@@ -81,15 +76,26 @@ int main(void)
 	{
 		Protocol_HeartBeat();
 		Protocol_Telemetry();
-		SYSTEM_MODE_CHANGE = Control_ChangeMode(heartbeat[0],SYSTEM_MODE_CHANGE);
 	}
 	return 0;
+}
+
+void LED_Indicator(void)
+{
+	if((heartbeat[0] >> SYSTEM_STATUS_FLAG) == FLAG_SET)
+	{
+		GPIO_WriteToOutputPin(LED.pGPIOx, GPIO_PIN_NO_5, ENABLE);
+	}else if((heartbeat[0] >> SYSTEM_STATUS_FLAG) == FLAG_RESET)
+	{
+		GPIO_WriteToOutputPin(LED.pGPIOx, GPIO_PIN_NO_5, DISABLE);
+	}
 }
 
 void TIM3_IRQHandler(void)
 {
 	Protocol_HeartBeat_EN();
 	Protocol_TIMx_IRQHandling();
+	if((heartbeat[0] >> SYSTEM_STATUS_FLAG) && (heartbeat[0] >> MODE_FLAG)) GPIO_ToggleOutputPin(LED.pGPIOx, GPIO_PIN_NO_5);
 }
 
 void DMA1_Stream6_IRQHandler(void)
@@ -114,10 +120,21 @@ void TIM2_IRQHandler(void)
 
 void executeCommand(uint8_t command)
 {
-	uint8_t temp_value_command_1 = 0;
-	uint8_t temp_value_command_2 = 0;
-	//TO-DO: Depending on command change values in Power & Loop
-	heartbeat[0] = Control_Mode(temp_value_command_1, temp_value_command_2); //Introduce Power & Loop values
+	if(command == 1)					//System ON
+	{
+		SYSTEM_ON_FLAG(heartbeat[0]);
+	}else if(command == 2)				//System OFF
+	{
+		SYSTEM_OFF_FLAG(heartbeat[0]);
+	}else if(command == 3)				//Open Loop
+	{
+		SET_OPEN_LOOP_MODE(heartbeat[0]);
+	}else if(command == 4)				//Closed Loop
+	{
+		SET_CLOSED_LOOP_MODE(heartbeat[0]);
+	}
+	heartbeat[0] = Control_Mode(heartbeat[0] && 0b1, (heartbeat[0] >> 1) && 0b1); //Introduce Power & Loop values
+	LED_Indicator();
 }
 
 /*This interruption can be triggered by GPIOB 14-15*/
@@ -131,15 +148,13 @@ void EXTI15_10_IRQHandler(void)
 
 	if (temp_toggle_power){
 		heartbeat[0] ^= (1 << 0); //toggle power bit if button pressed
-		SYSTEM_MODE_CHANGE = ENABLE; //Flag to indicate system mode change (probably used in executeCommand)
 	} 
 	if (temp_toggle_loop){
 		heartbeat[0] ^= (1 << 1); //toggle loop bit if button pressed
-		//LOOP_MODE_CHANGE = ENABLE; //Not used for now
 	} 
 
 	heartbeat[0] = Control_Mode(heartbeat[0] && 0b1, (heartbeat[0] >> 1) && 0b1); //Introduce Power & Loop values (TO-DO: maybe change to main.c)
-	
+	LED_Indicator();
 }
 
 
