@@ -678,6 +678,7 @@ void Control_Start(void)
 	TIM_Start(&TIM_2);
 	TIM_Start(&TIM_4);  //Starting timer just for minimal tests
 	DMA_StartTransfer(&DMA2_ADC1Handle);
+	SYSTEM_MODE_CHANGE = FLAG_RESET;
 }
 
 /*********************************************************************************************************************************************************************
@@ -833,6 +834,20 @@ uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 		SYSTEM_ON_FLAG;	 //Set PWM Status Flag to Enabled
 	}
 	return operationMode;
+}
+
+uint8_t Control_ChangeMode(uint8_t Flag)
+{
+	if((heartbeat[0] & 0b1) & (Flag == FLAG_SET))
+	{
+		Control_Start();
+		Flag = FLAG_RESET;
+	}else if (!(heartbeat[0] & 0b1) & (Flag == FLAG_SET))
+	{
+		Control_Stop();
+		Flag = FLAG_RESET;
+	}
+	return Flag;
 }
 
 /*********************************************************************************************************************************************************************
