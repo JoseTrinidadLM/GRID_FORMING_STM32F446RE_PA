@@ -81,7 +81,7 @@ int main(void)
 	{
 		Protocol_HeartBeat();
 		Protocol_Telemetry();
-		SYSTEM_MODE_CHANGE = Control_ChangeMode(SYSTEM_MODE_CHANGE);
+		SYSTEM_MODE_CHANGE = Control_ChangeMode(heartbeat[0],SYSTEM_MODE_CHANGE);
 	}
 	return 0;
 }

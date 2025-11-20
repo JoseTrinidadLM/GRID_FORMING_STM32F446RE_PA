@@ -678,7 +678,6 @@ void Control_Start(void)
 	TIM_Start(&TIM_2);
 	TIM_Start(&TIM_4);  //Starting timer just for minimal tests
 	DMA_StartTransfer(&DMA2_ADC1Handle);
-	SYSTEM_MODE_CHANGE = FLAG_RESET;
 }
 
 /*********************************************************************************************************************************************************************
@@ -836,13 +835,31 @@ uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 	return operationMode;
 }
 
-uint8_t Control_ChangeMode(uint8_t Flag)
+/*********************************************************************************************************************************************************************
+ * @fn                     Control_ChangeMode
+ *
+ * @brief                  Changes the control system state (Start or Stop) based on the least significant bit of `Status` and the value of `Flag`.
+ *                         After performing the action, the flag is reset.
+ *
+ * @param                  Status – Indicates the desired state (bit 0 determines whether to start or stop the control).
+ * @param                  Flag   – A flag that enables the mode change (must be FLAG_SET to allow the action).
+ *
+ * @return                 uint8_t – Returns the updated flag value (typically FLAG_RESET after the action).
+ *
+ * @note                   - If `Status & 0b1` and `Flag == FLAG_SET`, Control_Start() is called and the flag is reset.
+ *                         - If `Status & 0b1 == 0` and `Flag == FLAG_SET`, Control_Stop() is called and the flag is reset.
+ *                         - This function does not directly modify `operationMode`; it only manages the flag and triggers actions.
+ *
+ * @Requirements           TO-DO
+ *
+ *********************************************************************************************************************************************************************/
+uint8_t Control_ChangeMode(uint8_t Status, uint8_t Flag)
 {
-	if((heartbeat[0] & 0b1) & (Flag == FLAG_SET))
+	if((Status & 0b1) & (Flag == FLAG_SET))
 	{
 		Control_Start();
 		Flag = FLAG_RESET;
-	}else if (!(heartbeat[0] & 0b1) & (Flag == FLAG_SET))
+	}else if (!(Status & 0b1) & (Flag == FLAG_SET))
 	{
 		Control_Stop();
 		Flag = FLAG_RESET;

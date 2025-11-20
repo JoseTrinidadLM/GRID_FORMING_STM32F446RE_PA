@@ -20,6 +20,8 @@ void Control_DutyCycle(void);
 
 uint8_t Control_Mode(uint8_t Power, uint8_t Loop);
 
+uint8_t Control_ChangeMode(uint8_t Status, uint8_t Flag);
+
 void TIM2_IRQHandling(void);
 
 
