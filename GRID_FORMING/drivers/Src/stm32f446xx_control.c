@@ -75,7 +75,7 @@ float i_Q;
 __vo uint16_t u_control_pos;
 __vo uint16_t u_control_neg;
 
-uint8_t operationMode;
+uint8_t systemState;
 
 /*********************************************************************************************************************************************************************
  * @fn		               ResetTime
@@ -761,7 +761,7 @@ uint8_t Control_ReadSensors(float* values)
  * @note                   - Filters signals if noise is present (future implementation).
  *                         - Calculates `cosine` from `v_g` and computes `sine` using a 90° phase shift via NINETYDegreePhaseShift().
  *                         - Computes quadrature current component `i_Q` using QTransform().
- *                         - If `operationMode` bit 0 is DISABLE → Executes OpenLoop() for PWM control.
+ *                         - If `systemState` bit 0 is DISABLE → Executes OpenLoop() for PWM control.
  *                         - Else → Executes CascadeControl() for closed-loop control using PI regulators.
  *                         - Updates PWM duty cycles through PWM_dutyCycle_control() using computed positive and negative control signals.
  *
@@ -780,7 +780,7 @@ void Control_DutyCycle(void)
 	
 	i_Q = QTransform(cosine, sine, i_L, i_L90);
 
-	if((operationMode & 0b1) == DISABLE)
+	if((systemState & 0b1) == DISABLE)
 	{
 		OpenLoop(cosine, &u_control_pos, &u_control_neg);
 
@@ -800,7 +800,7 @@ void Control_DutyCycle(void)
  * @param                  Power – Indicates whether the system should be powered ON (ENABLE) or OFF (DISABLE).
  * @param                  Loop  – Indicates whether the control loop should operate in Closed Loop (ENABLE) or Open Loop (DISABLE).
  *
- * @return                 uint8_t – Returns the updated `operationMode` status flag.
+ * @return                 uint8_t – Returns the updated `systemState` status flag.
  * 
  * @note                   - If `Loop == DISABLE`, resets PI controllers and sets Open Loop mode.
  *                         - If `Loop == ENABLE`, sets Closed Loop mode.
@@ -814,28 +814,28 @@ void Control_DutyCycle(void)
 uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 {
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
-	if( Power == DISABLE && ((operationMode >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_SET )
+	if( Power == DISABLE && ((systemState >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_SET )
 	{
 		Control_Stop(); 
-		SYSTEM_OFF_FLAG(operationMode);	//Set System Status Flag to Disabled
-		SET_OPEN_LOOP_MODE(operationMode); //Set Loop Status Flag to Open
-	} else if( Power == ENABLE && ((operationMode >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_RESET )
+		SYSTEM_OFF_FLAG(systemState);	//Set System Status Flag to Disabled
+		SET_OPEN_LOOP_MODE(systemState); //Set Loop Status Flag to Open
+	} else if( Power == ENABLE && ((systemState >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_RESET )
 	{
 		Control_Start(); 
-		SYSTEM_ON_FLAG(operationMode); //Set System Status Flag to Enabled
+		SYSTEM_ON_FLAG(systemState); //Set System Status Flag to Enabled
 	}
-	if((operationMode >> SYSTEM_STATUS_FLAG) & 0b1)
+	if((systemState >> SYSTEM_STATUS_FLAG) & 0b1)
 	{
-		if( Loop == DISABLE && (operationMode >> MODE_FLAG) == FLAG_SET)
+		if( Loop == DISABLE && (systemState >> MODE_FLAG) == FLAG_SET)
 		{
 			ResetPIControllers(&e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
-			SET_OPEN_LOOP_MODE(operationMode); //Set Loop Status Flag to Open
-		} else if ( Loop == ENABLE && (operationMode >> MODE_FLAG) == FLAG_RESET)
+			SET_OPEN_LOOP_MODE(systemState); //Set Loop Status Flag to Open
+		} else if ( Loop == ENABLE && (systemState >> MODE_FLAG) == FLAG_RESET)
 		{
-			SET_CLOSED_LOOP_MODE(operationMode); //Set Loop Status Flag to Closed
+			SET_CLOSED_LOOP_MODE(systemState); //Set Loop Status Flag to Closed
 		}
 	}
-	return operationMode;
+	return systemState;
 }
 
 /*********************************************************************************************************************************************************************
