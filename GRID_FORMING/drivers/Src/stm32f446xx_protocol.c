@@ -238,7 +238,7 @@ void DMAx_Inits(uint8_t usart_n)
 	DMAx_RXHandle.DMA_Config.DMA_FIFOThreshold = 0;
 	DMAx_RXHandle.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
 	DMAx_RXHandle.DMA_Config.DMA_TransferIT = ENABLE;
-	DMAx_RXHandle.BufferSize = 3;
+	DMAx_RXHandle.BufferSize = 4;
 
 	DMA_Init(&DMAx_RXHandle);
 	DMA_SetAddresses(&DMAx_RXHandle, (void*)&USARTxHandle.pUSARTx->DR, (void*)receive_data);
@@ -412,6 +412,7 @@ void Protocol_HeartBeat(void)
 	heartbeat_package[3] = *pStatus;
 	heartbeat_package[4] = *pFrequency;
 
+	dma_ready = DISABLE;
 	dma_transfer_mode = DMA_TR_HEARTBEAT;
 
 	DMA_SetAddresses(&DMAx_TXHandle, (void*)heartbeat_package, (void*)&USARTxHandle.pUSARTx->DR);
@@ -501,6 +502,7 @@ void Protocol_Telemetry(void)
 	telemetry_package[33] = getValue_Variable('Z', 2);
 	telemetry_package[34] = getValue_Variable('Z', 3);
 
+	dma_ready = DISABLE;
 	dma_transfer_mode = DMA_TR_TELEMETRY;
 
 	DMA_SetAddresses(&DMAx_TXHandle, (void*)telemetry_package, (void*)&USARTxHandle.pUSARTx->DR);
@@ -524,7 +526,7 @@ void Protocol_DecodeRX(void)
 {
 	if(receive_data[0] == '$' && receive_data[1] == 'X')
 	{
-		executeCommand(receive_data[2]);
+		executeCommand(receive_data[3]);
 	}
 }
 
@@ -553,7 +555,7 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 			if(dma_transfer_mode == DMA_TR_HEARTBEAT)
 			{
 				heartbeat_status = DISABLE;
-			}else if(dma_transfer_mode == DMA_TR_TELEMETRY )
+			}else if(dma_transfer_mode == DMA_TR_TELEMETRY)
 			{
 				telemetry_status = DISABLE;
 			}

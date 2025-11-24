@@ -40,6 +40,8 @@
 
 float packets_value[5]; 	//Data packet to be sent via UART
 
+uint8_t testvar = 0;
+
 uint8_t heartbeat[2];
 
 GPIO_Handle_t LED;
