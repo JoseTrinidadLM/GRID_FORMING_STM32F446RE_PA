@@ -25,6 +25,7 @@ static PWM_Config_t TIM4_PWM_Channel_1;
 static PWM_Config_t TIM4_PWM_Channel_2;
 
 int valid_send = FLAG_SET;		//Flag to indicate when data packet is ready to be sent
+int sent = 0;
 
 /*Buffers to store quarter of a period of cos and i_L*/
 /*For every shifted signal it is needed a buffer*/
@@ -731,20 +732,23 @@ void Control_Stop(void)
  *********************************************************************************************************************************************************************/
 uint8_t Control_ReadSensors(float* values)
 {
-
+	sent++;
 	v_g = 	(raw_sensor_value[0]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_GRID_VOLTAGE_K;
 	i_inv = (raw_sensor_value[1]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_INV_CURRENT_K;
 	i_L = 	(raw_sensor_value[2]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_LOAD_CURRENT_K;
 	v_cd = 	(raw_sensor_value[3]/ADC_RESOLUTION)*ADC_DC_VOLTAGE_K;
 
-	if (valid_send == FLAG_SET) {
+	if(sent == 4)
+	{
 		values[0] = v_g;
 		values[1] = i_L ;
 		values[2] = i_inv;
 		values[3] = v_cd;
 		values[4] = ElapsedTime;
 		valid_send = FLAG_RESET;
-	}else {
+		sent = 0;
+	}else
+	{
 		valid_send = FLAG_SET;
 	}
 	return valid_send;
