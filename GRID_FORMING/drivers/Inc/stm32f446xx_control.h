@@ -24,6 +24,13 @@
 #define SYSTEM_ON_FLAG(var)			    var |=  (1 << SYSTEM_STATUS_FLAG)
 
 /*
+ * Macros for Control Modes
+ */
+#define GRID_FOLLOWING_MODE         0b01
+#define VAR_COMPENSATION_MODE       0b11
+#define Off                         0b00
+
+/*
  * Macros for documentation purpose
  */
 

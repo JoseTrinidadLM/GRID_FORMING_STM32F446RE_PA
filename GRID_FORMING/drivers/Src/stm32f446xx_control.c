@@ -780,14 +780,9 @@ void Control_DutyCycle(void)
 	
 	i_Q = QTransform(cosine, sine, i_L, i_L90);
 
-	if((systemState & 0b1) == DISABLE)
-	{
-		OpenLoop(cosine, &u_control_pos, &u_control_neg);
+	if(systemState == GRID_FOLLOWING_MODE) OpenLoop(cosine, &u_control_pos, &u_control_neg);
 
-	} else
-	{
-		CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
-	}
+	if(systemState == VAR_COMPENSATION_MODE) CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
 
 	PWM_dutyCycle_control(u_control_pos, u_control_neg);
 }
@@ -814,17 +809,17 @@ void Control_DutyCycle(void)
 uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 {
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
-	if( Power == DISABLE && ((systemState >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_SET )
+	if( Power == DISABLE && ((systemState >> SYSTEM_STATUS_FLAG) & GRID_FOLLOWING_MODE) == FLAG_SET )
 	{
 		Control_Stop(); 
 		SYSTEM_OFF_FLAG(systemState);	//Set System Status Flag to Disabled
 		SET_OPEN_LOOP_MODE(systemState); //Set Loop Status Flag to Open
-	} else if( Power == ENABLE && ((systemState >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_RESET )
+	} else if( Power == ENABLE && ((systemState >> SYSTEM_STATUS_FLAG) & GRID_FOLLOWING_MODE) == FLAG_RESET )
 	{
 		Control_Start(); 
 		SYSTEM_ON_FLAG(systemState); //Set System Status Flag to Enabled
 	}
-	if((systemState >> SYSTEM_STATUS_FLAG) & 0b1)
+	if((systemState >> SYSTEM_STATUS_FLAG) & GRID_FOLLOWING_MODE)
 	{
 		if( Loop == DISABLE && (systemState >> MODE_FLAG) == FLAG_SET)
 		{
