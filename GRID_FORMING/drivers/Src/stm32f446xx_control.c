@@ -704,6 +704,7 @@ void Control_Stop(void)
 	TIM_Stop(&TIM_4);
 	DMA_StopTransfer(&DMA2_ADC1Handle);
 	PWM_Disable();
+	ResetTime();
 	for (int i=0; i<40; i++) 
 	{
 		cos_buffer[i] = 0;
