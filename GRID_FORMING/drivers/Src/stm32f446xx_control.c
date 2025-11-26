@@ -677,9 +677,9 @@ void ControlInit(void)
 void Control_Start(void)
 {
 	TIM_Start(&TIM_2);
-	PWM_Disable();
 	TIM_Start(&TIM_4);
 	DMA_StartTransfer(&DMA2_ADC1Handle);
+	PWM_Enable();
 }
 
 /*********************************************************************************************************************************************************************
@@ -733,7 +733,7 @@ void Control_Stop(void)
 uint8_t Control_ReadSensors(float* values)
 {
 	sent++;
-	v_g = 	(raw_sensor_value[0]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_GRID_VOLTAGE_K;
+	v_g = 	((raw_sensor_value[0]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_GRID_VOLTAGE_K)/ADC_GRID_NOMINAL_VOLTAGE;
 	i_inv = (raw_sensor_value[1]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_INV_CURRENT_K;
 	i_L = 	(raw_sensor_value[2]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_LOAD_CURRENT_K;
 	v_cd = 	(raw_sensor_value[3]/ADC_RESOLUTION)*ADC_DC_VOLTAGE_K;
@@ -777,7 +777,7 @@ void Control_DutyCycle(void)
 {
 	/*In case there is a high presence of noise, signals will be filtered*/
 
-	cosine = v_g/18.0f;
+	cosine = v_g;
 
 	sine = NINETYDegreePhaseShift(cos_buffer, cosine, &Buffer_Counter_Cos, &Buffer_Ready_Flag_Cos);
 
