@@ -88,6 +88,8 @@ uint8_t systemState;
  * @return                 None
  *
  * @Requirements           TO-DO
+ * 
+ * @callby					Control_Stop
  *********************************************************************************************************************************************************************/
 void ResetTime(void)
 {
@@ -104,6 +106,13 @@ void ResetTime(void)
  * @return                 None
  *
  * @Requirements           TO-DO
+ * 
+ * @callby					ControlInit
+ * 
+ * @calls					GPIO_PClkC
+ * 							GPIO_Init
+ * 							GPIO_IRQInterruptConfig
+ * 							GPIO_IRQPriorityConfig
  *********************************************************************************************************************************************************************/
 void Utility_GPIOInits(void)
 {
@@ -134,6 +143,11 @@ void Utility_GPIOInits(void)
  * @return                 None
  *
  * @Requirements           TO-DO
+ * 
+ * @callby					ControlInit
+ * 
+ * @calls					GPIO_PClkC
+ * 							GPIO_Init
  *********************************************************************************************************************************************************************/
 void PWM_GPIOInits(void)
 {
@@ -172,6 +186,17 @@ void PWM_GPIOInits(void)
  * @note				   Add as much sensors you want to read (look up pinout for compatibility)
  *
  * @Requirements           TO-DO
+ * 
+ * @callby					ControlInit
+ * 
+ * @calls					GPIO_PClkC
+ * 							GPIO_Init
+ * 							ADC_PClkC
+ * 							ADC_ChannelConfig
+ * 							ADC_Init
+ * 							DMA_PClkC
+ * 							DMA_Init
+ * 							DMA_SetAddresses
  * 
  *********************************************************************************************************************************************************************/
 void Sensors_Init(void *pDest) //For this application only 4 sensors will be initialized
@@ -266,7 +291,13 @@ void Sensors_Init(void *pDest) //For this application only 4 sensors will be ini
  * 
  * @note                   TIM2 is set as the master timer to trigger ADC1 conversions via update events. Interrupts are enabled for TIM2.
  *
- * @Requirements           TO-DO
+ * @Requirements           7.2.1 [10]
+ * 
+ * @callby					ControlInit
+ * 
+ * @calls					TIM_Init
+ * 							TIM_IRQInterruptConfig
+ * 							TIM_IRQPriorityConfig
  * 
  *********************************************************************************************************************************************************************/
 
@@ -297,8 +328,13 @@ void SamplingRateTIMInit(float sampling_rate)
  * 
  * @note                   TIM4 is initialized with center-aligned mode (CA_1) and two PWM channels are configured with high polarity and Mode 2.
  *
- * @Requirements           TO-DO
+ * @Requirements           7.2.1 [020]
  * 
+ * @callby					ControlInit
+ * 
+ * @calls					TIM_PClkC
+ * 							TIM_Init
+ * 							TIM_PWM_Channel_Init
  *********************************************************************************************************************************************************************/
 void PWM_TIMInits(float carrier_frequency)
 {
@@ -348,6 +384,8 @@ void PWM_TIMInits(float carrier_frequency)
  *                         - Implements a ring-buffer mechanism for continuous phase-shift generation.
  *
  * @Requirements           TO-DO
+ * 
+ * @callby					Control_DutyCycle
  * 
  *********************************************************************************************************************************************************************/
 float NINETYDegreePhaseShift(float *pCos_Buffer, float cos_wave, __vo uint8_t *pBuffer_Counter, __vo uint8_t *pBuffer_Ready_Flag)
@@ -412,6 +450,8 @@ float DTransform(float cosine_wt, float sine_wt, float alpha, float beta)
  *
  * @Requirements           TO-DO
  * 
+ * @callby					Control_DutyCycle
+ * 
  *********************************************************************************************************************************************************************/
 float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
 {
@@ -450,6 +490,8 @@ float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
  *                         - PWM duty cycles computed relative to TIM4->ARR register.
  *
  * @Requirements           TO-DO
+ * 
+ * @callby					Control_DutyCycle
  * 
  *********************************************************************************************************************************************************************/
 
@@ -499,6 +541,8 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
  *
  * @Requirements           TO-DO
  * 
+ * @callby					Control_DutyCycle
+ * 
  *********************************************************************************************************************************************************************/
 void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
 {
@@ -531,6 +575,8 @@ void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
  * @note                   This function is typically called during system initialization or when resetting control states after a mode change.
  *
  * @Requirements           TO-DO
+ * 
+ * @callby					Control_Mode
  * 
  *********************************************************************************************************************************************************************/
 void ResetPIControllers(__vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
@@ -582,6 +628,11 @@ void PWM_Enable(void)
  *
  * @Requirements           TO-DO
  * 
+ * @callby					Control_Stop
+ * 
+ * @calls					TIM_PWM_Disable
+ * 							GPIO_WriteToOutputPin
+ * 
  *********************************************************************************************************************************************************************/
 void PWM_Disable(void)
 {
@@ -607,6 +658,10 @@ void PWM_Disable(void)
  *
  * @Requirements           TO-DO
  * 
+ * @callby					Control_DutyCycle
+ * 
+ * @calls					TIM_PWM_DutyCycle
+ * 
  *********************************************************************************************************************************************************************/
 void PWM_dutyCycle_control(uint16_t u_pos ,uint16_t u_neg)
 {
@@ -626,6 +681,8 @@ void PWM_dutyCycle_control(uint16_t u_pos ,uint16_t u_neg)
  * @note                   Delegates interrupt handling to TIM_IRQHandling() for TIM2.
  *
  * @Requirements           TO-DO
+ * 
+ * @calls					TIM_IRQHandling
  * 
  *********************************************************************************************************************************************************************/
 void TIM2_IRQHandling(void)
@@ -647,6 +704,12 @@ void TIM2_IRQHandling(void)
  *                         - Passes `raw_sensor_value` buffer to Sensors_Init() for DMA data storage.
  *
  * @Requirements           TO-DO
+ * 
+ * @calls					Utility_GPIOInits
+ * 							PWM_GPIOInits
+ * 							Sensors_Init
+ * 							SamplingRateTIMInit
+ * 							PWM_TIMInits
  * 
  *********************************************************************************************************************************************************************/
 void ControlInit(void)
@@ -673,6 +736,11 @@ void ControlInit(void)
  *
  * @Requirements           TO-DO
  * 
+ * @callby					Control_Mode
+ * 
+ * @calls					TIM_Start
+ * 							DMA_StartTransfer
+ * 
  *********************************************************************************************************************************************************************/
 void Control_Start(void)
 {
@@ -696,7 +764,14 @@ void Control_Start(void)
  *                         - PWM outputs are turned off using PWM_Disable().
  *                         - Clears `cos_buffer` and `i_L_buffer` arrays (40 elements each) to reset stored data.
  *
- * @Requirements           TO-DO
+ * @Requirements           7.2.2 [030.C10]
+ * 
+ * @callby					Control_Mode
+ * 
+ * @calls					TIM_Stop
+ * 							DMA_StopTransfer
+ * 							PWM_Disable
+ * 							ResetTime
  * 
  *********************************************************************************************************************************************************************/
 void Control_Stop(void)
@@ -772,6 +847,12 @@ uint8_t Control_ReadSensors(float* values)
  *
  * @Requirements           TO-DO
  * 
+ * @calls					NINETYDegreePhaseShift
+ * 							QTransform
+ * 							OpenLoop
+ * 							CascadeControl
+ * 							PWM_dutyCycle_control
+ * 
  *********************************************************************************************************************************************************************/
 void Control_DutyCycle(void)
 {
@@ -809,6 +890,10 @@ void Control_DutyCycle(void)
  *                         - Uses macros: `SET_OPEN_LOOP_MODE`, `SET_CLOSED_LOOP_MODE`, `SYSTEM_OFF_FLAG`, `SYSTEM_ON_FLAG`.
  *
  * @Requirements           TO-DO
+ * 
+ * @calls					Control_Stop
+ * 							Control_Start
+ * 							ResetPIControllers
  * 
  *********************************************************************************************************************************************************************/
 uint8_t Control_Mode(uint8_t Power, uint8_t Loop)

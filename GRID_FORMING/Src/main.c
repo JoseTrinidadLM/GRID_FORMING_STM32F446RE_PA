@@ -82,6 +82,22 @@ int main(void)
 	return 0;
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     LED_Indicator
+ *
+ * @brief                  Updates the Led Status depending on the last updated system state on heartbeat.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   - Reads system state on heartbeat.
+ *                         - Calls write of GPIO pin for LED.
+ *
+ * @Requirements           7.1.2 [010.C10] [020.C10] [030.C10] [040.C10]
+ * 
+ *********************************************************************************************************************************************************************/
+
 void LED_Indicator(void)
 {
 	if(((heartbeat[0] >> SYSTEM_STATUS_FLAG) & 0b1) == FLAG_SET)
@@ -92,6 +108,22 @@ void LED_Indicator(void)
 		GPIO_WriteToOutputPin(LED.pGPIOx, GPIO_PIN_NO_5, DISABLE);
 	}
 }
+
+/*********************************************************************************************************************************************************************
+ * @fn                     TIM3_IRQHandler
+ *
+ * @brief                  Handles Interrupts of timer for Heartbeat
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   - Enables HeartBeat.
+ *                         - Toggle LED if in Closed Loop Mode.
+ *
+ * @Requirements           7.2.3 [010] 7.1.2 [030.C10]
+ * 
+ *********************************************************************************************************************************************************************/
 
 void TIM3_IRQHandler(void)
 {
@@ -110,6 +142,23 @@ void DMA1_Stream5_IRQHandler(void)
 	Protocol_DMAx_RX_IRQHandling();
 }
 
+/*********************************************************************************************************************************************************************
+ * @fn                     TIM2_IRQHandler
+ *
+ * @brief                  Handles Interrupts of timer for Sampling Rate.
+ * 
+ * @param                  values – Pointer to a float array where processed sensor values will be stored (size ≥ 5).
+ *
+ * @return                 uint8_t – Returns `valid_send` flag indicating whether new data was stored (FLAG_SET or FLAG_RESET).
+ * 
+ * @note                   - Calls function to reads sensor values.
+ *                         - Reads flag to set Telemetry to Enable.
+ *                         - Call function to compute PWM duty cycles.
+ *
+ * @Requirements           7.2.2 [010.C10] [020.C10]
+ * 
+ *********************************************************************************************************************************************************************/
+
 void TIM2_IRQHandler(void)
 {
 	TIM2_IRQHandling();
@@ -119,6 +168,23 @@ void TIM2_IRQHandler(void)
 	Control_DutyCycle();
 
 }
+
+/*********************************************************************************************************************************************************************
+ * @fn                     executeCommand
+ *
+ * @brief                  Executes the different commands receive from the Serial Communication.
+ * 
+ * @param[in]              command
+ *
+ * @return                 None
+ * 
+ * @note                   - Reads changes to System State from command.
+ *                         - Calls function Control_Mode from Control drivers to request the changes in the System State, then reads the real System State.
+ *                         - Updates LED Status.
+ *
+ * @Requirements           7.3.2 [030.C10] [040.C10] [050.C10] [060.C10]
+ * 
+ *********************************************************************************************************************************************************************/
 
 void executeCommand(uint8_t command)
 {
@@ -139,7 +205,22 @@ void executeCommand(uint8_t command)
 	LED_Indicator();
 }
 
-/*This interruption can be triggered by GPIOB 14-15*/
+/*********************************************************************************************************************************************************************
+ * @fn                     EXTI15_10_IRQHandler
+ *
+ * @brief                  Handles the Interrupts of pin 14 and 15 of port B. Toggles the power(pin 15) and operation mode(pin 14) of the system after a high on the pins.
+ * 
+ * @param                  None
+ *
+ * @return                 None
+ * 
+ * @note                   - Calls reading of GPIO inputs.
+ *                         - Calls function Control_Mode from Control drivers to request the changes in the System State, then reads the real System State.
+ *                         - Updates LED Status.
+ *
+ * @Requirements           7.1.2 [010.C10] [020.C10] [030.C10] [040.C10]
+ * 
+ *********************************************************************************************************************************************************************/
 void EXTI15_10_IRQHandler(void)
 {
 	uint8_t temp_toggle_loop = GPIO_ReadFromInputPin(GPIOB, GPIO_PIN_NO_14);

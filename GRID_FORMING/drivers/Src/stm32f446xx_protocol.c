@@ -37,6 +37,15 @@ uint8_t dma_transfer_mode = DMA_TR_NONE;	//Flag DMA Transfer Mode (Transfering T
 
 USART_RegDef_t *usart[] = {USART1,USART2,USART3,UART4,UART5,USART6};
 
+uint8_t dma_usart_stream[6][2] = {{7,5},{6,5},{3,1},{4,2},{7,0},{6,1}};
+uint8_t irq_dma1_stream[] = {IRQ_NO_DMA1_STREAM0,IRQ_NO_DMA1_STREAM1,IRQ_NO_DMA1_STREAM2,IRQ_NO_DMA1_STREAM3, IRQ_NO_DMA1_STREAM4, IRQ_NO_DMA1_STREAM5, IRQ_NO_DMA1_STREAM6,IRQ_NO_DMA1_STREAM7};
+uint8_t irq_dma2_stream[] = {IRQ_NO_DMA2_STREAM0,IRQ_NO_DMA2_STREAM1,IRQ_NO_DMA2_STREAM2,IRQ_NO_DMA2_STREAM3, IRQ_NO_DMA2_STREAM4, IRQ_NO_DMA2_STREAM5, IRQ_NO_DMA2_STREAM6,IRQ_NO_DMA2_STREAM7};
+
+uint8_t irq_tx,irq_rx;
+
+uint8_t irq_tim[] = {IRQ_NO_TIM1_UP_TIM10,IRQ_NO_TIM2,IRQ_NO_TIM3,IRQ_NO_TIM4,IRQ_NO_TIM5,IRQ_NO_TIM6_DAC,IRQ_NO_TIM7,IRQ_NO_TIM8_UP_TIM13};
+TIM_RegDef_t* timers[] = {TIM1,TIM2,TIM3,TIM4,TIM5,TIM6,TIM7,TIM8};
+
 /**
  * @fn				AltFunModeUSART
  *
@@ -48,8 +57,10 @@ USART_RegDef_t *usart[] = {USART1,USART2,USART3,UART4,UART5,USART6};
  * @return			-7 or 8
  *
  * @note			-Index of USART1 is 0
+ * 
+ * @callby			USARTx_GPIOInits
+ * 
  */
-
 uint8_t AltFunModeUSART(uint8_t usart_n, GPIO_RegDef_t *pGPIOx)
 {
 	if(pGPIOx == GPIOA || pGPIOx == GPIOB || GPIOC || GPIOD || GPIOE || GPIOG)
@@ -73,8 +84,12 @@ uint8_t AltFunModeUSART(uint8_t usart_n, GPIO_RegDef_t *pGPIOx)
  * @return			-none
  *
  * @note			-none
+ * 
+ * @callby			ProtocolInit
+ * 
+ * @calls			AltFunModeUSART
+ * 					GPIO_Init
  */
-
 void USARTx_GPIOInits(uint8_t usart_n, GPIO_RegDef_t *pGPIOx_TX, GPIO_RegDef_t *pGPIOx_RX, uint8_t Pin_TX, uint8_t Pin_RX)
 {
 	//GPIO TX
@@ -112,8 +127,11 @@ void USARTx_GPIOInits(uint8_t usart_n, GPIO_RegDef_t *pGPIOx_TX, GPIO_RegDef_t *
  * @return			-none
  *
  * @note			-USART is configure to use DMA
+ * 
+ * @callby			ProtocolInit
+ * 
+ * @calls			USART_Init
  */
-
 void USARTx_Inits(USART_RegDef_t *pUSARTx)
 {
 	USARTxHandle.pUSARTx = pUSARTx;
@@ -138,8 +156,9 @@ void USARTx_Inits(USART_RegDef_t *pUSARTx)
  * @return			-DMA1 or DMA2
  *
  * @note			-none
+ * 
+ * @callby			DMAx_Inits
  */
-
 DMA_RegDef_t* USARTx_DMAx(uint8_t usart_n)
 {
 	if(usart_n < 5 || usart_n > 0) return DMA1;
@@ -156,8 +175,9 @@ DMA_RegDef_t* USARTx_DMAx(uint8_t usart_n)
  * @return			-DMA CHANNEL 4 or DMA CHANNEL 5
  *
  * @note			-none
+ * 
+ * @callby			DMAx_Inits
  */
-
 uint8_t USART_DMA_Channel(uint8_t usart_n)
 {
 	if(usart_n < 5) return DMA_CHANNEL_4;
@@ -174,14 +194,9 @@ uint8_t USART_DMA_Channel(uint8_t usart_n)
  * @return			-none
  *
  * @note			-none
+ * 
+ * @callby			DMAx_Inits
  */
-
-uint8_t dma_usart_stream[6][2] = {{7,5},{6,5},{3,1},{4,2},{7,0},{6,1}};
-uint8_t irq_dma1_stream[] = {IRQ_NO_DMA1_STREAM0,IRQ_NO_DMA1_STREAM1,IRQ_NO_DMA1_STREAM2,IRQ_NO_DMA1_STREAM3, IRQ_NO_DMA1_STREAM4, IRQ_NO_DMA1_STREAM5, IRQ_NO_DMA1_STREAM6,IRQ_NO_DMA1_STREAM7};
-uint8_t irq_dma2_stream[] = {IRQ_NO_DMA2_STREAM0,IRQ_NO_DMA2_STREAM1,IRQ_NO_DMA2_STREAM2,IRQ_NO_DMA2_STREAM3, IRQ_NO_DMA2_STREAM4, IRQ_NO_DMA2_STREAM5, IRQ_NO_DMA2_STREAM6,IRQ_NO_DMA2_STREAM7};
-
-uint8_t irq_tx,irq_rx;
-
 void DMA_IRQ_USART(uint8_t usart_n)
 {
 	irq_tx = irq_dma2_stream[dma_usart_stream[usart_n][0]];
@@ -203,8 +218,18 @@ void DMA_IRQ_USART(uint8_t usart_n)
  * @return			-none
  *
  * @note			-Address for TX is not set because it changes depending of the package sent
+ * 
+ * @callby			ProtocolInit
+ * 
+ * @calls			USARTx_DMAx
+ * 					USART_DMA_Channel
+ * 					DMA_Init
+ * 					DMA_SetAddresses
+ * 					DMA_IRQ_USART
+ * 					DMA_IRQInterruptConfig
+ * 					DMA_IRQPriorityConfig
+ * 					
  */
-
 void DMAx_Inits(uint8_t usart_n)
 {
 	//DMA TX for USARTx
@@ -268,8 +293,11 @@ void DMAx_Inits(uint8_t usart_n)
  * @return			-none
  *
  * @note			-none
+ * 
+ * @calls			USARTx_GPIOInits
+ * 					USARTx_Inits
+ * 					DMAx_Inits
  */
-
 void ProtocolInit(USART_RegDef_t *pUSARTx, GPIO_RegDef_t *pGPIOx_TX, GPIO_RegDef_t *pGPIOx_RX , uint8_t Pin_TX, uint8_t Pin_RX ,float *Buffer_values, uint8_t *Buffer_heartbeat)
 {
 	uint8_t usart_n;
@@ -316,10 +344,6 @@ void ProtocolInit(USART_RegDef_t *pUSARTx, GPIO_RegDef_t *pGPIOx_TX, GPIO_RegDef
  *
  * @note			-Address for TX is not set because it changes depending of the package sent
  */
-
-uint8_t irq_tim[] = {IRQ_NO_TIM1_UP_TIM10,IRQ_NO_TIM2,IRQ_NO_TIM3,IRQ_NO_TIM4,IRQ_NO_TIM5,IRQ_NO_TIM6_DAC,IRQ_NO_TIM7,IRQ_NO_TIM8_UP_TIM13};
-TIM_RegDef_t* timers[] = {TIM1,TIM2,TIM3,TIM4,TIM5,TIM6,TIM7,TIM8};
-
 uint8_t TIM_IRQ(TIM_RegDef_t *pTIMx)
 {
 	uint8_t timer;
@@ -337,8 +361,14 @@ uint8_t TIM_IRQ(TIM_RegDef_t *pTIMx)
  * @return			-none
  *
  * @note			-Address for TX is not set because it changes depending of the package sent
+ * 
+ * @Requirements	7.3.2 [10]
+ * 
+ * @calls			TIM_Init
+ * 					TIM_IRQInterruptConfig
+ * 					TIM_IRQPriorityConfig
+ * 
  */
-
 void Protocol_TIMInit(TIM_RegDef_t *pTIMx)
 {
 	TIMxHandle.pTIMx = pTIMx;
@@ -365,8 +395,12 @@ void Protocol_TIMInit(TIM_RegDef_t *pTIMx)
  * @return			-none
  *
  * @note			-none
+ * 
+ * @calls			USART_PeripheralControl
+ * 					DMA_StartTransfer
+ * 					TIM_Start
+ * 
  */
-
 void Protocol_Start(void)
 {
 	USART_PeripheralControl(USARTxHandle.pUSARTx, ENABLE);
@@ -386,7 +420,6 @@ void Protocol_Start(void)
  *
  * @note			-none
  */
-
 void Protocol_HeartBeat_EN(void)
 {
 	heartbeat_status = ENABLE;
@@ -402,8 +435,13 @@ void Protocol_HeartBeat_EN(void)
  * @return			-none
  *
  * @note			-none
+ * 
+ * @calls			USART_ClearFlag
+ * 					DMA_SetAddresses
+ * 					DMA_ConfigureBuffer
+ * 					DMA_StartTransfer
+ * 
  */
-
 void Protocol_HeartBeat(void)
 {
 	if(dma_ready == DISABLE) return;
@@ -431,8 +469,9 @@ void Protocol_HeartBeat(void)
  * @return			-none
  *
  * @note			-none
+ * 
+ * @callby			Protocol_Telemetry
  */
-
 uint8_t getValue_Variable(char s, uint8_t byteIndex)
 {
 	uint8_t x;
@@ -454,7 +493,6 @@ uint8_t getValue_Variable(char s, uint8_t byteIndex)
  *
  * @note			-none
  */
-
 void Protocol_Telemetry_EN(void)
 {
 	telemetry_status = ENABLE;
@@ -470,8 +508,15 @@ void Protocol_Telemetry_EN(void)
  * @return			-none
  *
  * @note			-none
+ * 
+ * @Requirement		7.3.2 [020.C10]
+ * 
+ * @calls			USART_ClearFlag
+ * 					getValue_Variable
+ * 					DMA_SetAdresses
+ * 					DMA_StartTransfer
+ * 
  */
-
 void Protocol_Telemetry(void)
 {
 	if(dma_ready == DISABLE) return;
@@ -520,8 +565,11 @@ void Protocol_Telemetry(void)
  * @return			-none
  *
  * @note			-executeCommand function contents aren't declare in this file
+ * 
+ * @callby			DMA_ApplicationEventCallback
+ * 
+ * @calls			executeCommand
  */
-
 void Protocol_DecodeRX(void)
 {
 	if(receive_data[0] == '$' && receive_data[1] == 'X')
@@ -542,8 +590,10 @@ void Protocol_DecodeRX(void)
  * @return			-none
  *
  * @note			-none
+ * 
+ * @calls			DMA_StopTransfer
+ * 					Protocol_DecodeRx
  */
-
 void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
 {
 	if(ApEv == DMA_EVENT_TCIF_CMPLT)
@@ -579,7 +629,6 @@ void DMA_ApplicationEventCallback(DMA_Handle_t *pDMAHandle, uint8_t ApEv)
  *
  * @note			-The content is expected to be handle outside of this file
  */
-
 __weak void executeCommand(uint8_t command)
 {
 	/*Expect to complete in main.c*/
@@ -595,8 +644,9 @@ __weak void executeCommand(uint8_t command)
  * @return			-none
  *
  * @note			-This functions is to be called on the true IRQHandling for the timer used
+ * 
+ * @calls			TIM_IRQHandling
  */
-
 void Protocol_TIMx_IRQHandling(void)
 {
 	TIM_IRQHandling(&TIMxHandle);
@@ -612,8 +662,9 @@ void Protocol_TIMx_IRQHandling(void)
  * @return			-none
  *
  * @note			-This functions is to be called on the true IRQHandling for the DMA stream used for USART TX
+ * 
+ * @calls			DMA_IRQHandling
  */
-
 void Protocol_DMAx_TX_IRQHandling(void)
 {
 	DMA_IRQHandling(&DMAx_TXHandle);
@@ -629,8 +680,9 @@ void Protocol_DMAx_TX_IRQHandling(void)
  * @return			-none
  *
  * @note			-This functions is to be called on the true IRQHandling for the DMA stream used for USART RX
+ * 
+ * @calls			DMA_IRQHandling
  */
-
 void Protocol_DMAx_RX_IRQHandling(void)
 {
 	DMA_IRQHandling(&DMAx_RXHandle);
