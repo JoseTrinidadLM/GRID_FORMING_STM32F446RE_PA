@@ -529,6 +529,42 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
 	Refresh_Duty_Cycle(*py2_z_0);
 }
 
+
+/*********************************************************************************************************************************************************************
+ * @fn                     CascadeControl
+ *
+ * @brief                  Implements a cascaded control strategy with two discrete PI loops:
+ *                         - Outer loop regulates DC bus voltage.
+ *                         - Inner loop regulates inverter current using Park Transformation components.
+ *                         Updates PWM duty cycles for positive and negative signals based on control output.
+ *
+ * @param                  cosine_wt   – Cosine of the electrical angle (ωt).
+ * @param                  V_G	       – Measured AC bus voltage.
+ * @param                  I_INV       – Measured inverter current.
+ * @param                  I_L       – Measured load current.
+ * @param                  pe1_z_0     – Pointer to current error of outer PI loop.
+ * @param                  pe1_z_1     – Pointer to previous error of outer PI loop.
+ * @param                  pe2_z_0     – Pointer to current error of inner PI loop.
+ * @param                  pe2_z_1     – Pointer to previous error of inner PI loop.
+ * @param                  py1_z_0     – Pointer to current output of outer PI loop.
+ * @param                  py1_z_1     – Pointer to previous output of outer PI loop.
+ * @param                  py2_z_0     – Pointer to current output of inner PI loop.
+ * @param                  py2_z_1     – Pointer to previous output of inner PI loop.
+ * @param                  u_pos       – Pointer to positive PWM duty cycle (uint16_t).
+ * @param                  u_neg       – Pointer to negative PWM duty cycle (uint16_t).
+ *
+ * @return                 None
+ *
+ * @note                   - Sampling rate is tightly coupled to control parameters (designed for ~9600 Hz).
+ *                         - Local variables are written in uppercase to differentiate from global variables.
+ *                         - Saturation limits applied to inner loop output: [-0.99, 0.99].
+ *                         - PWM duty cycles computed relative to TIM4->ARR register.
+ *
+ * @Requirements           TO-DO
+ *
+ * @callby					Control_DutyCycle
+ *
+ *********************************************************************************************************************************************************************/
 void CascadeControl2( float cosine_wt, float V_G, float I_INV, float I_L, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
 {
  
@@ -539,9 +575,9 @@ void CascadeControl2( float cosine_wt, float V_G, float I_INV, float I_L, __vo f
 	(*pe1_z_1) = (*pe1_z_0);																										//Updating last error as the most recent one
 	(*py1_z_1) = (*py1_z_0);																										//Updating last output PI control value as the most recent one
  
-	(*pe2_z_0) = (*py1_z_0) + (5.0f)*cosine_wt - (0.3278688524590164f)*V_G; 														//Calculates the new error with a reference given by external control loop output, quadrature current and inverter sense current
+	(*pe2_z_0) = (*py1_z_0) + (8.0f)*cosine_wt - (0.3278688524590164f)*V_G; 														//Calculates the new error with a reference given by external control loop output, quadrature current and inverter sense current
  
-	(*py2_z_0) = (*py2_z_1) + 0.11559895833333333333333333333333f*(*pe2_z_0) - 0.11440104166666666666666666666667f*(*pe2_z_1); 																//Internal discrete PI control loop
+	(*py2_z_0) = (*py2_z_1) + 0.11559895833333333333333333333333f*(*pe2_z_0) - 0.11440104166666666666666666666667f*(*pe2_z_1); 		//Internal discrete PI control loop
  
 	if((*py2_z_0)> (0.99)) (*py2_z_0) = 0.99;
 	if((*py2_z_0)< (-0.99)) (*py2_z_0) = -0.99;																						//Setting boundaries for control signal
@@ -553,6 +589,26 @@ void CascadeControl2( float cosine_wt, float V_G, float I_INV, float I_L, __vo f
  
 }
 
+
+/*********************************************************************************************************************************************************************
+ * @fn                     SignalDelay
+ *
+ * @brief                  Generates a signal sample-delayed by using a circular buffer that stores given samples.
+ *
+ * @param                  pSignal_Buffer – Pointer to the buffer storing signal samples.
+ * @param                  signal – Current cosine sample to be added to the buffer.
+ * @param                  pBuffer_Counter – Pointer to the buffer index counter (updated each call).
+ * @param                  pBuffer_Ready_Flag – Pointer to a flag indicating when the buffer is fully populated.
+ *
+ * @return                 temp_delayed_signal – A float representing the delayed signal derived from the buffer.
+ *
+
+ *
+ * @Requirements           TO-DO
+ *
+ * @callby					Control_DutyCycle
+ *
+ *********************************************************************************************************************************************************************/
 float SignalDelay(float *pSignal_Buffer, float signal, __vo uint8_t *pBuffer_Counter, __vo uint8_t *pBuffer_Ready_Flag, uint8_t samples_to_delay)
 {
 	float temp_delayed_signal = 0;
