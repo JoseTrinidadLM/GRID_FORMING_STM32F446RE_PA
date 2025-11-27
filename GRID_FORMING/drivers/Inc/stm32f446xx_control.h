@@ -42,6 +42,7 @@
 #define ADC_RESOLUTION			4095.0f
 #define ADC_OFFSET_VOLTAGE		0.5f
 #define ADC_VOLTAGE_REF		    03.3f
+#define ADC_HALF_VOLTAGE_REF	1.65f
 #define ADC_GRID_VOLTAGE_K	    27.5f
 #define ADC_DC_VOLTAGE_K	    26.51f
 #define ADC_INV_CURRENT_K	    3.02730f
