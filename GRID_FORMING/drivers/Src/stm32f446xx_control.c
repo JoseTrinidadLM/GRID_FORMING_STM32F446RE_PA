@@ -495,11 +495,8 @@ float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
  * 
  *********************************************************************************************************************************************************************/
 
-void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float I_INV, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
+void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float I_INV, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
 {
-	float u_pos_temp = RESET;
-	float u_neg_temp = RESET;
-
 	(*pe1_z_0) = 36 - V_CD;														//Evaluates error among reference and DC sensed value on DC bus of the inverter
 
 	(*py1_z_0) = (*py1_z_1) + 0.167037*(*pe1_z_0) - 0.167028*(*pe1_z_1);		//External discrete PI control loop
@@ -517,43 +514,7 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
 	(*pe2_z_1) = (*pe2_z_0);													//Updating last error as the most recent one
 	(*py2_z_1) = (*py2_z_0);													//Updating last output PI control value as the most recent one
 
-	u_pos_temp = (((*py2_z_0 )*(0.5)) + 0.5)*(TIM4->ARR);
-	u_neg_temp = (((*py2_z_0 )*(-0.5)) + 0.5)*(TIM4->ARR);
-
-	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
-	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
-
-}
-
-/*********************************************************************************************************************************************************************
- * @fn                     OpenLoop
- *
- * @brief                  Generates open-loop PWM duty cycles based on a cosine reference signal. Updates positive and negative control signals relative to TIM4 ARR.
- * 
- * @param                  cosine_wt – Cosine of the electrical angle (ωt).
- * @param                  u_pos     – Pointer to positive PWM duty cycle (uint16_t).
- * @param                  u_neg     – Pointer to negative PWM duty cycle (uint16_t).
- *
- * @return                 None
- * 
- * @note                   - Computes duty cycles using a normalized cosine signal.
- *                         - Positive and negative signals are scaled to the PWM resolution defined by TIM4->ARR.
- *
- * @Requirements           TO-DO
- * 
- * @callby					Control_DutyCycle
- * 
- *********************************************************************************************************************************************************************/
-void OpenLoop(float cosine_wt, __vo uint16_t *u_pos, __vo uint16_t *u_neg)
-{
-	float u_pos_temp = RESET;
-	float u_neg_temp = RESET;
-
-	u_pos_temp = ((cosine_wt*0.4) + 0.5)*(TIM4->ARR);
-	u_neg_temp = ((-cosine_wt*0.4) + 0.5)*(TIM4->ARR);
-
-	(*u_pos) = (uint16_t)u_pos_temp;				 							//Updates positive control signal in relation to PWM resolution
-	(*u_neg) = (uint16_t)u_neg_temp;											//Updates negative control signal in relation to PWM resolution
+	Refresh_Duty_Cycle(*py2_z_0);
 }
 
 /*********************************************************************************************************************************************************************
@@ -719,6 +680,8 @@ void ControlInit(void)
 	Sensors_Init((void*)raw_sensor_value);
 	SamplingRateTIMInit(SAMPLING_FREQUENCY);
 	PWM_TIMInits(PWM_FREQUENCY);
+	GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_7, RESET);
+	GPIO_WriteToOutputPin(GPIOB, GPIO_PIN_NO_6, RESET);
 }
 
 /*********************************************************************************************************************************************************************
@@ -786,6 +749,35 @@ void Control_Stop(void)
 		cos_buffer[i] = 0;
 		i_L_buffer[i] = 0;
 	}
+}
+
+
+/*********************************************************************************************************************************************************************
+ * @fn                     Refresh_Duty_Cycle
+ *
+ * @brief                  Updates the PWM duty cycle for two complementary channels based on a normalized control variable.
+ * 
+ * @param                  var  - Normalized control input in range [-1.0, +1.0], representing modulation index or reference signal.
+ *
+ * @return                 None
+ * 
+ * @note                   - Computes duty cycle for Channel 1 as ((var * 0.5) + 0.5) * ARR, mapping [-1,+1] to [0,ARR].
+ *                         - Computes duty cycle for Channel 2 as ((-var * 0.5) + 0.5) * ARR to maintain complementary behavior.
+ *                         - Uses TIM_PWM_DutyCycle() to apply new values to TIM4 PWM outputs.
+ *                         - Ensures symmetrical modulation around 50% duty for sinusoidal reference.
+ *
+ * @Requirements           TO-DO
+ * 
+ * @callby                 Control_DutyCycle and CascadeControl
+ * 
+ * @calls				   TIM_PWM_DutyCycle
+ * 
+ *********************************************************************************************************************************************************************/
+
+void Refresh_Duty_Cycle(float var)
+{
+	TIM_PWM_DutyCycle(&TIM_4, &TIM4_PWM_Channel_1, (float)(( var*0.5) + 0.5)*(TIM4->ARR));
+	TIM_PWM_DutyCycle(&TIM_4, &TIM4_PWM_Channel_2, (float)((-var*0.5) + 0.5)*(TIM4->ARR));
 }
 
 /*********************************************************************************************************************************************************************
@@ -866,11 +858,10 @@ void Control_DutyCycle(void)
 	
 	i_Q = QTransform(cosine, sine, i_L, i_L90);
 
-	if(systemState == GRID_FOLLOWING_MODE) OpenLoop(cosine, &u_control_pos, &u_control_neg);
+	if(systemState == GRID_FOLLOWING_MODE) Refresh_Duty_Cycle(cosine);
 
-	if(systemState == VAR_COMPENSATION_MODE) CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1, &u_control_pos, &u_control_neg);
+	if(systemState == VAR_COMPENSATION_MODE) CascadeControl(cosine, sine, v_cd, i_Q, i_inv, &e1_z_0, &e1_z_1, &e2_z_0, &e2_z_1, &y1_z_0, &y1_z_1, &y2_z_0, &y2_z_1);
 
-	PWM_dutyCycle_control(u_control_pos, u_control_neg);
 }
 
 /*********************************************************************************************************************************************************************

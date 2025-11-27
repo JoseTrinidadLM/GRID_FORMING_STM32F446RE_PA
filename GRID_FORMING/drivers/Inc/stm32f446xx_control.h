@@ -54,6 +54,8 @@ void Control_Start(void);
 
 void Control_Stop(void);
 
+void Refresh_Duty_Cycle(float var);
+
 uint8_t Control_ReadSensors(float* values);
 
 void Control_DutyCycle(void);
