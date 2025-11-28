@@ -491,8 +491,6 @@ float QTransform(float cosine_wt, float sine_wt, float alpha, float beta)
  * @param                  py1_z_1     – Pointer to previous output of outer PI loop.
  * @param                  py2_z_0     – Pointer to current output of inner PI loop.
  * @param                  py2_z_1     – Pointer to previous output of inner PI loop.
- * @param                  u_pos       – Pointer to positive PWM duty cycle (uint16_t).
- * @param                  u_neg       – Pointer to negative PWM duty cycle (uint16_t).
  *
  * @return                 None
  * 
@@ -529,7 +527,42 @@ void CascadeControl(float cosine_wt, float sine_wt, float V_CD, float I_Q, float
 	Refresh_Duty_Cycle(*py2_z_0);
 }
 
-void CascadeControl2( float cosine_wt, float V_G, float I_INV, float I_L, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
+/*********************************************************************************************************************************************************************
+ * @fn                     CascadeControl2
+ *
+ * @brief                  A new version of cascaded control strategy with two discrete PI loops: 
+ *                         - Outer loop regulates DC bus voltage.
+ *                         - Inner loop regulates inverter current using Park Transformation components.
+ *                         Updates PWM duty cycles for positive and negative signals based on control output.
+ * 
+ * @param                  cosine_wt   – Cosine of the electrical angle (ωt).
+ * @param                  sine_wt     – Sine of the electrical angle (ωt).
+ * @param                  V_CD        – Measured DC bus voltage.
+ * @param                  I_Q         – Quadrature current component.
+ * @param                  I_INV       – Measured inverter current.
+ * @param                  pe1_z_0     – Pointer to current error of outer PI loop.
+ * @param                  pe1_z_1     – Pointer to previous error of outer PI loop.
+ * @param                  pe2_z_0     – Pointer to current error of inner PI loop.
+ * @param                  pe2_z_1     – Pointer to previous error of inner PI loop.
+ * @param                  py1_z_0     – Pointer to current output of outer PI loop.
+ * @param                  py1_z_1     – Pointer to previous output of outer PI loop.
+ * @param                  py2_z_0     – Pointer to current output of inner PI loop.
+ * @param                  py2_z_1     – Pointer to previous output of inner PI loop.
+ *
+ * @return                 None
+ * 
+ * @note                   - Sampling rate is tightly coupled to control parameters (designed for ~9600 Hz).
+ *                         - Local variables are written in uppercase to differentiate from global variables.
+ *                         - Saturation limits applied to inner loop output: [-0.99, 0.99].
+ *                         - PWM duty cycles computed relative to TIM4->ARR register.
+ *
+ * @Requirements           TO-DO
+ * 
+ * @callby					Control_DutyCycle
+ * 
+ *********************************************************************************************************************************************************************/
+
+void iCascadeControl2( float cosine_wt, float V_G, float I_INV, float I_L, __vo float *pe1_z_0, __vo float *pe1_z_1, __vo float *pe2_z_0, __vo float *pe2_z_1, __vo float *py1_z_0, __vo float *py1_z_1, __vo float *py2_z_0, __vo float *py2_z_1)
 {
  
 	(*pe1_z_0) = I_L*(0.5f) - I_INV*(0.4615384615384615f);																			//Evaluates error among reference and DC sensed value on DC bus of the inverter
