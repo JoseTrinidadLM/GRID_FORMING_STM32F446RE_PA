@@ -912,8 +912,9 @@ uint8_t Control_ReadSensors(float* values)
 	i_inv = (raw_sensor_value[1]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_INV_CURRENT_K;
 	i_L = 	(raw_sensor_value[2]/ADC_RESOLUTION - ADC_OFFSET_VOLTAGE)*ADC_VOLTAGE_REF*ADC_LOAD_CURRENT_K;
 	v_cd = 	(raw_sensor_value[3]/ADC_RESOLUTION)*ADC_DC_VOLTAGE_K;
+	ElapsedTime += SAMPLING_PERIOD;	
 
-	if(index >= 160) index = 0; //Resets index after one full cycle of 60 Hz at 9.6 kHz sampling rate
+	if(index >= 160) index = RESET; //Resets index after one full cycle of 60 Hz at 9.6 kHz sampling rate
 
 	if(sent == 4)
 	{
@@ -923,7 +924,7 @@ uint8_t Control_ReadSensors(float* values)
 		values[3] = v_cd;
 		values[4] = ElapsedTime;
 		valid_send = FLAG_RESET;
-		sent = 0;
+		sent = RESET;
 	}else
 	{
 		valid_send = FLAG_SET;
