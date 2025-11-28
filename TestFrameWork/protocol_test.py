@@ -3,14 +3,15 @@ import string
 import time
 
 ser = serial.Serial()
-ser.baudrate = 2200000
-ser.port = 'COM6'
-ser.timeout = None
-ser.bytesize = serial.EIGHTBITS
-ser.parity = serial.PARITY_NONE
-ser.stopbits = serial.STOPBITS_ONE
 
-ser.open()
+def usartConfig():
+    ser.baudrate = 2200000
+    ser.port = 'COM6'
+    ser.timeout = None
+    ser.bytesize = serial.EIGHTBITS
+    ser.parity = serial.PARITY_NONE
+    ser.stopbits = serial.STOPBITS_ONE
+    ser.open()
 
 
 def readPacket():
@@ -46,30 +47,29 @@ def readTelemetry():
                 break
     return s
 
+def command(command):
+    print("Testing Command: System " +command+ "\n")
+    s = b'$'+b'X'+b'n'+bytes.fromhex(command)
+    ser.write(s)
+
 def testCommands():
-    print("Testing Command: System ON\n")
-    s = b'$'+b'X'+b'n'+bytes.fromhex('01')
-    ser.write(s)
+    command('01')
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
-    print("Testing Command: System Closed Loop\n")
-    s = b'$'+b'X'+b'n'+bytes.fromhex('04')
-    ser.write(s)
+    command('04')
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
-    print("Testing Command: System Open Loop\n")
-    s = b'$'+b'X'+b'n'+bytes.fromhex('03')
-    ser.write(s)
+    command('03')
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
-    print("Testing Command: System OFF\n")
-    s = b'$'+b'X'+b'n'+bytes.fromhex('02')
-    ser.write(s)
+    command('02')
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
 
-print(ser.name)
-while(True):
-    if(ser.is_open):
-        testCommands()
-        break
+if __name__ == "__main__":
+    usartConfig()
+    print(ser.name)
+    while(True):
+        if(ser.is_open):
+            testCommands()
+            break

@@ -309,7 +309,7 @@ void ProtocolInit(USART_RegDef_t *pUSARTx, GPIO_RegDef_t *pGPIOx_TX, GPIO_RegDef
 	/*HeartBeat Package Stucture*/
 	heartbeat_package[0] = '$';
 	heartbeat_package[1] = 'S';
-	heartbeat_package[2] = 2;
+	heartbeat_package[2] = 4;
 	heartbeat_package[5] = 0;
 	heartbeat_package[6] = 0;
 

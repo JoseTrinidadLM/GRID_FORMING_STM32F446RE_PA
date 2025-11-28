@@ -4,13 +4,27 @@ import sys
 import time
 import re
 
+import protocol_test
+
 #Paths
 GDB_SERVER = r"C:\ST\STM32CubeCLT_1.20.0\STLink-gdb-server\bin\ST-LINK_gdbserver.exe"
 GDB_PATH = r"C:\ST\STM32CubeCLT_1.20.0\GNU-tools-for-STM32\bin\arm-none-eabi-gdb.exe"
 ELF_PATH = r"C:\Users\jtlopez\Documents\InternProject\STM32F446RE\GRID_FORMING\Debug\GRID_FORMING.elf"
 TC_FOLDER = r"C:\Users\jtlopez\Documents\InternProject\STM32F446RE\TestFrameWork"
 
+def command(command):
+    usartConfig()
+    readHeartBeat()
+    command(command)
 
+def cmd_command(command):
+    cmd_s= (
+        f"import protocol_test;"
+        f"protocol_test.usartConfig();"
+        f"protocol_test.readHeartBeat();"
+        f"protocol_test.command({command})"
+    )
+    subprocess.Popen(['start', 'cmd', '/k', f'python -c "cmd_command({command})"'], shell=True)
 
 def start_gdb_server():
     cmd = [
@@ -98,7 +112,7 @@ def load_program():
 
 def tp001():
     print("\n====================================TP-001====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "data.gdb"])
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
     systemState = parse_gdb_value(output, "systemState")
     print("Value: "+systemState)
     if systemState == "0":
@@ -107,7 +121,7 @@ def tp001():
 
 def tp002():
     print("\n====================================TP-002====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb","data.gdb"])
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb","data.gdb", "disconnect.gdb"])
     ledState = parse_gdb_value(output, "(LED.pGPIOx.ODR >> 5) & 0b1")
     print("Value: "+ledState)
     if ledState == "0":
@@ -116,7 +130,7 @@ def tp002():
 
 def tp004():
     print("\n====================================TP-004====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button1.gdb", "data.gdb"])
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button1.gdb", "data.gdb", "disconnect.gdb"])
     systemState = parse_gdb_value(output, "systemState")
     print("\nValue: "+systemState+"\n")
     if systemState == "0":
@@ -125,7 +139,7 @@ def tp004():
 
 def tp005():
     print("\n====================================TP-005====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "data.gdb"])
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "data.gdb", "disconnect.gdb"])
     systemState = parse_gdb_value(output, "systemState")
     print("\nValue: "+systemState+"\n")
     if systemState == "1":
@@ -134,23 +148,33 @@ def tp005():
 
 def tp008():
     print("\n====================================TP-008====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button2.gdb", "data.gdb"])
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button2.gdb", "data.gdb", "disconnect.gdb"])
     systemState = parse_gdb_value(output, "systemState")
     print("\nValue: "+systemState+"\n")
     if systemState == "1":
         return True
     return False
 
-def tp008():
-    print("\n====================================TP-008====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "data.gdb"])
+def tp009():
+    print("\n====================================TP-009====================================\n")
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "heartbeat.gdb", "heartbeat.gdb", "data.gdb", "disconnect.gdb"])
     systemState = parse_gdb_value(output, "systemState")
-    print("\nValue: "+systemState+"\n")
-    if systemState == "1":
+    led = parse_gdb_value(output, "(LED.pGPIOx.ODR >> 5) & 0b1")
+    print("\nValue: "+led+"\n")
+    if (systemState == "3"):
         return True
     return False
+
+def tp023():
+    print("\n====================================TP-023====================================\n")
+    cmd_command('01')
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "heartbeat.gdb", "command.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
+    #systemState = parse_gdb_value(output, "systemState")
+    #print("\nValue: "+systemState+"\n")
+    #if (systemState == "1"):
+    #    return True
+    #return False
 
 if __name__ == "__main__":
-    #load_program()           #Neccessary only if there are changes to source code
     
-    print(tp001())
+    print(tp023())

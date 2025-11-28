@@ -1,6 +1,15 @@
-break main
-continue
+break Protocol_HeartBeat
+commands
+    silent
+    echo "Heartbeat detected, setting breakpoint in executeCommand()\n"
+    break executeCommand
+    continue
+end
+
 break executeCommand
-continue
-display /d command
-print /d command
+commands
+    silent
+    echo "Now in executeCommand()\n"
+    print /d command
+    finish
+end
