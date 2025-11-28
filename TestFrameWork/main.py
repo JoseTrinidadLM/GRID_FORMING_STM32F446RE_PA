@@ -70,6 +70,7 @@ def run_test_case(tc_name):
     return output
 
 def run_multiple_scripts(scripts):
+    server = start_gdb_server()
     """Run multiple .gdb scripts in a single GDB session"""
     cmd = [GDB_PATH, "-batch", "-cd", TC_FOLDER]
     for script in scripts:
@@ -83,6 +84,9 @@ def run_multiple_scripts(scripts):
     print("=== GDB Output ===")
     print(output)
     print("==================\n")
+    server.terminate()
+    server.wait()
+    time.sleep(2)
     return output
 
 def load_program():
@@ -94,11 +98,7 @@ def load_program():
 
 def tp001():
     print("\n====================================TP-001====================================\n")
-    server = start_gdb_server()
     output = run_multiple_scripts(["init.gdb", "main_while.gdb", "data.gdb"])
-    server.terminate()
-    server.wait()
-    time.sleep(2)
     systemState = parse_gdb_value(output, "systemState")
     print("Value: "+systemState)
     if systemState == "0":
@@ -107,11 +107,7 @@ def tp001():
 
 def tp002():
     print("\n====================================TP-002====================================\n")
-    server = start_gdb_server()
     output = run_multiple_scripts(["init.gdb", "main_while.gdb","data.gdb"])
-    server.terminate()
-    server.wait()
-    time.sleep(2)
     ledState = parse_gdb_value(output, "(LED.pGPIOx.ODR >> 5) & 0b1")
     print("Value: "+ledState)
     if ledState == "0":
@@ -120,11 +116,7 @@ def tp002():
 
 def tp004():
     print("\n====================================TP-004====================================\n")
-    server = start_gdb_server()
     output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button1.gdb", "data.gdb"])
-    server.terminate()
-    server.wait()
-    time.sleep(2)
     systemState = parse_gdb_value(output, "systemState")
     print("\nValue: "+systemState+"\n")
     if systemState == "0":
@@ -133,17 +125,30 @@ def tp004():
 
 def tp005():
     print("\n====================================TP-005====================================\n")
-    server = start_gdb_server()
     output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "data.gdb"])
-    server.terminate()
-    server.wait()
-    time.sleep(2)
     systemState = parse_gdb_value(output, "systemState")
     print("\nValue: "+systemState+"\n")
     if systemState == "1":
         return True
     return False
 
+def tp008():
+    print("\n====================================TP-008====================================\n")
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button2.gdb", "data.gdb"])
+    systemState = parse_gdb_value(output, "systemState")
+    print("\nValue: "+systemState+"\n")
+    if systemState == "1":
+        return True
+    return False
+
+def tp008():
+    print("\n====================================TP-008====================================\n")
+    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "data.gdb"])
+    systemState = parse_gdb_value(output, "systemState")
+    print("\nValue: "+systemState+"\n")
+    if systemState == "1":
+        return True
+    return False
 
 if __name__ == "__main__":
     #load_program()           #Neccessary only if there are changes to source code

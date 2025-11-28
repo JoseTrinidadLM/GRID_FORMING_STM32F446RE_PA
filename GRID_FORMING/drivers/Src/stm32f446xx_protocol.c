@@ -20,7 +20,7 @@ float *pBuffer_values; 										//Data packet to be sent via USART
 static uint8_t *pStatus;
 static uint8_t *pFrequency;
 
-uint8_t heartbeat_package[5];
+uint8_t heartbeat_package[7];
 uint8_t telemetry_package[35];
 
 uint8_t receive_data[3];
@@ -310,6 +310,8 @@ void ProtocolInit(USART_RegDef_t *pUSARTx, GPIO_RegDef_t *pGPIOx_TX, GPIO_RegDef
 	heartbeat_package[0] = '$';
 	heartbeat_package[1] = 'S';
 	heartbeat_package[2] = 2;
+	heartbeat_package[5] = 0;
+	heartbeat_package[6] = 0;
 
 	/*Telemetry Package Stucture*/
 	telemetry_package[0] = '$';
@@ -454,7 +456,7 @@ void Protocol_HeartBeat(void)
 	dma_transfer_mode = DMA_TR_HEARTBEAT;
 
 	DMA_SetAddresses(&DMAx_TXHandle, (void*)heartbeat_package, (void*)&USARTxHandle.pUSARTx->DR);
-	DMA_ConfigureBuffer(&DMAx_TXHandle, 5);
+	DMA_ConfigureBuffer(&DMAx_TXHandle, 7);
 	DMA_StartTransfer(&DMAx_TXHandle);
 }
 

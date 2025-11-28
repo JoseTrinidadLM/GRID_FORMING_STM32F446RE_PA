@@ -10,6 +10,9 @@ print /d ElapsedTime
 display /d telemetry_status
 print /d telemetry_status
 
+display /d heartbeat_status
+print /d heartbeat_status
+
 display /d heartbeat[0]
 print /d heartbeat[0]
 
