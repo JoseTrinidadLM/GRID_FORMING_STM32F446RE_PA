@@ -41,7 +41,7 @@
 float packets_value[5]; 	//Data packet to be sent via UART
 
 uint8_t testvar = 0;
-
+ 
 uint8_t heartbeat[2];
 
 GPIO_Handle_t LED;
@@ -66,6 +66,7 @@ int main(void)
 	SCB_CPACR |= ((3UL << 10*2) | (3UL << 11*2)); //FPU Enabled`
 
 	ControlInit();
+	Control_Stop();
 
 	ProtocolInit(USART2, GPIOA, GPIOA, GPIO_PIN_NO_2, GPIO_PIN_NO_3, packets_value, heartbeat);
 	Protocol_TIMInit(TIM3);
