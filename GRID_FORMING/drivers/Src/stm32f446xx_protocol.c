@@ -23,7 +23,7 @@ static uint8_t *pFrequency;
 uint8_t heartbeat_package[7];
 uint8_t telemetry_package[35];
 
-uint8_t receive_data[3];
+uint8_t receive_data[4];
 
 uint8_t dma_ready;				//Flag DMA Ready to use (Free)
 uint8_t telemetry_status;		//Flag Telemetry send request

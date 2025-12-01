@@ -9,7 +9,7 @@ wt ^
         -d ^
     ; new-tab --title "GDB Debug" cmd /k ^
         arm-none-eabi-gdb ^
-        C:\Users\jtlopez\Documents\InternProject\STM32F446RE\GRID_FORMING\Debug\GRID_FORMING.elf ^
+        %USERPROFILE%\Documents\InternProject\STM32F446RE\GRID_FORMING\build\GRID_FORMING.elf ^
         -ex "target remote localhost:61234" ^
         -ex "monitor halt" ^
         -ex "load" ^

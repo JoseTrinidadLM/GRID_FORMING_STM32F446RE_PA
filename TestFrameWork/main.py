@@ -9,22 +9,18 @@ import protocol_test
 #Paths
 GDB_SERVER = r"C:\ST\STM32CubeCLT_1.20.0\STLink-gdb-server\bin\ST-LINK_gdbserver.exe"
 GDB_PATH = r"C:\ST\STM32CubeCLT_1.20.0\GNU-tools-for-STM32\bin\arm-none-eabi-gdb.exe"
-ELF_PATH = r"C:\Users\jtlopez\Documents\InternProject\STM32F446RE\GRID_FORMING\Debug\GRID_FORMING.elf"
-TC_FOLDER = r"C:\Users\jtlopez\Documents\InternProject\STM32F446RE\TestFrameWork"
-
-def command(command):
-    usartConfig()
-    readHeartBeat()
-    command(command)
+ELF_PATH = os.path.expandvars(r"%USERPROFILE%\Documents\InternProject\STM32F446RE\GRID_FORMING\build\GRID_FORMING.elf")
+TC_FOLDER = os.path.expandvars(r"%USERPROFILE%\Documents\InternProject\STM32F446RE\TestFrameWork")
 
 def cmd_command(command):
-    cmd_s= (
-        f"import protocol_test;"
-        f"protocol_test.usartConfig();"
-        f"protocol_test.readHeartBeat();"
-        f"protocol_test.command({command})"
+    cmd = (
+        'python -c "import protocol_test; '
+        'protocol_test.usartConfig(); '
+        'protocol_test.readHeartBeat(); '
+        f'protocol_test.command(\'{command}\')"'
     )
-    subprocess.Popen(['start', 'cmd', '/k', f'python -c "cmd_command({command})"'], shell=True)
+
+    subprocess.Popen(f'start "" cmd /k {cmd}', shell=True)
 
 def start_gdb_server():
     cmd = [
@@ -169,11 +165,11 @@ def tp023():
     print("\n====================================TP-023====================================\n")
     cmd_command('01')
     output = run_multiple_scripts(["init.gdb", "main_while.gdb", "heartbeat.gdb", "command.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
-    #systemState = parse_gdb_value(output, "systemState")
-    #print("\nValue: "+systemState+"\n")
-    #if (systemState == "1"):
-    #    return True
-    #return False
+    systemState = parse_gdb_value(output, "systemState")
+    print("\nValue: "+systemState+"\n")
+    if (systemState == "1"):
+        return True
+    return False
 
 if __name__ == "__main__":
     

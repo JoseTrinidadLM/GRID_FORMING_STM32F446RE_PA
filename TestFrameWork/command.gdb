@@ -10,6 +10,5 @@ break executeCommand
 commands
     silent
     echo "Now in executeCommand()\n"
-    print /d command
     finish
 end

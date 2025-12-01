@@ -6,7 +6,7 @@ ser = serial.Serial()
 
 def usartConfig():
     ser.baudrate = 2200000
-    ser.port = 'COM6'
+    ser.port = 'COM12'
     ser.timeout = None
     ser.bytesize = serial.EIGHTBITS
     ser.parity = serial.PARITY_NONE
@@ -71,5 +71,5 @@ if __name__ == "__main__":
     print(ser.name)
     while(True):
         if(ser.is_open):
-            testCommands()
+            command('01')
             break
