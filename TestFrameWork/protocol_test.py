@@ -36,7 +36,6 @@ def readHeartBeat():
             print("Port open")
             ser.reset_input_buffer()
             while(True):
-                print("Searching for heartbeat")
                 s = ser.read(1)
                 if(chr(s[0]) == '$'):
                     s = ser.read(1)
@@ -63,21 +62,25 @@ def command(command):
         print("Checking if port is open to send command\n")
         if(ser.is_open):
             print("Testing Command: System " +command+ "\n")
-            s = b'$'+b'X'+b'n'+bytes.fromhex(command)
+            s = b'$'+b'X'+bytes.fromhex(command)
             ser.write(s)
             break
 
 def testCommands():
     command('01')
+    time.sleep(2)
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
     command('04')
+    time.sleep(2)
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
     command('03')
+    time.sleep(2)
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
     command('02')
+    time.sleep(2)
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
 

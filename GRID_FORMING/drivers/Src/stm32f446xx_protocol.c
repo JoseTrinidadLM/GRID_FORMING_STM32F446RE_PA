@@ -23,7 +23,7 @@ static uint8_t *pFrequency;
 uint8_t heartbeat_package[7];
 uint8_t telemetry_package[35];
 
-uint8_t receive_data[4];
+uint8_t receive_data[3];
 
 uint8_t dma_ready;				//Flag DMA Ready to use (Free)
 uint8_t telemetry_status;		//Flag Telemetry send request
@@ -261,9 +261,11 @@ void DMAx_Inits(uint8_t usart_n)
 	DMAx_RXHandle.DMA_Config.DMA_PeriphInc = DISABLE;
 	DMAx_RXHandle.DMA_Config.DMA_FIFOMode = DMA_FIFO_MODE_DISABLED;
 	DMAx_RXHandle.DMA_Config.DMA_FIFOThreshold = 0;
-	DMAx_RXHandle.DMA_Config.DMA_Mode = DMA_MODE_CIRCULAR;
+	DMAx_RXHandle.DMA_Config.DMA_Mode = DMA_MODE_NORMAL;
 	DMAx_RXHandle.DMA_Config.DMA_TransferIT = ENABLE;
-	DMAx_RXHandle.BufferSize = 4;
+	DMAx_RXHandle.BufferSize = 3;
+
+	memset(receive_data, 0, DMAx_RXHandle.BufferSize);
 
 	DMA_Init(&DMAx_RXHandle);
 	DMA_SetAddresses(&DMAx_RXHandle, (void*)&USARTxHandle.pUSARTx->DR, (void*)receive_data);
@@ -576,8 +578,12 @@ void Protocol_DecodeRX(void)
 {
 	if(receive_data[0] == '$' && receive_data[1] == 'X')
 	{
-		executeCommand(receive_data[3]);
+		executeCommand(receive_data[2]);
 	}
+	memset(receive_data, 0, DMAx_RXHandle.BufferSize);
+
+	DMA_StopTransfer(&DMAx_RXHandle);
+	DMA_StartTransfer(&DMAx_RXHandle);
 }
 
 /**
