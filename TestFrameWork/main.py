@@ -9,17 +9,21 @@ import protocol_test
 #Paths
 GDB_SERVER = r"C:\ST\STM32CubeCLT_1.20.0\STLink-gdb-server\bin\ST-LINK_gdbserver.exe"
 GDB_PATH = r"C:\ST\STM32CubeCLT_1.20.0\GNU-tools-for-STM32\bin\arm-none-eabi-gdb.exe"
-ELF_PATH = os.path.expandvars(r"%USERPROFILE%\Documents\InternProject\STM32F446RE\GRID_FORMING\build\GRID_FORMING.elf")
+ELF_PATH = os.path.expandvars(r"%USERPROFILE%\Documents\InternProject\STM32F446RE\GRID_FORMING\debug\GRID_FORMING.elf")
 TC_FOLDER = os.path.expandvars(r"%USERPROFILE%\Documents\InternProject\STM32F446RE\TestFrameWork")
 
 def cmd_command(command):
     cmd = (
         'python -c "import protocol_test; '
+        'import time; '
+        'time.sleep(5); '
+        'print(\'Opening Port\'); '
         'protocol_test.usartConfig(); '
         'protocol_test.readHeartBeat(); '
-        f'protocol_test.command(\'{command}\')"'
+        'print(\'Receive HeartBeat\'); '
+        f'protocol_test.command(\'{command}\'); '
+        'print(\'Command Sent\')"'
     )
-
     subprocess.Popen(f'start "" cmd /k {cmd}', shell=True)
 
 def start_gdb_server():
@@ -164,7 +168,7 @@ def tp009():
 def tp023():
     print("\n====================================TP-023====================================\n")
     cmd_command('01')
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "heartbeat.gdb", "command.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
+    output = run_multiple_scripts(["init.gdb", "heartbeat.gdb", "command.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
     systemState = parse_gdb_value(output, "systemState")
     print("\nValue: "+systemState+"\n")
     if (systemState == "1"):
