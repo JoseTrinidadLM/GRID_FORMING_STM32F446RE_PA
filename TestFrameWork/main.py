@@ -37,18 +37,25 @@ def start_gdb_server():
     return subprocess.Popen(cmd)
 
 def parse_gdb_value(output, var_name):
+    # Find the number associated with var_name in Auto-display section
+    expr_pattern = rf"\d+:\s+y\s+/d\s+{re.escape(var_name)}"
+    expr_match = re.search(expr_pattern, output)
+    if not expr_match:
+        return None
 
-    # Pattern 1: Display format "$N = value"
-    pattern1 = rf"\$\d+\s*=\s*(.+?)(?:\n|$)"
-    match = re.search(pattern1, output)
-    if match:
-        return match.group(1).strip()
-    
-    # Pattern 2: Print format "variable = value"
-    pattern2 = rf"{var_name}\s*=\s*(.+?)(?:\n|$)"
-    match = re.search(pattern2, output)
-    if match:
-        return match.group(1).strip()
+    # Extract the number (Num) before the colon
+    num_match = re.search(r"(\d+):\s+y\s+/d\s+" + re.escape(var_name), expr_match.group(0))
+    if not num_match:
+        return None
+    num = num_match.group(1)
+
+    # Now find the value for $num
+    value_pattern = rf"\${num}\s*=\s*(.+?)(?:\n|$)"
+    value_match = re.search(value_pattern, output)
+    if value_match:
+        return value_match.group(1).strip()
+    return None
+
 
 def init_load():
     tc_script = os.path.join(TC_FOLDER, "init_load.gdb")
@@ -110,71 +117,76 @@ def load_program():
     server.wait()
     time.sleep(2)
 
+#Output #TP, Variables Names, Expected Values, Receive Values, Result, Error Message
+
+def test_procedure(test_number, variables_name_list , expected_values_list, scripts_list):
+    output = [test_number, variables_name_list, expected_values_list, None, None, None]
+    print(f"\n====================================TP-{test_number}====================================\n")
+    out = run_multiple_scripts(scripts_list)
+    values = []
+    for x in range(len(variables_name_list)):
+        values.append(parse_gdb_value(out, variables_name_list[x]))
+    output[3] = values
+    output[4] = False
+
+    for x in range(len(variables_name_list)):
+        if output[3][x] == str(expected_values_list[x]):
+            output[4] = True
+        else:
+            output[4] = False
+            break
+    return output
+
 def tp001():
-    print("\n====================================TP-001====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
-    systemState = parse_gdb_value(output, "systemState")
-    print("Value: "+systemState)
-    if systemState == "0":
-        return True
-    return False
+    output = test_procedure(1, ["systemState"], [0], ["init.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
+    return output
 
 def tp002():
-    print("\n====================================TP-002====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb","data.gdb", "disconnect.gdb"])
-    ledState = parse_gdb_value(output, "(LED.pGPIOx.ODR >> 5) & 0b1")
-    print("Value: "+ledState)
-    if ledState == "0":
-        return True
-    return False
+    output = test_procedure(2, ["(LED.pGPIOx.ODR >> 5) & 0b1"], [0], ["init.gdb", "main_while.gdb","data.gdb", "disconnect.gdb"])
+    return output
 
 def tp004():
-    print("\n====================================TP-004====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button1.gdb", "data.gdb", "disconnect.gdb"])
-    systemState = parse_gdb_value(output, "systemState")
-    print("\nValue: "+systemState+"\n")
-    if systemState == "0":
-        return True
-    return False
+    output = test_procedure(4, ["systemState"], [0], ["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button1.gdb", "data.gdb", "disconnect.gdb"])
+    return output
 
 def tp005():
-    print("\n====================================TP-005====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "data.gdb", "disconnect.gdb"])
-    systemState = parse_gdb_value(output, "systemState")
-    print("\nValue: "+systemState+"\n")
-    if systemState == "1":
-        return True
-    return False
+    output = test_procedure(5, ["systemState"], [1], ["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "data.gdb", "disconnect.gdb"])
+    return output
 
 def tp008():
-    print("\n====================================TP-008====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button2.gdb", "data.gdb", "disconnect.gdb"])
-    systemState = parse_gdb_value(output, "systemState")
-    print("\nValue: "+systemState+"\n")
-    if systemState == "1":
-        return True
-    return False
+    output = test_procedure(8, ["systemState"], [1], ["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button2.gdb", "data.gdb", "disconnect.gdb"])
+    return output
 
 def tp009():
-    print("\n====================================TP-009====================================\n")
-    output = run_multiple_scripts(["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "heartbeat.gdb", "heartbeat.gdb", "data.gdb", "disconnect.gdb"])
-    systemState = parse_gdb_value(output, "systemState")
-    led = parse_gdb_value(output, "(LED.pGPIOx.ODR >> 5) & 0b1")
-    print("\nValue: "+led+"\n")
-    if (systemState == "3"):
-        return True
-    return False
+    output = test_procedure(9, ["systemState", "(LED.pGPIOx.ODR >> 5) & 0b1"], [3, 0], ["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "heartbeat.gdb", "heartbeat.gdb", "data.gdb", "disconnect.gdb"])
+    return output
 
 def tp023():
-    print("\n====================================TP-023====================================\n")
     cmd_command('01')
-    output = run_multiple_scripts(["init.gdb", "heartbeat.gdb", "command.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
-    systemState = parse_gdb_value(output, "systemState")
-    print("\nValue: "+systemState+"\n")
-    if (systemState == "1"):
-        return True
-    return False
+    output = test_procedure(23, ["systemState"], [1], ["init.gdb", "heartbeat.gdb", "command.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
+    return output
+
+lTPs = [tp001, tp002, tp004, tp005, tp008, tp009, tp023]
+
+def testTPs(ltps):
+    nTPs = len(ltps)
+    fTPs = 0
+    coverage = []
+    y = 0
+    for x in ltps:
+        coverage.append(x())
+        if not coverage[y][4]:
+            fTPs += 1
+        y += 1
+        time.sleep(10)
+    print("\n\n==============================================================================")
+    print("===============================COVERAGE RESULT================================")
+    print("==============================================================================")
+    print("Number of TPs: ", nTPs, "   Fail TPs: ", fTPs)
+    for z in range(len(coverage)):
+        print("#TP ",coverage[z][0], "Variables: ", coverage[z][1] , "| Expected Values: ", coverage[z][2], "| Receive Values: ", coverage[z][3], "| Result: ", coverage[z][4], "| Error: ", coverage[z][5])
+    print("===================================END========================================\n")
 
 if __name__ == "__main__":
     
-    print(tp023())
+    testTPs(lTPs)
