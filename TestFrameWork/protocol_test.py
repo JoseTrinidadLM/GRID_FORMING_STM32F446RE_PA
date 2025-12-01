@@ -39,12 +39,15 @@ def readHeartBeat():
             while(True):
                 s = ser.read(1)
                 if(chr(s[0]) == '$'):
-                    s = ser.read(1)
-                    if(chr(s[0]) == 'S'):
-                        s = ser.read(5) 
+                    t = ser.read(1)
+                    if(chr(t[0]) == 'S'):
+                        len = struct.unpack('!b', ser.read(1))[0]
+                        s = struct.unpack('!b', ser.read(1))[0]
+                        f = struct.unpack('!b', ser.read(1))[0]
+                        r = ser.read(2)
                         break
             break
-    return s
+    return len, t, s, f, r
 
 def readTelemetry():
     while(True):
@@ -53,12 +56,12 @@ def readTelemetry():
                 s = ser.read(1)
                 if(chr(s[0]) == '$'):
                     t = ser.read(1)
-                    if(chr(s[0]) != 'S'):
-                        s = ser.read(1)
+                    if(chr(t[0]) != 'S'):
+                        len = struct.unpack('!b', ser.read(1))[0]
                         v = struct.unpack('!f', ser.read(4))
                         break
             break
-    return s, t, v
+    return len, t, v
 
 def command(command):
     while(True):
@@ -93,10 +96,14 @@ def testTelemetry():
             len, t, value = readTelemetry()
             print("Packet: "+str(t)+"Long: "+f"{len}| {value} \n")
 
+def testHeartBeat():
+    while(True):
+        if(ser.is_open):
+            len, t, s, f, r = readHeartBeat()
+            print("Status: "+str(t)+" Long: "+f"{len}| Status {s} Frequency {f} \n")
+
 if __name__ == "__main__":
     usartConfig()
     command('01')
     time.sleep(2)
-    s = readHeartBeat()
-    print("Status: "+str(s)+'\n')
-    testTelemetry()
+    testHeartBeat()

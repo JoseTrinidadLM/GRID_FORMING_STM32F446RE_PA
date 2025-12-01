@@ -89,6 +89,7 @@ __vo uint16_t u_control_pos;
 __vo uint16_t u_control_neg;
 
 uint8_t systemState;
+uint8_t status[2];
 
 /*********************************************************************************************************************************************************************
  * @fn		               ResetTime
@@ -1005,8 +1006,10 @@ void Control_DutyCycle(void)
  * 							ResetPIControllers
  * 
  *********************************************************************************************************************************************************************/
-uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
+void Control_Mode(uint8_t *status)
 {
+	int Power = status[0] & 0b1;
+	int Loop = (status[0] >> 1 ) & 0b1;
 	/*When Operation Mode is zero it resets PI controllers from CascadeControl(), to assure safe and smooth transition to Closed Loop Mode Operation*/
 	if( Power == DISABLE && ((systemState >> SYSTEM_STATUS_FLAG) & GRID_FOLLOWING_MODE) == FLAG_SET )
 	{
@@ -1029,7 +1032,8 @@ uint8_t Control_Mode(uint8_t Power, uint8_t Loop)
 			SET_CLOSED_LOOP_MODE(systemState); //Set Loop Status Flag to Closed
 		}
 	}
-	return systemState;
+	status[0] = systemState;
+	status[1] = SAMPLING_FREQUENCY/100;
 }
 
 /*********************************************************************************************************************************************************************

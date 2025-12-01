@@ -24,7 +24,7 @@ def cmd_command(command):
         f'protocol_test.command(\'{command}\'); '
         'print(\'Command Sent\')"'
     )
-    subprocess.Popen(f'start "" cmd /k {cmd}', shell=True)
+    subprocess.Popen(f'start "" cmd /c {cmd}', shell=True)
 
 def start_gdb_server():
     cmd = [

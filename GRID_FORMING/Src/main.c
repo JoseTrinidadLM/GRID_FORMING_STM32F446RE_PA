@@ -202,7 +202,7 @@ void executeCommand(uint8_t command)
 	{
 		SET_CLOSED_LOOP_MODE(heartbeat[0]);
 	}
-	heartbeat[0] = Control_Mode(heartbeat[0] & 0b1, (heartbeat[0] >> 1) & 0b1); //Introduce Power & Loop values
+	Control_Mode(heartbeat); //Introduce Power & Loop values
 	LED_Indicator();
 }
 
@@ -237,7 +237,7 @@ void EXTI15_10_IRQHandler(void)
 		heartbeat[0] ^= (1 << 1); //toggle loop bit if button pressed
 	} 
 
-	heartbeat[0] = Control_Mode(heartbeat[0] & 0b1, (heartbeat[0] >> 1) & 0b1); //Introduce Power & Loop values (TO-DO: maybe change to main.c)
+	Control_Mode(heartbeat); //Introduce Power & Loop values (TO-DO: maybe change to main.c)
 	LED_Indicator();
 }
 

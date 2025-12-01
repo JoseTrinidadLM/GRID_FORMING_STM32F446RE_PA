@@ -61,7 +61,7 @@ uint8_t Control_ReadSensors(float* values);
 
 void Control_DutyCycle(void);
 
-uint8_t Control_Mode(uint8_t Power, uint8_t Loop);
+void Control_Mode(uint8_t *status);
 
 uint8_t Control_ChangeMode(uint8_t Status, uint8_t Flag);
 
