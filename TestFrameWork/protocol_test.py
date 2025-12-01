@@ -1,6 +1,7 @@
 import serial
 import string
 import time
+import struct
 
 ser = serial.Serial()
 
@@ -51,11 +52,13 @@ def readTelemetry():
             while(True):
                 s = ser.read(1)
                 if(chr(s[0]) == '$'):
-                    s = ser.read(1)
+                    t = ser.read(1)
                     if(chr(s[0]) != 'S'):
-                        s = ser.read(5)
+                        s = ser.read(1)
+                        v = struct.unpack('!f', ser.read(4))
                         break
-    return s
+            break
+    return s, t, v
 
 def command(command):
     while(True):
@@ -84,6 +87,16 @@ def testCommands():
     s = readHeartBeat()
     print("Status: "+str(s)+'\n')
 
+def testTelemetry():
+    while(True):
+        if(ser.is_open):
+            len, t, value = readTelemetry()
+            print("Packet: "+str(t)+"Long: "+f"{len}| {value} \n")
+
 if __name__ == "__main__":
     usartConfig()
-    testCommands()
+    command('01')
+    time.sleep(2)
+    s = readHeartBeat()
+    print("Status: "+str(s)+'\n')
+    testTelemetry()
