@@ -3,8 +3,35 @@ import subprocess
 import sys
 import time
 import re
+import select
 
 import protocol_test
+
+#Variables
+
+SystemState = "systemState"
+Led = "(LED.pGPIOx.ODR >> 5) & 0b1"
+ElapsedTIme = "ElapsedTime"
+TelemetryStatus = "telemetry_status"
+HeartBeatStatus = "heartbeat_status"
+
+#GDB scripts actions (To form TPs)
+button1 = "button1.gdb"
+button2 = "button2.gdb"
+heartbeat = "heartbeat.gdb"
+wait_command = "command.gdb"
+
+#Commands
+
+SystemEnable = '01'
+SystemDisable = '02'
+OpenLoop = '03'
+CloseLoop = '04'
+
+
+#GDB scripts function used
+main_while = "main_while.gdb"
+read_data = "data.gdb"
 
 #Paths
 GDB_SERVER = r"C:\ST\STM32CubeCLT_1.20.0\STLink-gdb-server\bin\ST-LINK_gdbserver.exe"
@@ -37,39 +64,66 @@ def start_gdb_server():
     return subprocess.Popen(cmd)
 
 def parse_gdb_value(output, var_name):
-    # Find the number associated with var_name in Auto-display section
-    expr_pattern = rf"\d+:\s+y\s+/d\s+{re.escape(var_name)}"
-    expr_match = re.search(expr_pattern, output)
-    if not expr_match:
-        return None
-
-    # Extract the number (Num) before the colon
-    num_match = re.search(r"(\d+):\s+y\s+/d\s+" + re.escape(var_name), expr_match.group(0))
-    if not num_match:
-        return None
-    num = num_match.group(1)
-
-    # Now find the value for $num
-    value_pattern = rf"\${num}\s*=\s*(.+?)(?:\n|$)"
-    value_match = re.search(value_pattern, output)
-    if value_match:
-        return value_match.group(1).strip()
+    # Find all occurrences of "var_name = value"
+    pattern = rf"{re.escape(var_name)}\s*=\s*(\d+)"
+    matches = re.findall(pattern, output)
+    if matches:
+        return matches[-1]  # Return the last occurrence
     return None
 
+def start_gdb_client():
+    cmd = [GDB_PATH, ELF_PATH]
+    process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    with open(os.path.join(TC_FOLDER, "init_load.gdb")) as f:
+        commands = f.read()
+    process.stdin.write(commands + "\n")
+    process.stdin.flush()
+    return process
 
-def init_load():
-    tc_script = os.path.join(TC_FOLDER, "init_load.gdb")
-    if not os.path.exists(tc_script):
-        print(f"Program load script not found {tc_script}")
-        return
+def run_scripts(process, scripts):
+    # Send scripts
+    for script in scripts:
+        with open(os.path.join(TC_FOLDER, script)) as f:
+            commands = f.read()
+        process.stdin.write(commands + "\n")
+        process.stdin.flush()
+
+    with open(os.path.join(TC_FOLDER, read_data)) as f:
+            commands = f.read()
+    process.stdin.write(commands + "\n")
+    process.stdin.flush()
     
-    cmd = [GDB_PATH, "-batch", ELF_PATH, "-x", tc_script]
-    print(f"Loading Program: {' '.join(cmd)}")
-    try:
-        process = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    except subprocess.TimeoutExpired:
-        print("GDB execution timed out after 60 seconds")
-        return
+    # Send marker
+    process.stdin.write('echo ---TP-END---\n')
+    process.stdin.flush()
+
+    # Read output until marker or timeout
+    output_lines = []
+    start_time = time.time()
+    timeout = 20  # Adjust based on script duration
+
+    while True:
+        if time.time() - start_time > timeout:
+            print("Timeout waiting for marker!")
+            break
+
+        # Read all available data without blocking
+        chunk = process.stdout.read(1)  # Read one char at a time
+        if chunk:
+            output_lines.append(chunk)
+            if '---TP-END---' in ''.join(output_lines):
+                print("Found End Marker")
+                break
+        else:
+            time.sleep(0.1)  # Avoid busy loop
+
+    return ''.join(output_lines)
+
+def close_gdb_client(process):
+    process.stdin.write("disconnect\nquit\n")
+    process.stdin.flush()    
+    output, error = process.communicate()
+    return output + error
 
 def run_test_case(tc_name):
     tc_script = os.path.join(TC_FOLDER, f"{tc_name}.gdb")
@@ -90,8 +144,29 @@ def run_test_case(tc_name):
 
     return output
 
+def reset_board(process):
+    process.stdin.write("monitor reset halt\n")
+    process.stdin.flush()
+    time.sleep(1)
+    process.stdin.write("load\n")
+    process.stdin.flush()
+    time.sleep(1)
+    process.stdin.write("delete breakpoints\n")
+    process.stdin.flush()
+
+    #Read until we see (gdb) prompt or timeout
+    start_time = time.time()
+    output_lines = []
+    while time.time() - start_time < 5:
+        line = process.stdout.readline()
+        if not line:
+            break
+        output_lines.append(line)
+        if "(gdb)" in line:
+            break
+    return "".join(output_lines)
+
 def run_multiple_scripts(scripts):
-    server = start_gdb_server()
     """Run multiple .gdb scripts in a single GDB session"""
     cmd = [GDB_PATH, "-batch", "-cd", TC_FOLDER]
     for script in scripts:
@@ -105,9 +180,6 @@ def run_multiple_scripts(scripts):
     print("=== GDB Output ===")
     print(output)
     print("==================\n")
-    server.terminate()
-    server.wait()
-    time.sleep(2)
     return output
 
 def load_program():
@@ -119,10 +191,12 @@ def load_program():
 
 #Output #TP, Variables Names, Expected Values, Receive Values, Result, Error Message
 
-def test_procedure(test_number, variables_name_list , expected_values_list, scripts_list):
+def test_procedure(process, test_number, variables_name_list , expected_values_list, scripts_list):
     output = [test_number, variables_name_list, expected_values_list, None, None, None]
     print(f"\n====================================TP-{test_number}====================================\n")
-    out = run_multiple_scripts(scripts_list)
+    out = run_scripts(process, scripts_list)
+
+    
     values = []
     for x in range(len(variables_name_list)):
         values.append(parse_gdb_value(out, variables_name_list[x]))
@@ -137,48 +211,168 @@ def test_procedure(test_number, variables_name_list , expected_values_list, scri
             break
     return output
 
-def tp001():
-    output = test_procedure(1, ["systemState"], [0], ["init.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
+def tp001(process):
+    output = test_procedure(process, 1, [SystemState], [0], [main_while])
     return output
 
-def tp002():
-    output = test_procedure(2, ["(LED.pGPIOx.ODR >> 5) & 0b1"], [0], ["init.gdb", "main_while.gdb","data.gdb", "disconnect.gdb"])
+def tp002(process):
+    output = test_procedure(process, 2, [Led], [0], [main_while])
     return output
 
-def tp004():
-    output = test_procedure(4, ["systemState"], [0], ["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button1.gdb", "data.gdb", "disconnect.gdb"])
+def tp003(process):
+    output = test_procedure(process, 3, [SystemState, Led], [0,0], [main_while, button1, button1])
     return output
 
-def tp005():
-    output = test_procedure(5, ["systemState"], [1], ["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "data.gdb", "disconnect.gdb"])
+def tp004(process):
+    output = test_procedure(process, 4, [SystemState, Led], [0, 0], [main_while, button1, button2, button1])
     return output
 
-def tp008():
-    output = test_procedure(8, ["systemState"], [1], ["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "button2.gdb", "data.gdb", "disconnect.gdb"])
+def tp005(process):
+    output = test_procedure(process, 5, [SystemState, Led], [1,1], [main_while, button1])
     return output
 
-def tp009():
-    output = test_procedure(9, ["systemState", "(LED.pGPIOx.ODR >> 5) & 0b1"], [3, 0], ["init.gdb", "main_while.gdb", "button1.gdb", "button2.gdb", "heartbeat.gdb", "heartbeat.gdb", "data.gdb", "disconnect.gdb"])
+def tp006(process):
+    output = test_procedure(process, 6, [SystemState, Led], [1,1], [main_while, button1])
     return output
 
-def tp023():
-    cmd_command('01')
-    output = test_procedure(23, ["systemState"], [1], ["init.gdb", "heartbeat.gdb", "command.gdb", "main_while.gdb", "data.gdb", "disconnect.gdb"])
+def tp007(process):
+    output = test_procedure(process, 7, [SystemState, Led], [1,1], [main_while, button1, button2, button2])
     return output
 
-lTPs = [tp001, tp002, tp004, tp005, tp008, tp009, tp023]
+def tp008(process):
+    output = test_procedure(process, 8, [SystemState, Led], [1,1], [main_while, button1, button2, button2])
+    return output
+
+def tp009(process):
+    output = test_procedure(process, 9, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    return output
+
+def tp010(process):
+    output = test_procedure(process, 10, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    return output
+
+#TO-DO
+def tp011(process):
+    output = test_procedure(process, 11, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    return output
+
+#TO-DO
+def tp012(process):
+    output = test_procedure(process, 12, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    return output
+
+#TO-DO
+def tp013(process):
+    output = test_procedure(process, 11, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    return output
+
+def tp014(process):
+    output = test_procedure(process, 14, [ElapsedTIme], [0], [main_while])
+    return output
+
+#TO-DO
+def tp015(process):
+    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    return output
+
+#TO-DO
+def tp016(process):
+    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    return output
+
+#TO-DO
+def tp017(process):
+    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    return output
+
+def tp018(process):
+    output = test_procedure(process, 18, [TelemetryStatus], [0], [main_while])
+    return output
+
+#TO-DO
+def tp019(process):
+    output = test_procedure(process, 19, [TelemetryStatus], [0], [main_while])
+    return output
+
+#TO-DO
+def tp020(process):
+    output = test_procedure(process, 20, [TelemetryStatus], [0], [main_while])
+    return output
+
+#TO-DO
+def tp021(process):
+    output = test_procedure(process, 21, [TelemetryStatus], [0], [main_while])
+    return output
+
+#TO-DO
+def tp022(process):
+    output = test_procedure(process, 21, [TelemetryStatus], [0], [main_while])
+    return output
+
+def tp023(process):
+    cmd_command(SystemDisable)
+    output = test_procedure(process, 23, [SystemState], [0], [heartbeat, wait_command, main_while])
+    return output
+
+def tp024(process):
+    cmd_command(SystemEnable)
+    output = test_procedure(process, 24, [SystemState], [1], [button1, heartbeat, wait_command, main_while])
+    return output
+
+def tp025(process):
+    cmd_command(SystemEnable)
+    output = test_procedure(process, 25, [SystemState], [1], [heartbeat, wait_command, main_while])
+    return output
+
+def tp026(process):
+    cmd_command(SystemDisable)
+    output = test_procedure(process, 26, [SystemState], [0], [button1, heartbeat, wait_command, main_while])
+    return output
+
+def tp027(process):
+    cmd_command(CloseLoop)
+    output = test_procedure(process, 27, [SystemState], [3], [button1, button2, heartbeat, wait_command, main_while])
+    return output
+
+def tp028(process):
+    cmd_command(OpenLoop)
+    output = test_procedure(process, 28, [SystemState], [1], [button1, heartbeat, wait_command, main_while])
+    return output
+
+def tp029(process):
+    cmd_command(OpenLoop)
+    output = test_procedure(process, 29, [SystemState], [1], [button1, button2, heartbeat, wait_command, main_while])
+    return output
+
+def tp030(process):
+    cmd_command(CloseLoop)
+    output = test_procedure(process, 29, [SystemState], [3], [button1, heartbeat, wait_command, main_while])
+    return output
+
+#tp024, tp025, tp026, tp027, tp028, tp029, tp030
+
+lTPs = [tp001, tp002, tp003, tp004, tp005, tp006, tp007, tp008, tp009, tp010, tp014, tp018, tp023]
 
 def testTPs(ltps):
+    server = start_gdb_server()
+    time.sleep(3)
+    client = start_gdb_client()
     nTPs = len(ltps)
     fTPs = 0
     coverage = []
     y = 0
     for x in ltps:
-        coverage.append(x())
+        coverage.append(x(client))
+        reset_board(client)
         if not coverage[y][4]:
             fTPs += 1
         y += 1
-        time.sleep(10)
+        time.sleep(1)
+
+    close_gdb_client(client)
+    server.terminate()
+    server.wait()
+    
     print("\n\n==============================================================================")
     print("===============================COVERAGE RESULT================================")
     print("==============================================================================")
