@@ -6,3 +6,5 @@ commands
     echo "TIM3 interrupt occurred (heartbeat tick)\n"
     continue
 end
+break Protocol_HeartBeat
+continue

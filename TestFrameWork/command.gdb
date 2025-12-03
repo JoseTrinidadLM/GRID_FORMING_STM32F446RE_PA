@@ -12,3 +12,6 @@ commands
     echo "Now in executeCommand()\n"
     finish
 end
+
+break Protocol_HeartBeat
+continue
