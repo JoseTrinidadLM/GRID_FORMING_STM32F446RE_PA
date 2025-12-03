@@ -1,0 +1,4 @@
+break main
+continue
+breakpoint TIM2_IRQHandler
+continue

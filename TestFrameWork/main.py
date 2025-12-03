@@ -15,11 +15,17 @@ ElapsedTIme = "ElapsedTime"
 TelemetryStatus = "telemetry_status"
 HeartBeatStatus = "heartbeat_status"
 
+#Breakpoints
 #GDB scripts actions (To form TPs)
 button1 = "button1.gdb"
 button2 = "button2.gdb"
 heartbeat = "heartbeat.gdb"
+sampling = "sampling.gdb"
+pwm = "sampling.gdb"
 wait_command = "command.gdb"
+
+#Track Breakpoints
+SamplingBreakpoint = "TIM2_IRQHandler" 
 
 #Commands
 
@@ -80,7 +86,7 @@ def start_gdb_client():
     process.stdin.flush()
     return process
 
-def run_scripts(process, scripts):
+def run_scripts(process, scripts, track_breakpoints):
     # Send scripts
     for script in scripts:
         with open(os.path.join(TC_FOLDER, script)) as f:
@@ -98,6 +104,7 @@ def run_scripts(process, scripts):
     process.stdin.flush()
 
     # Read output until marker or timeout
+    timestamps = {}
     output_lines = []
     start_time = time.time()
     timeout = 20  # Adjust based on script duration
@@ -108,16 +115,25 @@ def run_scripts(process, scripts):
             break
 
         # Read all available data without blocking
-        chunk = process.stdout.read(1)  # Read one char at a time
+        chunk = process.stdout.read(1)
         if chunk:
             output_lines.append(chunk)
-            if '---TP-END---' in ''.join(output_lines):
+            current_output = ''.join(output_lines)
+
+            # Check for breakpoints
+            if track_breakpoints:
+                for bp in track_breakpoints:
+                    if bp in current_output and bp not in timestamps:
+                        timestamps[bp] = time.time()
+
+            if '---TP-END---' in current_output:
                 print("Found End Marker")
                 break
+
         else:
             time.sleep(0.1)  # Avoid busy loop
 
-    return ''.join(output_lines)
+    return ''.join(output_lines), timestamps
 
 def close_gdb_client(process):
     process.stdin.write("disconnect\nquit\n")
@@ -191,24 +207,34 @@ def load_program():
 
 #Output #TP, Variables Names, Expected Values, Receive Values, Result, Error Message
 
-def test_procedure(process, test_number, variables_name_list , expected_values_list, scripts_list):
+def test_procedure(process, test_number, variables_name_list , expected_values_list, track_breakpoints, expected_time_breakpoints, scripts_list):
     output = [test_number, variables_name_list, expected_values_list, None, None, None]
     print(f"\n====================================TP-{test_number}====================================\n")
-    out = run_scripts(process, scripts_list)
+    out, timestamps = run_scripts(process, scripts_list, track_breakpoints)
 
     
     values = []
-    for x in range(len(variables_name_list)):
-        values.append(parse_gdb_value(out, variables_name_list[x]))
+    if variables_name_list:
+        for x in range(len(variables_name_list)):
+            values.append(parse_gdb_value(out, variables_name_list[x]))
+    if timestamps:
+        for x in range(len(timestamps)):
+            values.append(timestamps[x])
     output[3] = values
-    output[4] = False
-
-    for x in range(len(variables_name_list)):
-        if output[3][x] == str(expected_values_list[x]):
-            output[4] = True
-        else:
-            output[4] = False
-            break
+    output[4] = True
+    
+    if variables_name_list:
+        for x in range(len(variables_name_list)):
+            if not output[3][x] == str(expected_values_list[x]):
+                output[4] = False
+                break
+    if timestamps:
+        for x in range(len(timestamps)):
+            if not output[3][range(len(variables_name_list))+x] == str(expected_time_breakpoints[x]):
+                output[4] = False
+                break
+    output[1].append(track_breakpoints)
+    output[2].append(expected_time_breakpoints)
     return output
 
 def tp001(process):
@@ -248,12 +274,12 @@ def tp009(process):
     return output
 
 def tp010(process):
-    output = test_procedure(process, 10, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 10, [SystemState, Led], [3, 0], [], [], [main_while, button1, button2, heartbeat, heartbeat])
     return output
 
 #TO-DO
 def tp011(process):
-    output = test_procedure(process, 11, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 11, [], [], [], [], [main_while, button1, button2, main_while])
     return output
 
 #TO-DO
@@ -349,7 +375,7 @@ def tp030(process):
     output = test_procedure(process, 29, [SystemState], [3], [main_while, button1, heartbeat, wait_command, main_while])
     return output
 
-lTPs = [tp024, tp025, tp026, tp027, tp028, tp029, tp030]
+lTPs = [tp010]
 
 def testTPs(ltps):
     server = start_gdb_server()
@@ -361,7 +387,7 @@ def testTPs(ltps):
     y = 0
     for x in ltps:
         coverage.append(x(client))
-        reset_board(client)
+        #reset_board(client)
         if not coverage[y][4]:
             fTPs += 1
         y += 1
