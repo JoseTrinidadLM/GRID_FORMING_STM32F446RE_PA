@@ -238,39 +238,39 @@ def test_procedure(process, test_number, variables_name_list , expected_values_l
     return output
 
 def tp001(process):
-    output = test_procedure(process, 1, [SystemState], [0], [main_while])
+    output = test_procedure(process, 1, [SystemState], [0], [], [], [main_while])
     return output
 
 def tp002(process):
-    output = test_procedure(process, 2, [Led], [0], [main_while])
+    output = test_procedure(process, 2, [Led], [0], [], [], [main_while])
     return output
 
 def tp003(process):
-    output = test_procedure(process, 3, [SystemState, Led], [0,0], [main_while, button1, button1])
+    output = test_procedure(process, 3, [SystemState, Led], [0,0], [], [], [main_while, button1, button1])
     return output
 
 def tp004(process):
-    output = test_procedure(process, 4, [SystemState, Led], [0, 0], [main_while, button1, button2, button1])
+    output = test_procedure(process, 4, [SystemState, Led], [0, 0], [], [], [main_while, button1, button2, button1])
     return output
 
 def tp005(process):
-    output = test_procedure(process, 5, [SystemState, Led], [1,1], [main_while, button1])
+    output = test_procedure(process, 5, [SystemState, Led], [1,1], [], [], [main_while, button1])
     return output
 
 def tp006(process):
-    output = test_procedure(process, 6, [SystemState, Led], [1,1], [main_while, button1])
+    output = test_procedure(process, 6, [SystemState, Led], [1,1], [], [], [main_while, button1])
     return output
 
 def tp007(process):
-    output = test_procedure(process, 7, [SystemState, Led], [1,1], [main_while, button1, button2, button2])
+    output = test_procedure(process, 7, [SystemState, Led], [1,1], [], [], [main_while, button1, button2, button2])
     return output
 
 def tp008(process):
-    output = test_procedure(process, 8, [SystemState, Led], [1,1], [main_while, button1, button2, button2])
+    output = test_procedure(process, 8, [SystemState, Led], [1,1], [], [], [main_while, button1, button2, button2])
     return output
 
 def tp009(process):
-    output = test_procedure(process, 9, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 9, [SystemState, Led], [3, 0], [], [], [main_while, button1, button2, heartbeat, heartbeat])
     return output
 
 def tp010(process):
@@ -279,103 +279,103 @@ def tp010(process):
 
 #TO-DO
 def tp011(process):
-    output = test_procedure(process, 11, [], [], [], [], [main_while, button1, button2, main_while])
+    output = test_procedure(process, 11, [], [], [SamplingBreakpoint], [0.0001041], [main_while, button1, button2, sampling, sampling])
     return output
 
 #TO-DO
 def tp012(process):
-    output = test_procedure(process, 12, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 12, [SystemState, Led], [3, 0], [], [], [main_while, button1, button2, heartbeat, heartbeat])
     return output
 
 #TO-DO
 def tp013(process):
-    output = test_procedure(process, 11, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 11, [SystemState, Led], [3, 0], [], [], [main_while, button1, button2, heartbeat, heartbeat])
     return output
 
 def tp014(process):
-    output = test_procedure(process, 14, [ElapsedTIme], [0], [main_while])
+    output = test_procedure(process, 14, [ElapsedTIme], [0], [], [], [main_while])
     return output
 
 #TO-DO
 def tp015(process):
-    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [], [], [main_while, button1, button2, heartbeat, heartbeat])
     return output
 
 #TO-DO
 def tp016(process):
-    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [], [], [main_while, button1, button2, heartbeat, heartbeat])
     return output
 
 #TO-DO
 def tp017(process):
-    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [main_while, button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 15, [SystemState, Led], [3, 0], [], [], [main_while, button1, button2, heartbeat, heartbeat])
     return output
 
 def tp018(process):
-    output = test_procedure(process, 18, [TelemetryStatus], [0], [main_while])
+    output = test_procedure(process, 18, [TelemetryStatus], [0], [], [], [main_while])
     return output
 
 #TO-DO
 def tp019(process):
-    output = test_procedure(process, 19, [TelemetryStatus], [0], [main_while])
+    output = test_procedure(process, 19, [TelemetryStatus], [0], [], [], [main_while])
     return output
 
 #TO-DO
 def tp020(process):
-    output = test_procedure(process, 20, [TelemetryStatus], [0], [main_while])
+    output = test_procedure(process, 20, [TelemetryStatus], [0], [], [], [main_while])
     return output
 
 #TO-DO
 def tp021(process):
-    output = test_procedure(process, 21, [TelemetryStatus], [0], [main_while])
+    output = test_procedure(process, 21, [TelemetryStatus], [0], [], [], [main_while])
     return output
 
 #TO-DO
 def tp022(process):
-    output = test_procedure(process, 21, [TelemetryStatus], [0], [main_while])
+    output = test_procedure(process, 21, [TelemetryStatus], [0], [], [], [main_while])
     return output
 
 def tp023(process):
     cmd_command(SystemDisable)
-    output = test_procedure(process, 23, [SystemState], [0], [main_while, heartbeat, wait_command, main_while])
+    output = test_procedure(process, 23, [SystemState], [0], [], [], [main_while, heartbeat, wait_command, main_while])
     return output
 
 def tp024(process):
     cmd_command(SystemEnable)
-    output = test_procedure(process, 24, [SystemState], [1], [main_while, button1, heartbeat, wait_command, main_while])
+    output = test_procedure(process, 24, [SystemState], [1], [], [], [main_while, button1, heartbeat, wait_command, main_while])
     return output
 
 def tp025(process):
     cmd_command(SystemEnable)
-    output = test_procedure(process, 25, [SystemState], [1], [main_while, heartbeat, wait_command, main_while])
+    output = test_procedure(process, 25, [SystemState], [1], [], [], [main_while, heartbeat, wait_command, main_while])
     return output
 
 def tp026(process):
     cmd_command(SystemDisable)
-    output = test_procedure(process, 26, [SystemState], [0], [main_while, button1, heartbeat, wait_command, main_while])
+    output = test_procedure(process, 26, [SystemState], [0], [], [], [main_while, button1, heartbeat, wait_command, main_while])
     return output
 
 def tp027(process):
     cmd_command(CloseLoop)
-    output = test_procedure(process, 27, [SystemState], [3], [main_while, button1, button2, heartbeat, wait_command, main_while])
+    output = test_procedure(process, 27, [SystemState], [3], [], [], [main_while, button1, button2, heartbeat, wait_command, main_while])
     return output
 
 def tp028(process):
     cmd_command(OpenLoop)
-    output = test_procedure(process, 28, [SystemState], [1], [main_while, button1, heartbeat, wait_command, main_while])
+    output = test_procedure(process, 28, [SystemState], [1], [], [], [main_while, button1, heartbeat, wait_command, main_while])
     return output
 
 def tp029(process):
     cmd_command(OpenLoop)
-    output = test_procedure(process, 29, [SystemState], [1], [main_while, button1, button2, heartbeat, wait_command, main_while])
+    output = test_procedure(process, 29, [SystemState], [1], [], [], [main_while, button1, button2, heartbeat, wait_command, main_while])
     return output
 
 def tp030(process):
     cmd_command(CloseLoop)
-    output = test_procedure(process, 29, [SystemState], [3], [main_while, button1, heartbeat, wait_command, main_while])
+    output = test_procedure(process, 29, [SystemState], [3], [], [], [main_while, button1, heartbeat, wait_command, main_while])
     return output
 
-lTPs = [tp010]
+lTPs = [tp001, tp002, tp003, tp004, tp005, tp006, tp007, tp008, tp009, tp010, tp011]
 
 def testTPs(ltps):
     server = start_gdb_server()
@@ -387,7 +387,7 @@ def testTPs(ltps):
     y = 0
     for x in ltps:
         coverage.append(x(client))
-        #reset_board(client)
+        reset_board(client)
         if not coverage[y][4]:
             fTPs += 1
         y += 1
