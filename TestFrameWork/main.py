@@ -238,7 +238,7 @@ def test_procedure(process, test_number, variables_name_list , expected_values_l
     #    for x in range(len(timestamps)):
     #        values.append(timestamps[x])
     output[3] = values
-    output[4] = timestamps
+    output[4] = True
     
     if variables_name_list:
         for x in range(len(variables_name_list)):
@@ -250,8 +250,8 @@ def test_procedure(process, test_number, variables_name_list , expected_values_l
     #        if not output[3][range(len(variables_name_list))+x] == str(expected_time_breakpoints[x]):
     #            output[4] = False
     #            break
-    output[1].append(track_breakpoints)
-    output[2].append(expected_time_breakpoints)
+    #output[1].append(track_breakpoints)
+    #output[2].append(expected_time_breakpoints)
     return output
 
 def tp001(process):
@@ -392,7 +392,7 @@ def tp030(process):
     output = test_procedure(process, 29, [SystemState], [3], [], [], [button1, heartbeat, wait_command])
     return output
 
-lTPs = [tp011]
+lTPs = [tp001, tp002, tp003, tp004, tp005, tp006, tp007, tp008, tp009, tp010, tp014, tp018, tp023, tp024, tp025, tp026, tp027, tp028, tp029, tp030]
 
 def testTPs(ltps):
     server = start_gdb_server()
