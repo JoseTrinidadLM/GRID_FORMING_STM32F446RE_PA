@@ -1,3 +1,6 @@
+display $tim2_hits
+print $tim2_hits
+
 display /d systemState
 print /d systemState
 
