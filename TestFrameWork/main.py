@@ -22,7 +22,7 @@ button1 = "button1.gdb"
 button2 = "button2.gdb"
 heartbeat = "heartbeat.gdb"
 sampling = "sampling.gdb"
-pwm = "sampling.gdb"
+pwm = "pwm.gdb"
 wait_command = "command.gdb"
 
 #Track Breakpoints
