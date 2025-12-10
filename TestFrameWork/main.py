@@ -287,11 +287,11 @@ def tp008(process):
     return output
 
 def tp009(process):
-    output = test_procedure(process, 9, [SystemState, Led], [3, 0], [], [], [button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 9, [SystemState, Led], [3, 0], [], [], [button1, main_while, button2, main_while, heartbeat, main_while, heartbeat])
     return output
 
 def tp010(process):
-    output = test_procedure(process, 10, [SystemState, Led], [3, 0], [], [], [button1, button2, heartbeat, heartbeat])
+    output = test_procedure(process, 10, [SystemState, Led], [3, 0], [], [], [ button1, main_while,  button2, main_while, heartbeat, main_while, heartbeat])
     return output
 
 #TO-DO

@@ -65,7 +65,6 @@ def readTelemetry():
 
 def command(command):
     while(True):
-        print("Checking if port is open to send command\n")
         if(ser.is_open):
             print("Testing Command: System " +command+ "\n")
             s = b'$'+b'X'+bytes.fromhex(command)
@@ -106,4 +105,5 @@ if __name__ == "__main__":
     usartConfig()
     command('01')
     time.sleep(2)
-    testHeartBeat()
+    s = readHeartBeat()
+    print("Status: "+str(s)+'\n')
